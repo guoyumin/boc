@@ -9,6 +9,7 @@ import { requireAdmin } from "@/lib/auth";
 import { formatMd } from "@/lib/dates";
 import { bool, errMsg, num, optStr, str, withMsg } from "@/lib/form";
 import { logAudit } from "@/lib/audit";
+import { removeEventDir } from "@/lib/storage";
 
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const STATUSES = ["planned", "done", "cancelled"];
@@ -87,7 +88,8 @@ export async function deleteEvent(fd: FormData): Promise<void> {
     redirect(withMsg(`/events/${id}`, "请在确认框里输入「删除」两个字"));
   }
   db.update(polls).set({ status: "closed", eventId: null }).where(eq(polls.eventId, id)).run();
-  db.delete(events).where(eq(events.id, id)).run();
+  db.delete(events).where(eq(events.id, id)).run(); // event_files 由外键级联删掉
+  await removeEventDir(id); // 磁盘上的图片和 JSON 跟着走
   logAudit(admin.id, "event.delete", "event", id);
   revalidatePath("/events");
   revalidatePath("/");

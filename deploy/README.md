@@ -23,7 +23,7 @@ git clone https://github.com/guoyumin/boc.git /opt/boc
 cd /opt/boc/deploy
 cp .env.example .env
 $EDITOR .env          # 至少改 OWNER_PASSWORD
-mkdir -p data         # SQLite 和上传目录挂在这里
+mkdir -p data/uploads # SQLite 和上传的图片 / 剧本都在这里
 sudo chown -R 1000:1000 data   # 容器内以 node(uid 1000) 运行，否则报 unable to open database file
 ```
 
@@ -71,7 +71,7 @@ cd deploy && docker compose up -d --build
 所有数据都在 `/opt/boc/deploy/data/`：
 
 - `boc.db`（外加 `-wal` / `-shm`）
-- `uploads/`（文件上传功能在 MVP 阶段补充）
+- `uploads/{活动 id}/{uuid}.{jpg|png|webp|json}`，图片另有一张 `.thumb.jpg` 缩略图
 
 最简单的备份：停容器 → `tar czf boc-$(date +%F).tgz data` → 传走。
 不停容器的话用 SQLite 的在线备份：

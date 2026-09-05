@@ -3,6 +3,7 @@ import { db } from "@/db";
 import {
   achievementClaims,
   achievements,
+  eventFiles,
   eventSignups,
   events,
   gamePlayers,
@@ -209,6 +210,17 @@ export function expandGame(g: Game): GameView {
 export function getGame(id: number): GameView | null {
   const g = db.select().from(games).where(eq(games.id, id)).get();
   return g ? expandGame(g) : null;
+}
+
+export type EventFile = typeof eventFiles.$inferSelect;
+
+export function getEventFiles(eventId: number): EventFile[] {
+  return db
+    .select()
+    .from(eventFiles)
+    .where(eq(eventFiles.eventId, eventId))
+    .orderBy(eventFiles.kind, eventFiles.id)
+    .all();
 }
 
 export function recentScripts(limit = 20): string[] {

@@ -8,7 +8,9 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
-RUN npm ci
+# sharp 走 linux-x64/arm64 的预编译包（bookworm 是 glibc，装得上）；
+# better-sqlite3 万一没有预编译包才需要 python3/make/g++。
+RUN npm ci --include=optional
 
 FROM node:22-bookworm-slim AS builder
 WORKDIR /app
@@ -32,7 +34,8 @@ COPY --from=builder /app/.next/static ./.next/static
 # 迁移文件要进镜像：容器启动时 drizzle 会跑 ./drizzle 里的迁移
 COPY --from=builder /app/drizzle ./drizzle
 
-RUN mkdir -p /data && chown -R node:node /data /app
+# /data/uploads 必须在启动前就存在且属主是 node，否则第一次上传会 EACCES
+RUN mkdir -p /data/uploads && chown -R node:node /data /app
 USER node
 EXPOSE 3000
 CMD ["node", "server.js"]

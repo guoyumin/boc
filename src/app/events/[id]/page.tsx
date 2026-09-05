@@ -7,6 +7,7 @@ import Flash from "@/components/Flash";
 import NicknameInput from "@/components/NicknameInput";
 import { deleteEvent, updateEvent } from "@/actions/events";
 import { createGame } from "@/actions/games";
+import { deleteEventFile, uploadEventFiles } from "@/actions/files";
 import { addAttendee, cancelSignup, removeSignup, selfSignup } from "@/actions/signups";
 import { getAdmin } from "@/lib/auth";
 import { formatDate, formatMd } from "@/lib/dates";
@@ -23,7 +24,15 @@ import {
   isPartial,
   isWalkIn,
 } from "@/lib/labels";
-import { claimsForEvent, getEvent, getGames, getSignups, recentScripts } from "@/lib/queries";
+import {
+  claimsForEvent,
+  getEvent,
+  getEventFiles,
+  getGames,
+  getSignups,
+  recentScripts,
+} from "@/lib/queries";
+import { readFileText } from "@/lib/storage";
 import type { Session } from "@/db/schema";
 
 export default async function EventDetailPage({
@@ -44,6 +53,22 @@ export default async function EventDetailPage({
   const games = getGames(eventId);
   const unlocked = claimsForEvent(eventId);
   const scripts = recentScripts();
+
+  const files = getEventFiles(eventId);
+  const images = files.filter((f) => f.kind === "board_image");
+  const jsons = files.filter((f) => f.kind === "script_json");
+  // 「复制 JSON」是客户端组件，内容要服务端读出来传过去。JSON 上限 1 MB，可以接受。
+  const jsonText = new Map<number, string>();
+  for (const f of jsons) {
+    try {
+      jsonText.set(f.id, await readFileText(f.storagePath));
+    } catch {
+      // 磁盘上文件没了：只是不显示「复制 JSON」，页面照常渲染
+    }
+  }
+  const scriptFileOfGame = new Map(
+    jsons.filter((f) => f.gameId != null).map((f) => [f.gameId as number, f]),
+  );
 
   const finished = isFinished(event.date, event.status);
   const sessionOptions = SESSION_OPTIONS.filter(
@@ -232,24 +257,32 @@ export default async function EventDetailPage({
           <p className="muted">还没有记录。谁说书谁来记一下。</p>
         ) : (
           <ul className="space-y-2">
-            {games.map((g) => (
-              <li key={g.id}>
-                <Link href={`/games/${g.id}`} className="block rounded-lg border border-stone-200 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-stone-800">
-                      第 {g.seq} 局 · {g.scriptName}
-                    </span>
-                    <span className={`badge ${GAME_RESULT_CLASS[g.result]}`}>
-                      {GAME_RESULT_LABEL[g.result]}
-                    </span>
-                  </div>
-                  <p className="muted mt-1">
-                    {SESSION_LABEL[g.session as Session]} · 说书人{" "}
-                    {g.storytellers.map((s) => s.name).join("、") || "未记录"} · {g.lineup.length} 人
-                  </p>
-                </Link>
-              </li>
-            ))}
+            {games.map((g) => {
+              const sf = scriptFileOfGame.get(g.id);
+              return (
+                <li key={g.id} className="rounded-lg border border-stone-200 p-3">
+                  <Link href={`/games/${g.id}`} className="block">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-stone-800">
+                        第 {g.seq} 局 · {g.scriptName}
+                      </span>
+                      <span className={`badge ${GAME_RESULT_CLASS[g.result]}`}>
+                        {GAME_RESULT_LABEL[g.result]}
+                      </span>
+                    </div>
+                    <p className="muted mt-1">
+                      {SESSION_LABEL[g.session as Session]} · 说书人{" "}
+                      {g.storytellers.map((s) => s.name).join("、") || "未记录"} · {g.lineup.length} 人
+                    </p>
+                  </Link>
+                  {sf && (
+                    <a href={`/files/${sf.id}`} download className="link mt-1 inline-block text-xs">
+                      📜 剧本文件：{sf.scriptName ?? sf.originalName}
+                    </a>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
 
@@ -300,12 +333,145 @@ export default async function EventDetailPage({
         </details>
       </section>
 
-      {/* 文件（MVP 再做） */}
+      {/* 文件 */}
       <section className="card">
-        <div className="card-title">📎 文件</div>
-        <p className="muted">
-          板子图片和剧本 JSON 的上传功能在 MVP 阶段补充。现在先在微信群里传。
-        </p>
+        <div className="card-title">📎 文件（{files.length}）</div>
+
+        {images.length === 0 && jsons.length === 0 && (
+          <p className="muted">
+            还没有文件。{admin ? "在下面上传板子图片或剧本 JSON。" : "等管理员上传板子图片和剧本。"}
+          </p>
+        )}
+
+        {images.length > 0 && (
+          <>
+            <p className="label">🖼 板子图片</p>
+            <ul className="grid grid-cols-3 gap-2">
+              {images.map((f) => (
+                <li key={f.id} className="space-y-1">
+                  <a href={`/files/${f.id}`} target="_blank" rel="noreferrer" className="block">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`/files/${f.id}?thumb=1`}
+                      alt={f.originalName}
+                      loading="lazy"
+                      className="aspect-square w-full rounded-lg border border-stone-200 object-cover"
+                    />
+                  </a>
+                  <p className="truncate text-xs text-stone-500">
+                    {f.session ? `${SESSION_LABEL[f.session as Session]} · ` : ""}
+                    {f.originalName}
+                  </p>
+                  {admin && (
+                    <form action={deleteEventFile}>
+                      <input type="hidden" name="fileId" value={f.id} />
+                      <ConfirmSubmit
+                        message={`删除图片「${f.originalName}」？不能恢复。`}
+                        className="btn btn-sm btn-danger w-full"
+                      >
+                        删除
+                      </ConfirmSubmit>
+                    </form>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {jsons.length > 0 && (
+          <>
+            <p className="label mt-4">📜 剧本 JSON</p>
+            <ul className="space-y-2">
+              {jsons.map((f) => (
+                <li key={f.id} className="rounded-lg border border-stone-200 p-3">
+                  <p className="font-medium text-stone-800">
+                    {f.scriptName ?? f.originalName}
+                    {f.session && (
+                      <span className="badge badge-plain ml-2">
+                        {SESSION_LABEL[f.session as Session]}
+                      </span>
+                    )}
+                  </p>
+                  <p className="muted mt-0.5">
+                    {[
+                      f.scriptAuthor ? `作者 ${f.scriptAuthor}` : null,
+                      f.roleCount != null ? `${f.roleCount} 个角色` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ") || "没有解析到剧本信息"}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-start gap-2">
+                    <a href={`/files/${f.id}`} className="btn btn-sm" download>
+                      下载
+                    </a>
+                    {jsonText.get(f.id) && (
+                      <CopyButton
+                        text={jsonText.get(f.id)!}
+                        label="复制 JSON"
+                        className="btn btn-sm"
+                      />
+                    )}
+                    {admin && (
+                      <form action={deleteEventFile}>
+                        <input type="hidden" name="fileId" value={f.id} />
+                        <ConfirmSubmit message={`删除剧本「${f.scriptName ?? f.originalName}」？`}>
+                          删除
+                        </ConfirmSubmit>
+                      </form>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
+        {admin && (
+          <details className="mt-4 rounded-lg border border-brand/30 p-3">
+            <summary className="cursor-pointer text-sm font-medium text-brand">⬆️ 上传文件</summary>
+            <form action={uploadEventFiles} className="mt-3 space-y-3">
+              <input type="hidden" name="eventId" value={event.id} />
+              <div>
+                <label className="label">选择文件（可多选）</label>
+                <input
+                  className="input"
+                  type="file"
+                  name="files"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp,application/json,.json"
+                />
+                <p className="muted mt-1">
+                  图片 jpg / png / webp ≤ 10 MB，剧本 JSON ≤ 1 MB。类型按文件内容自动判断。
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">场次（可选）</label>
+                  <select className="input" name="session" defaultValue="">
+                    <option value="">不限</option>
+                    {event.hasAfternoon === 1 && <option value="afternoon">下午</option>}
+                    {event.hasEvening === 1 && <option value="evening">晚上</option>}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">关联到某一局（可选）</label>
+                  <select className="input" name="gameId" defaultValue="">
+                    <option value="">不关联</option>
+                    {games.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        第 {g.seq} 局 · {g.scriptName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary btn-block">
+                上传
+              </button>
+            </form>
+          </details>
+        )}
       </section>
 
       {/* 本次解锁的成就 */}
