@@ -202,7 +202,21 @@ erDiagram
 
 **event_files**：`event_id`、`game_id`（null）、`kind`（`board_image` / `script_json` / `game_log`）、`session`、`original_name`、`storage_path`、`thumb_path`、`mime`、`size`、`script_name`、`script_author`、`role_count`、`uploaded_by`（admin）。
 
-**achievements**：`name`（unique）、`description`、`icon`、`category`、`rarity`、`hidden`、`sort_order`、`active`。
+**achievements**
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| name | text unique | 成就名称 |
+| description | text | 达成条件 |
+| icon | text | emoji，默认跟所属角色走 |
+| role | text | 角色名，如 `通用` / `厨师` / `麻脸巫婆`，与 `docs/achievements.tsv` 一致 |
+| stars | int | 稀有度 1–5，**星数即积分** |
+| script_name | text null | 剧本专属成就的剧本名；null = 全局成就 |
+| hidden / sort_order / active | | 隐藏、排序（成就墙内顺序 = 清单顺序）、是否上架 |
+
+数据源是 `docs/achievements.tsv`（唯一数据源，从飞书导出）。
+`npm run gen:achievements` 读它生成 `src/db/achievements-data.ts`；
+`seedAchievements()` 在空表时把 55 条写进去，不受 `SEED_DEMO` 控制（这是正式数据）。
 
 **achievement_claims**（`unique(achievement_id, player_id)`）
 
@@ -212,7 +226,8 @@ erDiagram
 | note | text null | |
 | status | text | `pending` / `confirmed` / `rejected` |
 | reviewed_by / reviewed_at / review_note | | |
-| unlocked_at | text | 展示时间 |
+| unlocked_at | text | 展示时间（`YYYY-MM-DD` 或 ISO 时间戳） |
+| unlocked_at_text | text null | 日期不精确时显示这个（如「已不可考」），有值时优先于 `unlocked_at` |
 
 **audit_logs**、**settings** 同前。
 
@@ -235,7 +250,7 @@ boc/
 │   │   ├── admin/             # 管理后台：users、requests、players、achievements、settings
 │   │   ├── files/[id]/route.ts   # 鉴权后返回文件
 │   │   └── layout.tsx
-│   ├── components/            # UI 组件（shadcn 在 components/ui）
+│   ├── components/            # UI 组件（不用组件库，Tailwind + globals.css 里的 .btn/.card/...）
 │   ├── db/
 │   │   ├── schema.ts          # Drizzle schema
 │   │   ├── index.ts           # 连接 + WAL + 启动迁移
@@ -245,11 +260,10 @@ boc/
 │   │   ├── storage.ts         # 文件保存 / 缩略图 / 删除
 │   │   ├── script-json.ts     # 剧本 JSON 校验与解析
 │   │   ├── jielong.ts         # 接龙文本解析（EVT-07）
-│   │   └── validators.ts      # zod schemas
+│   │   └── labels.ts          # 中文映射、角色 emoji、星级工具
 │   └── actions/               # Server Actions，按领域分文件
 ├── scripts/
-│   ├── seed.ts                # 创建 owner、示例成就
-│   └── backup.sh              # 备份脚本
+│   └── gen-achievements.ts    # docs/achievements.tsv → src/db/achievements-data.ts
 ├── deploy/
 │   ├── docker-compose.yml
 │   ├── Caddyfile
@@ -268,14 +282,28 @@ boc/
 - **owner 初始化**：启动时 `admins` 为空则用 `OWNER_USERNAME` / `OWNER_PASSWORD` 创建。
 - **滥用防护**：公开写接口按 IP 做简单内存限流（每分钟 30 次）；昵称长度 ≤ 20；管理员可改删任何记录。
 
-## 7. 文件存储
+## 7. 文件存储（已实现）
 
-- 根目录 `/data/uploads`，挂载为 Docker 卷。路径 `{event_id}/{uuid}.{ext}`，不使用用户提供的文件名做路径。
-- 上传校验：按 magic bytes 判断真实类型（不信任扩展名）；图片 ≤ 10 MB，JSON ≤ 1 MB，log ≤ 2 MB。
-- 图片：用 sharp 重新编码（去 EXIF、限制最长边 2500 px）并生成 400 px 缩略图。
-- JSON：解析后要求顶层为数组；若首元素 `id === "_meta"` 则读取 `name` / `author`；其余元素为字符串或含 `id` 的对象，计数为 `role_count`。原文件原样保存。
-- 访问：`GET /files/{id}?thumb=1` 由应用鉴权后 `createReadStream` 返回，设置 `Content-Disposition: inline`（图片）或 `attachment`（JSON）。
-- 删除：先删数据库记录，再删磁盘文件；孤儿文件由备份脚本顺带清理。
+代码：`src/lib/storage.ts`（落盘 / 缩略图 / 删除）、`src/lib/script-json.ts`（剧本 JSON 解析，纯函数，有单测）、
+`src/actions/files.ts`（上传 / 删除的 Server Action）、`src/app/files/[id]/route.ts`（取文件）。
+
+- **权限**：只有管理员能上传和删除。站点是公开的，不能开匿名上传端点；未登录看活动页时只展示已有文件。
+- **根目录** 取 `UPLOAD_DIR`（默认 `./data/uploads`，容器里是 `/data/uploads`，挂 Docker 卷）。
+  路径 `{event_id}/{uuid}.{ext}`，**绝不用用户提供的文件名做路径**；原始文件名只存数据库，下载时当 filename 用。
+  `absPath()` 会挡住任何试图跳出根目录的相对路径。
+- **类型判断** 按 magic bytes（FFD8FF / PNG 8 字节签名 / RIFF…WEBP），认不出图片再看内容是不是 JSON 文本；
+  完全不信任扩展名和浏览器给的 MIME。图片 ≤ 10 MB，JSON ≤ 1 MB，超限给中文错误。
+- **图片**：sharp 重新编码（顺带去掉 EXIF）、`fit: inside` 限制最长边 2500 px，另存一张 400 px 的 `.thumb.jpg`。
+- **JSON**：要求顶层为数组；首元素若是 `id === "_meta"` 的对象则读 `name` / `author`（`bootlegger` / `firstNight`
+  等多余字段容忍），其余元素为字符串或含 `id` 的对象，计数为 `role_count`。**原文件原样保存，不重写**。
+- **关联到局**：上传时可以选本活动的某一局；剧本 JSON 关联时会回填 `games.script_file_id`，活动页在那一局旁边显示剧本文件链接。
+- **访问**：`GET /files/{id}`（`?thumb=1` 取缩略图）从数据库查元数据后 `createReadStream` 流式返回；
+  图片 `Content-Disposition: inline`，JSON 用 `attachment` 并带 UTF-8 编码的原始文件名；
+  内容写进去就不变，所以 `Cache-Control: public, max-age=31536000, immutable`。
+- **删除**：先删数据库记录（顺带清掉引用它的 `games.script_file_id`），再删磁盘文件（原图 + 缩略图）；
+  磁盘上没有不报错。删整个活动时连它的上传目录一起删。
+- **body 限制**：上传走 Server Action，Next 默认只收 1 MB，所以 `next.config.ts` 里
+  `experimental.serverActions.bodySizeLimit = "32mb"`，nginx 的 `client_max_body_size` 也是 32m，两处要一致。
 
 ---
 

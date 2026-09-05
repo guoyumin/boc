@@ -14,9 +14,10 @@
 npm run dev              # 开发；SEED_DEMO=1 npm run dev 载入演示数据
 npm run build            # 生产构建（output: standalone）
 npm run lint             # eslint
-npm test                 # vitest（接龙解析、日期）
+npm test                 # vitest（接龙解析、剧本 JSON 解析）
 npx tsc --noEmit         # 类型检查
 npx drizzle-kit generate # 改完 schema 生成迁移
+npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 ```
 
 ## 目录
@@ -24,9 +25,10 @@ npx drizzle-kit generate # 改完 schema 生成迁移
 | 路径 | 内容 |
 |---|---|
 | `src/app/` | 页面。公开页 + `admin/` 后台 |
-| `src/actions/` | Server Actions，按领域分文件（polls / events / signups / games / achievements / admin / players） |
-| `src/lib/` | `auth` 会话、`players` 昵称匹配、`jielong` 接龙解析（纯函数）、`dates`、`labels` 中文映射、`queries` 读查询、`rate-limit`、`form` FormData 工具 |
-| `src/db/` | `schema.ts`（数据模型权威定义）、`index.ts`（连接 + 迁移 + seed）、`seed.ts` |
+| `src/actions/` | Server Actions，按领域分文件（polls / events / signups / games / achievements / files / admin / players） |
+| `src/lib/` | `auth` 会话、`players` 昵称匹配、`jielong` 接龙解析（纯函数）、`dates`、`labels` 中文映射与角色 emoji / 星级、`queries` 读查询、`storage` 上传落盘、`script-json` 剧本解析、`rate-limit`、`form` FormData 工具 |
+| `src/db/` | `schema.ts`（数据模型权威定义）、`index.ts`（连接 + 迁移 + seed）、`seed.ts`、`achievements-data.ts`（自动生成，别手改） |
+| `scripts/` | `gen-achievements.ts`：`docs/achievements.tsv` → `src/db/achievements-data.ts` |
 | `drizzle/` | 迁移文件，**要提交进 git** |
 | `deploy/` | compose、nginx site、部署说明 |
 
@@ -34,6 +36,14 @@ npx drizzle-kit generate # 改完 schema 生成迁移
 
 - **改了 `src/db/schema.ts` 一定要跑 `npx drizzle-kit generate` 并提交 `drizzle/` 下的新文件**，
   容器启动时会自动执行迁移。迁移只增不减，保持向前兼容。
+- **成就数据改 `docs/achievements.tsv` 后要跑 `npm run gen:achievements`**，并把生成的
+  `src/db/achievements-data.ts` 一起提交。TSV 是唯一数据源（用户从飞书导出覆盖），
+  生成的 TS 文件别手改；`seedAchievements()` 只在 `achievements` 表为空时写入，
+  已经跑过的库要重新导入得先清表。
+- 上传的文件在 `UPLOAD_DIR`（默认 `./data/uploads`），路径是 `{活动 id}/{uuid}.{ext}`，
+  永远不用用户给的文件名做路径。图片上传要过 sharp（去 EXIF + 缩略图），类型按 magic bytes 判断。
+  改上传大小上限时，`next.config.ts` 的 `serverActions.bodySizeLimit` 和 nginx 的
+  `client_max_body_size` 要一起改。
 - 每个管理类 Server Action 首行 `await requireAdmin()`（owner 专属的用 `requireOwner()`）。
   `src/proxy.ts` 只负责把没 cookie 的 `/admin/*` 弹到登录页，不是权限校验。
 - 公开写操作（报名、填时间、宣告成就、记录游戏）首行 `await assertWriteRate(...)`。
@@ -51,6 +61,10 @@ npx drizzle-kit generate # 改完 schema 生成迁移
 - 根 layout 里 `export const dynamic = "force-dynamic"`，全站按需渲染（都要读数据库）。
 - `next build` 会起多个 worker 同时打开 SQLite，所以 `src/db/index.ts` 里先设 `busy_timeout`
   再切 WAL，seed 用 `BEGIN IMMEDIATE` 事务串行化。
+- Turbopack 会对「路径来自环境变量」的 `fs` / `path` 调用报 *Dynamic filesystem access* 警告，
+  而它的代码框高亮器碰到中文注释会 panic，直接把 `next build` 打挂。`src/lib/storage.ts` 和
+  `src/db/index.ts` 里那些 `/* turbopackIgnore: true */` 就是为了这个，别删。
+- 空库时多个 build worker 会抢着跑迁移，`src/db/index.ts` 的 `migrateWithRetry()` 负责兜底重试。
 - eslint 的 `react-hooks/set-state-in-effect` 会拦 effect 里直接 setState：读 localStorage
   用 `src/components/useNickname.ts` 里的 `useSyncExternalStore` 封装。
 - 不装 UI 组件库。样式是 Tailwind v4 + `src/app/globals.css` 里的 `.btn/.card/.input/.badge`。
