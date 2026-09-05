@@ -24,3 +24,9 @@ data/
 *.log
 coverage/
 .turbo/
+
+# next.js
+next-env.d.ts
+
+# typescript
+*.tsbuildinfo

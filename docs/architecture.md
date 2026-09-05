@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 版本 | v0.1 草稿 |
+| 版本 | v0.2 |
 | 日期 | 2026-09-05 |
 | 对应需求 | [requirements.md](requirements.md) |
 
@@ -10,7 +10,7 @@
 
 ## 1. 选型结论
 
-**结论：VPS 上用 Docker Compose 跑一个 Next.js 全栈应用 + SQLite 数据库 + 本地文件存储，Caddy 做反向代理和自动 HTTPS，GitHub Actions 自动构建镜像并部署。**
+**结论：VPS 上用 Docker Compose 跑一个 Next.js 全栈应用 + SQLite 数据库 + 本地文件存储，复用宿主机现有 nginx 与 Cloudflare 证书做 HTTPS。**
 
 一句话理由：这是一个几十个人用、每周一次写入高峰的站点。单进程 + 单文件数据库完全够用，而且备份、迁移、回滚都是"复制一个目录"的事。你已经有 VPS 和域名，不需要再引入云服务。
 
@@ -55,19 +55,19 @@
 | 层 | 选择 | 版本 / 说明 |
 |---|---|---|
 | 语言 | TypeScript | strict 模式 |
-| 框架 | Next.js（App Router、Server Actions、standalone 输出） | 15.x |
-| UI | Tailwind CSS + shadcn/ui（Radix） | 移动端优先 |
+| 框架 | Next.js（App Router、Server Actions、standalone 输出） | 16.x |
+| UI | Tailwind CSS v4，自写少量组件 | 移动端优先 |
 | 表单校验 | zod | 前后端共用 schema |
 | ORM | Drizzle ORM + better-sqlite3 | 迁移文件入库，容器启动时自动执行 |
 | 数据库 | SQLite（WAL 模式） | 文件位于 `/data/boc.db` |
-| 认证 | 自实现：bcrypt 哈希 + 数据库会话表 + HTTP-only cookie | 不引入 Auth.js，需求只有用户名密码 |
+| 认证 | 仅管理员：bcrypt + 会话表 + HTTP-only cookie；玩家无账号 | 不引入 Auth.js |
 | 文件存储 | 本地磁盘 `/data/uploads/` | 通过应用路由鉴权后返回，不直接暴露目录 |
 | 图片处理 | sharp | 生成缩略图、去除 EXIF |
 | 测试 | Vitest（单元）+ Playwright（少量端到端） | |
 | 包管理 | pnpm | |
-| 反向代理 | Caddy | 自动申请 Let's Encrypt 证书 |
+| 反向代理 | 宿主机现有 nginx + Cloudflare Origin 证书 | 不新增 Caddy |
 | 容器 | Docker + Docker Compose | |
-| CI/CD | GitHub Actions → GHCR → SSH 部署 | |
+| CI/CD | 原型：VPS 上 git pull + compose build；之后 GitHub Actions → GHCR → SSH | |
 | 备份 | 每日 cron：`sqlite3 .backup` + `tar` uploads → rclone 到对象存储 | 备选 Litestream |
 
 ---
@@ -81,7 +81,7 @@ flowchart LR
     end
 
     subgraph VPS["VPS (Docker Compose)"]
-        Caddy[Caddy<br/>:443 TLS 终止<br/>boc.jiliguru.dev]
+        Nginx[宿主机 nginx<br/>:443 Cloudflare Origin 证书<br/>boc.example.com]
         App[Next.js app<br/>:3000<br/>页面 + Server Actions + 文件路由]
         Vol[(卷 /data<br/>boc.db<br/>uploads/)]
         Cron[backup cron<br/>每日 03:00]
@@ -92,7 +92,7 @@ flowchart LR
         OS[(对象存储 / 异地备份)]
     end
 
-    WX -- HTTPS --> Caddy --> App
+    WX -- HTTPS via Cloudflare --> Nginx --> App
     App <--> Vol
     Cron --> Vol
     Cron -- rclone --> OS
@@ -101,10 +101,10 @@ flowchart LR
 
 请求流程：
 
-1. Caddy 收到 HTTPS 请求，转发给应用容器。
-2. 应用的中间件读取会话 cookie，查会话表得到用户与角色；未登录跳转 `/login`。
+1. nginx 收到 HTTPS 请求，转发给 127.0.0.1:3100 的应用容器。
+2. 公开页面直接渲染；`/admin/*` 由中间件检查管理员会话。
 3. 页面在服务端渲染；写操作走 Server Actions，每个 action 内部再次校验权限。
-4. 文件访问走 `/files/[id]` 路由：校验登录 → 从数据库查文件元数据 → 读磁盘流式返回，带 `Cache-Control: private`。
+4. 文件访问走 `/files/[id]` 路由：从数据库查文件元数据 → 读磁盘流式返回。
 
 ---
 
@@ -114,142 +114,114 @@ flowchart LR
 
 ```mermaid
 erDiagram
-    users ||--o| players : "binds"
-    users ||--o{ sessions : "has"
-    users ||--o{ admin_requests : "submits"
-    players ||--o{ player_aliases : "has"
-    players ||--o{ event_attendance : "attends"
-    events ||--o{ event_attendance : "has"
+    admins ||--o{ admin_sessions : "has"
+    polls ||--o{ poll_responses : "has"
+    players ||--o{ poll_responses : "fills"
+    polls o|--o| events : "decides"
+    events ||--o{ event_signups : "has"
+    players ||--o{ event_signups : "signs up"
+    events ||--o{ games : "has"
+    games ||--o{ game_storytellers : "run by"
+    games ||--o{ game_players : "played by"
+    players ||--o{ game_storytellers : ""
+    players ||--o{ game_players : ""
     events ||--o{ event_files : "has"
-    achievements ||--o{ achievement_unlocks : "unlocked by"
-    players ||--o{ achievement_unlocks : "earns"
-    events o|--o{ achievement_unlocks : "context of"
-    users ||--o{ audit_logs : "performs"
+    games o|--o{ event_files : "uses"
+    achievements ||--o{ achievement_claims : "claimed"
+    players ||--o{ achievement_claims : "by"
 ```
 
 ### 4.2 表定义
 
 所有表都有 `id`（自增整数）、`created_at`、`updated_at`（ISO 8601 文本，UTC）。
 
-**users** 账号
+**admins** 管理员账号（玩家没有账号）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| username | text unique | 登录名，3–20 字符 |
-| display_name | text | 显示昵称 |
+| username | text unique | |
 | password_hash | text | bcrypt |
-| email | text null | 可选 |
-| role | text | `member` / `admin` / `owner` |
-| status | text | `active` / `disabled` |
-| must_change_password | int | 临时密码登录后为 1 |
-| player_id | int null unique | 绑定的玩家 |
-| failed_login_count / locked_until | int / text | 登录限流 |
+| role | text | `owner` / `admin` |
+| status | text | `pending` / `active` / `disabled` |
+| note | text null | 申请说明 |
 
-**sessions** 会话
+**admin_sessions**：`id`（随机 token，即 cookie 值）、`admin_id`、`expires_at`。
 
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| id | text pk | 随机 32 字节 base64url，即 cookie 值 |
-| user_id | int fk | |
-| expires_at | text | 30 天 |
+**players** 名册：`name`（unique）、`aliases`（JSON 数组）、`archived`。昵称匹配时同时查 name 与 aliases，忽略大小写与首尾空格。
 
-**admin_requests** 管理员申请
+**polls** 时间预填
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| user_id | int fk | |
-| reason | text null | |
-| status | text | `pending` / `approved` / `rejected` |
-| reviewed_by / reviewed_at | int null / text null | |
-
-**players** 名册
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| name | text unique | 昵称 |
-| avatar | text null | emoji 或图片路径 |
+| saturday | text | `YYYY-MM-DD` |
+| title | text | 默认 "9月6日–7日" |
+| slots | text | JSON 数组，子集于 `sat_pm` / `sat_eve` / `sun_pm` / `sun_eve` |
 | note | text null | |
-| archived | int | 0 / 1 |
+| status | text | `open` / `decided` / `closed` |
+| event_id | int null fk | 定下来后的活动 |
 
-**player_aliases**：`player_id`, `alias`（unique）。
+**poll_responses**（`unique(poll_id, player_id)`）：`slots`（JSON 数组）、`note`。
 
-**events** 活动
+**events**
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| date | text | `YYYY-MM-DD`，苏黎世本地日期 |
-| title | text | 默认 "M月D日 血染" |
-| location | text null | |
-| note | text null | |
-| has_afternoon / has_evening | int | 本次活动包含哪些场次 |
+| date | text | `YYYY-MM-DD` |
+| title | text | |
+| location / start_time / note | text null | |
+| has_afternoon / has_evening | int | |
 | status | text | `planned` / `done` / `cancelled` |
-| storytellers | text null | JSON 数组 of player_id（Q6） |
-| created_by | int fk users | |
 
-**event_attendance** 出席（每个活动每个玩家一行，`unique(event_id, player_id)`）
+**event_signups**（`unique(event_id, player_id)`）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| event_id / player_id | int fk | |
 | signup | text | `none` / `afternoon` / `evening` / `full` |
+| signup_note | text null | 接龙备注原文 |
+| seq | int null | 接龙序号 |
+| source | text | `self` / `jielong` / `admin` |
 | attended | text | `none` / `afternoon` / `evening` / `full` |
-| note | text null | |
-| updated_by | int fk users | |
 
-派生：`no_show = signup != 'none' AND attended = 'none'`；`partial = signup = 'full' AND attended IN ('afternoon','evening')`。
+派生：`no_show = signup != 'none' AND attended = 'none'`。
 
-**event_files** 文件
+**games**
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | event_id | int fk | |
-| kind | text | `board_image` / `script_json` / `game_log` |
-| session | text null | `afternoon` / `evening` / null |
-| original_name | text | 用户上传时的文件名 |
-| storage_path | text | 相对 `/data/uploads` 的路径，`{event_id}/{uuid}.{ext}` |
-| thumb_path | text null | 图片缩略图 |
-| mime / size | text / int | |
-| script_name / script_author / role_count | text null / text null / int null | 从 JSON `_meta` 解析 |
-| uploaded_by | int fk users | |
-
-**achievements** 成就
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| name | text unique | |
-| description | text | 达成条件 |
-| icon | text | emoji 或图片路径 |
-| category | text | `good` / `evil` / `storyteller` / `attendance` / `fun` / `other` |
-| rarity | text | `common` / `rare` / `epic` / `legendary`（积分 1 / 3 / 5 / 10） |
-| hidden | int | 0 / 1 |
-| sort_order | int | |
-| active | int | 下架为 0 |
-| created_by | int fk users | |
-
-**achievement_unlocks**（`unique(achievement_id, player_id)`）
-
-| 字段 | 类型 | 说明 |
-|---|---|---|
-| achievement_id / player_id | int fk | |
-| event_id | int null fk | 关联活动 |
+| session | text | `afternoon` / `evening` |
+| seq | int | 当日第几局 |
+| script_name | text | |
+| script_file_id | int null fk event_files | |
+| result | text | `good` / `evil` / `unknown` |
 | note | text null | |
-| status | text | `claimed` / `verified` / `revoked` |
-| claimed_by | int fk users | 宣告者（自己或管理员） |
-| verified_by / verified_at | int null / text null | |
-| unlocked_at | text | 展示用时间，默认宣告时间，可改为活动日期 |
+| recorded_by | int fk players | 记录者 |
 
-**audit_logs**：`user_id`, `action`（如 `event.delete`）, `target_type`, `target_id`, `detail`（JSON）。
+**game_storytellers**：`game_id`、`player_id`。
+**game_players**：`game_id`、`player_id`、`seat`（int null）、`role_id`（text null，剧本 JSON 里的 id）、`role_name`（text）、`note`。
 
-**settings**：`key` / `value`，存邀请码等运行时配置。
+**event_files**：`event_id`、`game_id`（null）、`kind`（`board_image` / `script_json` / `game_log`）、`session`、`original_name`、`storage_path`、`thumb_path`、`mime`、`size`、`script_name`、`script_author`、`role_count`、`uploaded_by`（admin）。
+
+**achievements**：`name`（unique）、`description`、`icon`、`category`、`rarity`、`hidden`、`sort_order`、`active`。
+
+**achievement_claims**（`unique(achievement_id, player_id)`）
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| event_id / game_id | int null | 关联 |
+| note | text null | |
+| status | text | `pending` / `confirmed` / `rejected` |
+| reviewed_by / reviewed_at / review_note | | |
+| unlocked_at | text | 展示时间 |
+
+**audit_logs**、**settings** 同前。
 
 ### 4.3 索引
 
-- `event_attendance(event_id)`, `event_attendance(player_id)`
-- `achievement_unlocks(player_id)`, `achievement_unlocks(achievement_id, status)`
-- `sessions(user_id)`, `sessions(expires_at)`
-- `events(date desc)`
-
----
+- `poll_responses(poll_id)`、`event_signups(event_id)`、`event_signups(player_id)`
+- `games(event_id)`、`game_players(game_id)`、`game_players(player_id)`
+- `achievement_claims(achievement_id, status)`、`achievement_claims(player_id)`
+- `events(date desc)`、`admin_sessions(expires_at)`
 
 ## 5. 目录结构
 
@@ -288,17 +260,13 @@ boc/
 
 ---
 
-## 6. 认证与权限
+## 6. 身份与权限
 
-- **密码**：bcrypt，cost 12。
-- **会话**：登录成功生成随机 session id 写入 `sessions` 表，cookie 属性 `HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=30d`。登出删除记录。过期会话由每日任务清理。
-- **CSRF**：Server Actions 自带 Origin 校验；文件上传走 Server Action 或带同源校验的 route handler。
-- **权限检查**：`lib/auth.ts` 提供 `requireUser()` / `requireAdmin()` / `requireOwner()`，每个 Server Action 第一行调用。中间件只负责把未登录用户重定向到登录页，不做细粒度权限。
-- **owner 初始化**：容器启动时若 `users` 表为空，用 `OWNER_USERNAME` / `OWNER_PASSWORD` 环境变量创建 owner，并置 `must_change_password = 1`。
-- **邀请码**：存 `settings` 表，注册表单校验；owner 可在后台更换。
-- **限流**：登录失败计数存在 `users` 表（AUTH-10）；注册接口按 IP 用内存计数简单限流。
-
----
+- **玩家无账号**。每个写操作都带昵称字段；服务端按昵称匹配或创建 `players` 记录。浏览器用 `localStorage.bocNickname` 记住昵称，纯客户端便利，不作为身份凭证。
+- **管理员**：bcrypt（cost 12）；登录写 `admin_sessions`，cookie `boc_admin` 属性 `HttpOnly; Secure; SameSite=Lax; Max-Age=30d`。
+- `lib/auth.ts` 提供 `getAdmin()` / `requireAdmin()` / `requireOwner()`；管理类 Server Action 首行调用。中间件（Next 16 的 `proxy.ts`）只把未登录访问 `/admin/*` 的请求重定向到 `/admin/login`。
+- **owner 初始化**：启动时 `admins` 为空则用 `OWNER_USERNAME` / `OWNER_PASSWORD` 创建。
+- **滥用防护**：公开写接口按 IP 做简单内存限流（每分钟 30 次）；昵称长度 ≤ 20；管理员可改删任何记录。
 
 ## 7. 文件存储
 
@@ -313,71 +281,46 @@ boc/
 
 ## 8. 部署
 
-### 8.1 docker-compose.yml（示意）
+VPS 现状（2026-09-05 勘查）：Ubuntu 24.04，Docker 29 + Compose 2.37，宿主机 nginx 占用 80/443，`example.com` 各子站经 Cloudflare 代理并使用 Cloudflare Origin CA 证书（`/etc/ssl/cloudflare/example.com.pem`）。因此**不用 Caddy**，直接复用 nginx。
+
+### 8.1 步骤
+
+1. Cloudflare DNS：添加 `boc` A 记录 → VPS IP，**开启代理（橙云）**，否则 Origin 证书不被信任。
+2. 应用目录 `/opt/boc`：`docker-compose.yml`、`.env`、`data/`。
+3. nginx site `deploy/nginx/boc.example.com.conf`：80 → 301 https；443 用 Cloudflare 证书，`client_max_body_size 12m`，`proxy_pass http://127.0.0.1:3100`。
+4. `docker compose up -d --build`（原型阶段在 VPS 上直接构建；之后改为 GitHub Actions 构建推 GHCR）。
+
+### 8.2 docker-compose.yml
 
 ```yaml
 services:
   app:
-    image: ghcr.io/guoyumin/boc:latest
+    build: .
+    image: boc:latest
     restart: unless-stopped
     env_file: .env
+    ports: ["127.0.0.1:3100:3000"]
     volumes:
       - ./data:/data
-    expose: ["3000"]
-
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    ports: ["80:80", "443:443"]
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-
-volumes:
-  caddy_data:
-  caddy_config:
 ```
 
-### 8.2 Caddyfile
-
-```
-boc.jiliguru.dev {
-    encode zstd gzip
-    request_body { max_size 12MB }
-    reverse_proxy app:3000
-}
-```
-
-DNS：给 `boc.jiliguru.dev` 加一条 A 记录指向 VPS。Caddy 首次启动自动申请证书。若 VPS 上已经有别的反向代理（Nginx / Traefik）在占 80/443，则去掉 caddy 服务，把现有代理指向 `127.0.0.1:3000` 即可。
-
-### 8.3 CI/CD
-
-`.github/workflows/deploy.yml`：
-
-1. `push` 到 `main` → 运行 lint + 测试。
-2. 构建多阶段 Dockerfile（`next build` standalone 输出，运行镜像基于 `node:22-alpine`），推送 `ghcr.io/guoyumin/boc:{sha}` 与 `:latest`。
-3. 通过 SSH（`appleboy/ssh-action`，私钥放在 GitHub Secrets）在 VPS 执行：
-
-```bash
-cd /opt/boc && docker compose pull && docker compose up -d && docker image prune -f
-```
-
-回滚：`docker compose` 里把 tag 改成上一个 `{sha}` 再 `up -d`。
-
-### 8.4 环境变量（`.env.example`）
+### 8.3 环境变量（`.env.example`）
 
 | 变量 | 说明 |
 |---|---|
 | `DATABASE_PATH` | `/data/boc.db` |
 | `UPLOAD_DIR` | `/data/uploads` |
 | `OWNER_USERNAME` / `OWNER_PASSWORD` | 首次启动创建 owner |
-| `SESSION_SECRET` | 用于签名 cookie 的随机串（≥ 32 字节） |
-| `INVITE_CODE` | 初始邀请码，之后可在后台修改 |
-| `APP_URL` | `https://boc.jiliguru.dev` |
+| `APP_URL` | `https://boc.example.com` |
 | `TZ` | `Europe/Zurich` |
 
----
+### 8.4 更新与回滚
+
+```bash
+cd /opt/boc && git pull && docker compose up -d --build
+```
+
+回滚：`git checkout <上一个 sha> && docker compose up -d --build`。数据库迁移只增不减，向前兼容。
 
 ## 9. 备份与恢复
 
