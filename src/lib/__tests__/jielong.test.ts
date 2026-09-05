@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseJielong } from "../jielong";
-import { formatDate, nextSaturday, pollTitle, addDays, weekdayCn } from "../dates";
+import { formatDate, nextSaturday, pollTitle, weekendRange, addDays, weekdayCn } from "../dates";
 
 const SAMPLE = `#接龙 9月7日 血染钟楼（下午场）
 1. 清扬 （晚上补位）
@@ -64,9 +64,10 @@ describe("dates", () => {
     expect(formatDate("2026-09-06")).toBe("9月6日（周日）");
     expect(weekdayCn("2026-09-05")).toBe("周六");
   });
-  it("pollTitle", () => {
-    expect(pollTitle("2026-09-05")).toBe("9月5日–6日");
-    expect(pollTitle("2026-10-31")).toBe("10月31日–11月1日");
+  it("weekendRange / pollTitle", () => {
+    expect(weekendRange("2026-09-05")).toBe("9月5日–6日");
+    expect(weekendRange("2026-10-31")).toBe("10月31日–11月1日");
+    expect(pollTitle("2026-09-05")).toBe("9月5日–6日 时间投票");
   });
   it("nextSaturday 今天是周六就返回今天", () => {
     expect(nextSaturday(new Date(2026, 8, 5))).toBe("2026-09-05");

@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyButton from "@/components/CopyButton";
+import ConfirmSubmit from "@/components/ConfirmSubmit";
 import Flash from "@/components/Flash";
 import PollFillForm from "@/components/PollFillForm";
-import { closePoll, decidePoll, reopenPoll } from "@/actions/polls";
+import { closePoll, decidePoll, deletePoll, reopenPoll } from "@/actions/polls";
 import { getAdmin } from "@/lib/auth";
 import { addDays, formatDate, formatMd } from "@/lib/dates";
 import { POLL_STATUS_LABEL, SLOT_LABEL, SLOT_SHORT } from "@/lib/labels";
@@ -24,7 +25,7 @@ export default async function PollDetailPage({
   const { poll, slots, responses, counts, best } = view;
 
   const summary = [
-    `${poll.title} 时间预填（${responses.length} 人已填）`,
+    `${poll.title}（${responses.length} 人已填）`,
     ...slots.map(
       (s) =>
         `${SLOT_LABEL[s]}（${counts[s] ?? 0}人）：${
@@ -166,7 +167,7 @@ export default async function PollDetailPage({
               <form action={closePoll}>
                 <input type="hidden" name="pollId" value={poll.id} />
                 <button type="submit" className="btn">
-                  关闭预填
+                  关闭投票
                 </button>
               </form>
             ) : (
@@ -177,9 +178,18 @@ export default async function PollDetailPage({
                 </button>
               </form>
             )}
-            <Link href="/polls?all=1" className="btn">
-              全部预填
+            <Link href="/admin/polls" className="btn">
+              全部时间投票
             </Link>
+            <form action={deletePoll}>
+              <input type="hidden" name="pollId" value={poll.id} />
+              <ConfirmSubmit
+                className="btn btn-danger"
+                message={`删除「${poll.title}」？${responses.length} 条填写记录会一起删掉。`}
+              >
+                删除
+              </ConfirmSubmit>
+            </form>
           </div>
         </section>
       )}

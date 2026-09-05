@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
@@ -23,8 +23,7 @@ export async function createPoll(fd: FormData): Promise<void> {
     const slots = many(fd, "slots").filter((s): s is PollSlot => (POLL_SLOTS as readonly string[]).includes(s));
     if (slots.length === 0) throw new Error("至少保留一个时段");
     const title = str(fd, "title") || pollTitle(saturday);
-    // POLL-01：同一时间只有一个进行中的预填
-    db.update(polls).set({ status: "closed" }).where(eq(polls.status, "open")).run();
+    // 允许同时存在多个进行中的时间投票（旧的不会被自动关掉）
     const row = db
       .insert(polls)
       .values({ saturday, title, slots: JSON.stringify(slots), note: optStr(fd, "note"), status: "open" })
@@ -46,8 +45,8 @@ export async function submitPollResponse(fd: FormData): Promise<void> {
   try {
     await assertWriteRate("poll");
     const poll = db.select().from(polls).where(eq(polls.id, pollId)).get();
-    if (!poll) throw new Error("预填不存在");
-    if (poll.status !== "open") throw new Error("这次预填已经不接受填写了");
+    if (!poll) throw new Error("时间投票不存在");
+    if (poll.status !== "open") throw new Error("这次时间投票已经不接受填写了");
     const player = findOrCreatePlayer(str(fd, "nickname"));
     const allowed = new Set(JSON.parse(poll.slots) as string[]);
     const slots = many(fd, "slots").filter((s) => allowed.has(s));
@@ -83,20 +82,19 @@ export async function closePoll(fd: FormData): Promise<void> {
   revalidatePath(`/polls/${pollId}`);
   revalidatePath("/polls");
   revalidatePath("/");
-  redirect(withMsg(`/polls/${pollId}`, "预填已关闭", "ok"));
+  redirect(withMsg(`/polls/${pollId}`, "时间投票已关闭", "ok"));
 }
 
 export async function reopenPoll(fd: FormData): Promise<void> {
   await requireAdmin();
   const pollId = num(fd, "pollId");
-  db.update(polls).set({ status: "closed" }).where(and(eq(polls.status, "open"), ne(polls.id, pollId))).run();
   db.update(polls).set({ status: "open", updatedAt: new Date().toISOString() }).where(eq(polls.id, pollId)).run();
   revalidatePath(`/polls/${pollId}`);
   revalidatePath("/");
-  redirect(withMsg(`/polls/${pollId}`, "预填已重新打开", "ok"));
+  redirect(withMsg(`/polls/${pollId}`, "时间投票已重新打开", "ok"));
 }
 
-/** POLL-06：把预填结果定下来，创建活动。 */
+/** POLL-06：把时间投票的结果定下来，创建活动。 */
 export async function decidePoll(fd: FormData): Promise<void> {
   const admin = await requireAdmin();
   const pollId = num(fd, "pollId");
@@ -104,7 +102,7 @@ export async function decidePoll(fd: FormData): Promise<void> {
   let eventId = 0;
   try {
     const poll = db.select().from(polls).where(eq(polls.id, pollId)).get();
-    if (!poll) throw new Error("预填不存在");
+    if (!poll) throw new Error("时间投票不存在");
     const day = str(fd, "day");
     if (day !== "sat" && day !== "sun") throw new Error("请选择周六还是周日");
     const date = day === "sat" ? poll.saturday : addDays(poll.saturday, 1);
@@ -137,4 +135,43 @@ export async function decidePoll(fd: FormData): Promise<void> {
   revalidatePath("/polls");
   revalidatePath("/events");
   redirect(withMsg(`/events/${eventId}`, "活动已创建，快去群里喊人报名", "ok"));
+}
+
+/** 管理员删除时间投票（连同所有填写记录）。已经定下活动的投票不会连带删活动。 */
+export async function deletePoll(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const pollId = num(fd, "pollId");
+  try {
+    const poll = db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) throw new Error("时间投票不存在");
+    db.delete(polls).where(eq(polls.id, pollId)).run(); // poll_responses 级联删除
+    logAudit(admin.id, "poll.delete", "poll", pollId, poll.title);
+  } catch (e) {
+    redirect(withMsg("/admin/polls", errMsg(e)));
+  }
+  revalidatePath("/");
+  revalidatePath("/polls");
+  revalidatePath("/admin/polls");
+  redirect(withMsg("/admin/polls", "时间投票已删除", "ok"));
+}
+
+/** 管理员改时间投票的标题 / 备注 */
+export async function updatePoll(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const pollId = num(fd, "pollId");
+  const back = `/polls/${pollId}`;
+  try {
+    const title = str(fd, "title");
+    if (!title) throw new Error("标题不能为空");
+    db.update(polls)
+      .set({ title, note: optStr(fd, "note"), updatedAt: new Date().toISOString() })
+      .where(eq(polls.id, pollId))
+      .run();
+    logAudit(admin.id, "poll.update", "poll", pollId, title);
+  } catch (e) {
+    redirect(withMsg(back, errMsg(e)));
+  }
+  revalidatePath(back);
+  revalidatePath("/");
+  redirect(withMsg(back, "已保存", "ok"));
 }

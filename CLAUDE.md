@@ -4,7 +4,8 @@
 
 苏黎世《血染钟楼》桌游群管理网站。Next.js 16（App Router）+ Drizzle + better-sqlite3。
 界面简体中文、移动端优先（主要在微信内置浏览器里打开）。
-**玩家不登录，昵称即身份；只有管理员登录。**
+**参加活动不需要账号，昵称即身份。** 注册是可选的：绑定玩家档案、看自己的记录、自助管理别名。
+账号角色 `member` / `admin` / `owner` 都在 `users` 表里，member 没有任何管理权限。
 
 需求见 `docs/requirements.md`，架构见 `docs/architecture.md`。
 
@@ -25,10 +26,10 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 | 路径 | 内容 |
 |---|---|
 | `src/app/` | 页面。公开页 + `admin/` 后台 |
-| `src/actions/` | Server Actions，按领域分文件（polls / events / signups / games / achievements / files / admin / players） |
-| `src/lib/` | `auth` 会话、`players` 昵称匹配、`jielong` 接龙解析（纯函数）、`dates`、`labels` 中文映射与角色 emoji / 星级、`queries` 读查询、`storage` 上传落盘、`script-json` 剧本解析、`rate-limit`、`form` FormData 工具 |
+| `src/actions/` | Server Actions，按领域分文件（polls / events / signups / games / achievements / files / account / players） |
+| `src/lib/` | `auth` 会话、`players` 昵称匹配、`jielong` 接龙解析（纯函数）、`dates`、`labels` 中文映射、角色 emoji、稀有度与鸽子判定、`queries` 读查询、`storage` 上传落盘、`script-json` 剧本解析、`rate-limit`、`form` FormData 工具 |
 | `src/db/` | `schema.ts`（数据模型权威定义）、`index.ts`（连接 + 迁移 + seed）、`seed.ts`、`achievements-data.ts`（自动生成，别手改） |
-| `scripts/` | `gen-achievements.ts`：`docs/achievements.tsv` → `src/db/achievements-data.ts` |
+| `scripts/` | `gen-achievements.ts`（TSV → 成就种子）、`backup.sh` / `restore.sh`（VPS 上跑） |
 | `drizzle/` | 迁移文件，**要提交进 git** |
 | `deploy/` | compose、nginx site、部署说明 |
 
@@ -48,6 +49,11 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
   `src/proxy.ts` 只负责把没 cookie 的 `/admin/*` 弹到登录页，不是权限校验。
 - 公开写操作（报名、填时间、宣告成就、记录游戏）首行 `await assertWriteRate(...)`。
 - 用户输入的昵称一律走 `findOrCreatePlayer()`：去空格、忽略大小写、匹配别名。
+- 「鸽」的判定统一走 `src/lib/labels.ts` 的 `isNoShow(row)`，它接一整行报名记录
+  （`signup` / `attended` / `status` / `noShowWaived`），不要在页面里自己拼条件。
+  本人取消报名是 `status='cancelled'`，**记录保留、照样算鸽**，管理员可以 `no_show_waived=1` 免掉。
+- 「时间投票」是活动日期定下来之前的可用时段调查（旧文案叫「预填」，已废弃，别再用这个词）；
+  日期定下来之后那一步才叫「报名」。
 - 写完数据 `revalidatePath()`，出错用 `redirect(withMsg(path, 消息))` 回到页面顶部的提示条
   （页面用 `<Flash err={sp.err} ok={sp.ok} />` 渲染）。
 - 所有用户可见文案用简体中文。

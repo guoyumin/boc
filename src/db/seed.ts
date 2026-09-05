@@ -5,7 +5,7 @@ import * as schema from "./schema";
 import {
   achievementClaims,
   achievements,
-  admins,
+  users,
   eventSignups,
   events,
   gamePlayers,
@@ -24,7 +24,7 @@ type DB = BetterSQLite3Database<typeof schema>;
 
 function rows(
   db: DB,
-  table: typeof players | typeof admins | typeof achievements | typeof events,
+  table: typeof players | typeof users | typeof achievements | typeof events,
 ): number {
   const r = db.select({ c: sql<number>`count(*)` }).from(table).get();
   return r?.c ?? 0;
@@ -42,12 +42,12 @@ function findOrCreate(db: DB, raw: string): number {
   return db.insert(players).values({ name }).returning({ id: players.id }).get().id;
 }
 
-/** admins 表为空时，用环境变量创建初始管理员（ADM-02）。 */
+/** users 表为空时，用环境变量创建初始管理员（ADM-02）。 */
 export function seedOwner(db: DB): void {
-  if (rows(db, admins) > 0) return;
+  if (rows(db, users) > 0) return;
   const username = (process.env.OWNER_USERNAME ?? "owner").trim() || "owner";
   const password = process.env.OWNER_PASSWORD ?? "change-me-now";
-  db.insert(admins)
+  db.insert(users)
     .values({
       username,
       passwordHash: hashSync(password, 12),
@@ -95,7 +95,7 @@ export function seedAchievements(db: DB): void {
         description: a.condition,
         icon: roleIcon(a.role),
         role: a.role,
-        stars: a.stars,
+        rarity: a.rarity,
         scriptName: null, // 全局成就；剧本专属成就以后从飞书的对应标签页导入
         hidden: 0,
         sortOrder: (i + 1) * 10,
@@ -147,7 +147,7 @@ export function seedDemo(db: DB): void {
   const upcomingSat = nextSaturday();
   const pastA = addDays(upcomingSat, -20); // 三周前的周日
   const pastB = addDays(upcomingSat, -14); // 两周前的周六
-  const pollSat = addDays(upcomingSat, 7); // 下下周末的预填
+  const pollSat = addDays(upcomingSat, 7); // 下下周末的时间投票
 
   // ---- 两场已结束的活动 ----
   const evA = db
@@ -389,7 +389,7 @@ export function seedDemo(db: DB): void {
     });
   }
 
-  // ---- 进行中的时间预填 ----
+  // ---- 进行中的时间投票 ----
   const poll = db
     .insert(polls)
     .values({

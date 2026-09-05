@@ -12,10 +12,11 @@ import {
   pollResponses,
   players,
   polls,
+  users,
   type PollSlot,
 } from "@/db/schema";
 import { POLL_SLOTS } from "@/db/schema";
-import { isFinished, isNoShow, starPoints } from "./labels";
+import { isFinished, isNoShow, rarityPoints } from "./labels";
 
 export type Poll = typeof polls.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
@@ -36,10 +37,32 @@ export function pollSlots(poll: Poll): PollSlot[] {
   return POLL_SLOTS.filter((s) => raw.includes(s));
 }
 
+/** 最近一个进行中的时间投票（可以同时有好几个，首页只展示最近的那个）。 */
 export function getOpenPoll(): Poll | null {
   return (
-    db.select().from(polls).where(eq(polls.status, "open")).orderBy(desc(polls.saturday)).get() ?? null
+    db.select().from(polls).where(eq(polls.status, "open")).orderBy(desc(polls.saturday), desc(polls.id)).get() ??
+    null
   );
+}
+
+/** 全部进行中的时间投票，最近的排前面。 */
+export function openPolls(): Poll[] {
+  return db.select().from(polls).where(eq(polls.status, "open")).orderBy(desc(polls.saturday), desc(polls.id)).all();
+}
+
+export type PollListRow = Poll & { responseCount: number };
+
+/** 所有时间投票（含已关闭 / 已定下），带填写人数。 */
+export function listPolls(limit = 60): PollListRow[] {
+  const rows = db.select().from(polls).orderBy(desc(polls.saturday), desc(polls.id)).limit(limit).all();
+  if (rows.length === 0) return [];
+  const counts = db
+    .select({ pollId: pollResponses.pollId, c: sql<number>`count(*)` })
+    .from(pollResponses)
+    .where(inArray(pollResponses.pollId, rows.map((p) => p.id)))
+    .groupBy(pollResponses.pollId)
+    .all();
+  return rows.map((p) => ({ ...p, responseCount: counts.find((c) => c.pollId === p.id)?.c ?? 0 }));
 }
 
 export type PollResponseView = {
@@ -107,7 +130,13 @@ export function listEvents(limit = 50): EventListRow[] {
   if (rows.length === 0) return [];
   const ids = rows.map((e) => e.id);
   const signups = db
-    .select({ eventId: eventSignups.eventId, signup: eventSignups.signup, attended: eventSignups.attended })
+    .select({
+      eventId: eventSignups.eventId,
+      signup: eventSignups.signup,
+      attended: eventSignups.attended,
+      status: eventSignups.status,
+      noShowWaived: eventSignups.noShowWaived,
+    })
     .from(eventSignups)
     .where(inArray(eventSignups.eventId, ids))
     .all();
@@ -123,7 +152,7 @@ export function listEvents(limit = 50): EventListRow[] {
       signupCount: own.filter((s) => s.signup !== "none").length,
       attendCount: own.filter((s) => s.attended !== "none").length,
       noShowCount: isFinished(e.date, e.status)
-        ? own.filter((s) => isNoShow(s.signup, s.attended)).length
+        ? own.filter((s) => isNoShow(s)).length
         : 0,
       scripts: [...new Set(scriptRows.filter((g) => g.eventId === e.id).map((g) => g.scriptName))],
     };
@@ -143,6 +172,9 @@ export type SignupView = {
   attended: string;
   seq: number | null;
   source: string;
+  status: string;
+  cancelledAt: string | null;
+  noShowWaived: number;
 };
 
 export function getSignups(eventId: number): SignupView[] {
@@ -156,6 +188,9 @@ export function getSignups(eventId: number): SignupView[] {
       attended: eventSignups.attended,
       seq: eventSignups.seq,
       source: eventSignups.source,
+      status: eventSignups.status,
+      cancelledAt: eventSignups.cancelledAt,
+      noShowWaived: eventSignups.noShowWaived,
     })
     .from(eventSignups)
     .innerJoin(players, eq(players.id, eventSignups.playerId))
@@ -238,7 +273,7 @@ export type UnlockView = {
   achievementId: number;
   achievementName: string;
   icon: string;
-  stars: number;
+  rarity: string;
   role: string;
   playerId: number;
   playerName: string;
@@ -256,7 +291,7 @@ function claimQuery() {
       achievementId: achievements.id,
       achievementName: achievements.name,
       icon: achievements.icon,
-      stars: achievements.stars,
+      rarity: achievements.rarity,
       role: achievements.role,
       hidden: achievements.hidden,
       playerId: players.id,
@@ -409,6 +444,9 @@ export function getPlayerProfile(id: number): PlayerProfile | null {
       attended: eventSignups.attended,
       seq: eventSignups.seq,
       source: eventSignups.source,
+      status: eventSignups.status,
+      cancelledAt: eventSignups.cancelledAt,
+      noShowWaived: eventSignups.noShowWaived,
       date: events.date,
       title: events.title,
       eventId: events.id,
@@ -462,8 +500,8 @@ export function getPlayerProfile(id: number): PlayerProfile | null {
     .orderBy(desc(achievementClaims.id))
     .all();
 
-  // 积分 = 星数之和
-  const points = unlocks.reduce((sum, u) => sum + starPoints(u.stars), 0);
+  // 积分 = 各稀有度分数之和
+  const points = unlocks.reduce((sum, u) => sum + rarityPoints(u.rarity), 0);
 
   return { player, attendance, played, unlocks, points };
 }
@@ -489,4 +527,35 @@ export function latestEvent(): EventRow | null {
 
 export function listPlayers(): (typeof players.$inferSelect)[] {
   return db.select().from(players).orderBy(players.name).all();
+}
+
+export type UserRow = typeof users.$inferSelect & { playerName: string | null };
+
+/** 全部账号，owner 最前，然后是管理员，最后是普通玩家。 */
+export function listUsers(): UserRow[] {
+  const rows = db
+    .select({
+      id: users.id,
+      username: users.username,
+      passwordHash: users.passwordHash,
+      role: users.role,
+      status: users.status,
+      playerId: users.playerId,
+      note: users.note,
+      adminRequest: users.adminRequest,
+      adminRequestedAt: users.adminRequestedAt,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt,
+      playerName: players.name,
+    })
+    .from(users)
+    .leftJoin(players, eq(players.id, users.playerId))
+    .all();
+  const rank = (r: string) => (r === "owner" ? 0 : r === "admin" ? 1 : 2);
+  return rows.sort((a, b) => rank(a.role) - rank(b.role) || a.id - b.id);
+}
+
+/** 待审批的管理员申请 */
+export function pendingAdminRequests(): UserRow[] {
+  return listUsers().filter((u) => u.adminRequest && u.role === "member");
 }

@@ -6,11 +6,13 @@ import { saveNickname, useStoredNickname } from "./useNickname";
 export { NICK_KEY } from "./useNickname";
 
 export default function NicknameInput({
+  id,
   name = "nickname",
   required = true,
   placeholder = "微信里用的名字",
   className = "input",
 }: {
+  id?: string;
   name?: string;
   required?: boolean;
   placeholder?: string;
@@ -27,6 +29,7 @@ export default function NicknameInput({
 
   return (
     <input
+      id={id}
       className={className}
       name={name}
       value={value}

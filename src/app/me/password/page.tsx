@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Flash from "@/components/Flash";
-import { changePasswordAction } from "@/actions/admin";
-import { getAdmin } from "@/lib/auth";
+import { changePasswordAction } from "@/actions/account";
+import { getUser } from "@/lib/auth";
 
 export default async function ChangePasswordPage({
   searchParams,
@@ -9,7 +9,7 @@ export default async function ChangePasswordPage({
   searchParams: Promise<{ err?: string; ok?: string }>;
 }) {
   const sp = await searchParams;
-  if (!(await getAdmin())) redirect("/admin/login");
+  if (!(await getUser())) redirect("/login?next=/me/password");
 
   return (
     <div className="space-y-4">

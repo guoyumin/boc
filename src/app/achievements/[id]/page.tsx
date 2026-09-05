@@ -6,7 +6,7 @@ import NicknameInput from "@/components/NicknameInput";
 import { claimAchievement, grantAchievement } from "@/actions/achievements";
 import { reviewClaim } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
-import Stars from "@/components/Stars";
+import RarityBadge from "@/components/RarityBadge";
 import { formatDay, formatMd } from "@/lib/dates";
 import { roleIcon } from "@/lib/labels";
 import { claimsForAchievement, getAchievement, listEvents } from "@/lib/queries";
@@ -39,7 +39,7 @@ export default async function AchievementDetailPage({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-lg font-semibold text-stone-800">{masked ? "???" : ach.name}</h1>
-              <Stars stars={ach.stars} size="md" showPoints />
+              <RarityBadge rarity={ach.rarity} showPoints />
               <span className="badge badge-plain">
                 {roleIcon(ach.role)} {ach.role}
               </span>

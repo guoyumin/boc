@@ -1,7 +1,7 @@
 import Link from "next/link";
 import PollFillForm from "@/components/PollFillForm";
 import { formatDate, formatMd } from "@/lib/dates";
-import Stars from "@/components/Stars";
+import RarityBadge from "@/components/RarityBadge";
 import {
   EVENT_STATUS_LABEL,
   SLOT_SHORT,
@@ -33,7 +33,7 @@ export default async function HomePage() {
       {pollView ? (
         <section className="card">
           <div className="card-title">
-            <span>🗓 本周时间预填 · {pollView.poll.title}</span>
+            <span>🗓 {pollView.poll.title}</span>
             <span className="badge badge-brand">进行中</span>
           </div>
           {pollView.poll.note && <p className="muted mb-3">{pollView.poll.note}</p>}
@@ -63,8 +63,8 @@ export default async function HomePage() {
         </section>
       ) : (
         <section className="card">
-          <div className="card-title">🗓 本周时间预填</div>
-          <p className="muted">现在没有进行中的预填，等管理员发起。</p>
+          <div className="card-title">🗓 时间投票</div>
+          <p className="muted">现在没有进行中的时间投票，等管理员发起。</p>
         </section>
       )}
 
@@ -100,7 +100,7 @@ export default async function HomePage() {
             <p className="muted mt-1">
               到场 {lastSignups.filter((s) => s.attended !== "none").length} 人
               {isFinished(recent.date, recent.status) &&
-                ` · 鸽 ${lastSignups.filter((s) => isNoShow(s.signup, s.attended)).length} 人`}
+                ` · 鸽 ${lastSignups.filter((s) => isNoShow(s)).length} 人`}
             </p>
           </Link>
         </section>
@@ -127,7 +127,7 @@ export default async function HomePage() {
                 <Link href={`/achievements/${u.achievementId}`} className="text-brand">
                   {u.achievementName}
                 </Link>
-                <Stars stars={u.stars} />
+                <RarityBadge rarity={u.rarity} />
               </li>
             ))}
           </ul>

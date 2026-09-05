@@ -2,10 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import Flash from "@/components/Flash";
-import Stars from "@/components/Stars";
+import RarityBadge from "@/components/RarityBadge";
 import { deleteAchievement, grantAchievement, saveAchievement } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
-import { roleIcon } from "@/lib/labels";
+import { RARITY_OPTIONS, roleIcon } from "@/lib/labels";
 import {
   achievementRoles,
   confirmedUnlockMap,
@@ -13,7 +13,6 @@ import {
   groupByScript,
   listAchievements,
 } from "@/lib/queries";
-import { STAR_LEVELS } from "@/db/schema";
 
 type Ach = ReturnType<typeof listAchievements>[number];
 
@@ -53,11 +52,11 @@ function Fields({ a }: { a?: Ach }) {
           />
         </div>
         <div>
-          <label className="label">稀有度（星 = 分）</label>
-          <select className="input" name="stars" defaultValue={String(a?.stars ?? 1)}>
-            {STAR_LEVELS.map((s) => (
-              <option key={s} value={s}>
-                {"★".repeat(s)}（{s} 分）
+          <label className="label">稀有度</label>
+          <select className="input" name="rarity" defaultValue={a?.rarity ?? "common"}>
+            {RARITY_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
               </option>
             ))}
           </select>
@@ -117,7 +116,7 @@ function Item({ a, owners }: { a: Ach; owners: number }) {
             {a.hidden === 1 && <span className="badge badge-plain ml-1">隐藏</span>}
           </p>
           <p className="muted flex items-center gap-1.5">
-            <Stars stars={a.stars} />
+            <RarityBadge rarity={a.rarity} />
             <span>· {owners} 人解锁</span>
           </p>
           <p className="muted mt-0.5 line-clamp-2">{a.description}</p>

@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { achievementClaims, achievements } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { bool, errMsg, num, optNum, optStr, str, withMsg } from "@/lib/form";
-import { clampStars, roleIcon } from "@/lib/labels";
+import { asRarity, roleIcon } from "@/lib/labels";
 import { findOrCreatePlayer } from "@/lib/players";
 import { assertWriteRate } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
@@ -132,7 +132,7 @@ export async function saveAchievement(fd: FormData): Promise<void> {
       description: str(fd, "description"),
       icon: str(fd, "icon") || roleIcon(role),
       role,
-      stars: clampStars(num(fd, "stars")),
+      rarity: asRarity(str(fd, "rarity")),
       scriptName: optStr(fd, "scriptName"),
       hidden: bool(fd, "hidden") ? 1 : 0,
       sortOrder: num(fd, "sortOrder") || 100,

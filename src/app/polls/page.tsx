@@ -23,17 +23,17 @@ export default async function PollsPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">时间预填</h1>
+        <h1 className="text-lg font-semibold">时间投票</h1>
         {admin && (
           <Link href="/admin/polls/new" className="btn btn-primary btn-sm">
-            ＋ 发起预填
+            ＋ 发起投票
           </Link>
         )}
       </div>
 
       {rows.length === 0 ? (
         <div className="card">
-          <p className="muted">还没有任何预填。</p>
+          <p className="muted">还没有任何时间投票。</p>
         </div>
       ) : (
         <ul className="space-y-2">

@@ -1,15 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
 import Flash from "@/components/Flash";
-import { logoutAction } from "@/actions/admin";
 import { reviewClaim } from "@/actions/achievements";
-import { db } from "@/db";
-import { admins } from "@/db/schema";
 import { getAdmin } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { ADMIN_ROLE_LABEL } from "@/lib/labels";
-import { getOpenPoll, getPollView, nextEvent, pendingClaims } from "@/lib/queries";
+import { getPollView, nextEvent, openPolls, pendingAdminRequests, pendingClaims } from "@/lib/queries";
 
 export default async function AdminHome({
   searchParams,
@@ -18,12 +14,12 @@ export default async function AdminHome({
 }) {
   const sp = await searchParams;
   const admin = await getAdmin();
-  if (!admin) redirect("/admin/login");
+  if (!admin) redirect("/login?next=/admin");
 
   const claims = pendingClaims();
-  const pendingAdmins = db.select().from(admins).where(eq(admins.status, "pending")).all();
-  const poll = getOpenPoll();
-  const pollView = poll ? getPollView(poll.id) : null;
+  const pendingAdmins = pendingAdminRequests();
+  const polls = openPolls();
+  const pollView = polls[0] ? getPollView(polls[0].id) : null;
   const upcoming = nextEvent();
 
   return (
@@ -38,10 +34,16 @@ export default async function AdminHome({
 
       <div className="grid grid-cols-2 gap-2">
         <Link href="/admin/polls/new" className="btn btn-primary">
-          发起时间预填
+          发起时间投票
         </Link>
         <Link href="/admin/events/new" className="btn btn-primary">
           新建活动
+        </Link>
+        <Link href="/admin/polls" className="btn">
+          时间投票
+        </Link>
+        <Link href="/admin/events" className="btn">
+          活动管理
         </Link>
         <Link href="/admin/players" className="btn">
           名册
@@ -51,7 +53,7 @@ export default async function AdminHome({
         </Link>
         {admin.role === "owner" && (
           <Link href="/admin/admins" className="btn col-span-2">
-            管理员 {pendingAdmins.length > 0 && `(${pendingAdmins.length})`}
+            账号与权限 {pendingAdmins.length > 0 && `(${pendingAdmins.length})`}
           </Link>
         )}
       </div>
@@ -66,7 +68,7 @@ export default async function AdminHome({
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-brand">成就管理 →</p>
             <p className="muted mt-0.5">
-              改成就的名称、达成条件、角色、星级和图标，或直接把成就授予某个玩家。
+              改成就的名称、达成条件、角色、稀有度和图标，或直接把成就授予某个玩家。
             </p>
           </div>
         </div>
@@ -119,7 +121,7 @@ export default async function AdminHome({
       {admin.role === "owner" && (
         <section className="card">
           <div className="card-title">
-            <span>👮 待审管理员（{pendingAdmins.length}）</span>
+            <span>👮 待审管理员申请（{pendingAdmins.length}）</span>
             <Link href="/admin/admins" className="text-xs text-brand">
               去审批 →
             </Link>
@@ -131,7 +133,7 @@ export default async function AdminHome({
               {pendingAdmins.map((a) => (
                 <li key={a.id}>
                   {a.username}
-                  {a.note && <span className="muted"> · {a.note}</span>}
+                  {a.adminRequest && <span className="muted"> · {a.adminRequest}</span>}
                 </li>
               ))}
             </ul>
@@ -140,7 +142,12 @@ export default async function AdminHome({
       )}
 
       <section className="card">
-        <div className="card-title">🗓 进行中的预填</div>
+        <div className="card-title">
+          <span>🗓 进行中的时间投票（{polls.length}）</span>
+          <Link href="/admin/polls" className="text-xs text-brand">
+            全部 →
+          </Link>
+        </div>
         {pollView ? (
           <Link href={`/polls/${pollView.poll.id}`} className="block">
             <p className="font-medium">{pollView.poll.title}</p>
@@ -148,7 +155,7 @@ export default async function AdminHome({
           </Link>
         ) : (
           <p className="muted">
-            没有进行中的预填。<Link href="/admin/polls/new" className="link">现在发起一个</Link>
+            没有进行中的时间投票。<Link href="/admin/polls/new" className="link">现在发起一个</Link>
           </p>
         )}
       </section>
@@ -167,16 +174,9 @@ export default async function AdminHome({
 
       <section className="card">
         <div className="card-title">账号</div>
-        <div className="flex gap-2">
-          <Link href="/admin/password" className="btn">
-            改密码
-          </Link>
-          <form action={logoutAction}>
-            <button type="submit" className="btn btn-danger">
-              退出登录
-            </button>
-          </form>
-        </div>
+        <Link href="/me" className="btn btn-block">
+          我的（改密码、昵称与别名、退出登录）
+        </Link>
       </section>
     </div>
   );

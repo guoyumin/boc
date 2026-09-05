@@ -19,29 +19,48 @@ export const GAME_SESSIONS = ["afternoon", "evening"] as const;
 export type GameSession = (typeof GAME_SESSIONS)[number];
 export const POLL_SLOTS = ["sat_pm", "sat_eve", "sun_pm", "sun_eve"] as const;
 export type PollSlot = (typeof POLL_SLOTS)[number];
-/** 成就稀有度：1–5 星，星数即积分 */
-export const STAR_LEVELS = [1, 2, 3, 4, 5] as const;
-export type StarLevel = (typeof STAR_LEVELS)[number];
+/** 成就稀有度四档 */
+export const RARITIES = ["common", "rare", "epic", "legendary"] as const;
+export type Rarity = (typeof RARITIES)[number];
+/** 报名状态：active 有效，cancelled 本人取消（记录保留，算鸽） */
+export const SIGNUP_STATUSES = ["active", "cancelled"] as const;
+export type SignupStatus = (typeof SIGNUP_STATUSES)[number];
+/** 账号角色 */
+export const USER_ROLES = ["member", "admin", "owner"] as const;
+export type UserRole = (typeof USER_ROLES)[number];
 
-export const admins = sqliteTable("admins", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  username: text("username").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  role: text("role").notNull().default("admin"), // owner | admin
-  status: text("status").notNull().default("pending"), // pending | active | disabled
-  note: text("note"),
-  ...timestamps,
-});
+/**
+ * 账号。玩家可以完全不注册（昵称即身份）；注册只是为了绑定自己的玩家档案、
+ * 看自己的报名与成就。管理权限是这张表上的 role。
+ */
+export const users = sqliteTable(
+  "users",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    username: text("username").notNull().unique(),
+    passwordHash: text("password_hash").notNull(),
+    role: text("role").notNull().default("member"), // member | admin | owner
+    status: text("status").notNull().default("active"), // active | pending | disabled
+    /** 绑定的玩家档案；一个玩家最多被一个账号绑定 */
+    playerId: integer("player_id").references(() => players.id, { onDelete: "set null" }),
+    note: text("note"),
+    /** 申请管理员时填的理由；非空且 role=member 即为待审批 */
+    adminRequest: text("admin_request"),
+    adminRequestedAt: text("admin_requested_at"),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex("users_player_unique").on(t.playerId)],
+);
 
-export const adminSessions = sqliteTable(
-  "admin_sessions",
+export const sessions = sqliteTable(
+  "sessions",
   {
     id: text("id").primaryKey(),
-    adminId: integer("admin_id").notNull().references(() => admins.id, { onDelete: "cascade" }),
+    userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
     expiresAt: text("expires_at").notNull(),
     createdAt: text("created_at").notNull().default(now),
   },
-  (t) => [index("admin_sessions_expires").on(t.expiresAt)],
+  (t) => [index("sessions_expires").on(t.expiresAt)],
 );
 
 export const players = sqliteTable("players", {
@@ -103,6 +122,11 @@ export const eventSignups = sqliteTable(
     signupNote: text("signup_note"),
     seq: integer("seq"),
     source: text("source").notNull().default("self"), // self | jielong | admin
+    /** active 有效；cancelled 本人报名后又取消（记录保留，默认算鸽） */
+    status: text("status").notNull().default("active"),
+    cancelledAt: text("cancelled_at"),
+    /** 管理员免鸽：1 = 这次不算鸽子 */
+    noShowWaived: integer("no_show_waived").notNull().default(0),
     attended: text("attended").notNull().default("none"),
     ...timestamps,
   },
@@ -185,7 +209,7 @@ export const achievements = sqliteTable("achievements", {
   description: text("description").notNull(), // 达成条件
   icon: text("icon").notNull().default("🏆"),
   role: text("role").notNull().default("通用"), // 角色名，与 docs/achievements.tsv 一致
-  stars: integer("stars").notNull().default(1), // 稀有度 1–5，星数即积分
+  rarity: text("rarity").notNull().default("common"), // common | rare | epic | legendary
   scriptName: text("script_name"), // 剧本专属成就；null = 全局成就
   hidden: integer("hidden").notNull().default(0),
   sortOrder: integer("sort_order").notNull().default(100),
@@ -220,7 +244,7 @@ export const achievementClaims = sqliteTable(
 
 export const auditLogs = sqliteTable("audit_logs", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  adminId: integer("admin_id"),
+  userId: integer("user_id"),
   action: text("action").notNull(),
   targetType: text("target_type"),
   targetId: integer("target_id"),

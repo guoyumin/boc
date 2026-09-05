@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import Stars from "@/components/Stars";
+import RarityBadge from "@/components/RarityBadge";
 import { formatDate, formatMd } from "@/lib/dates";
 import {
   GAME_RESULT_LABEL,
@@ -10,6 +10,7 @@ import {
   isNoShow,
 } from "@/lib/labels";
 import { getPlayerProfile } from "@/lib/queries";
+import { parseAliases } from "@/lib/players";
 import type { Session } from "@/db/schema";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
@@ -17,10 +18,11 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const profile = getPlayerProfile(Number(id));
   if (!profile) notFound();
   const { player, attendance, played, unlocks, points } = profile;
+  const aliases = parseAliases(player.aliases);
 
   const attended = attendance.filter((a) => a.attended !== "none").length;
   const noShow = attendance.filter(
-    (a) => isFinished(a.date, a.eventStatus) && isNoShow(a.signup, a.attended),
+    (a) => isFinished(a.date, a.eventStatus) && isNoShow(a),
   ).length;
 
   return (
@@ -30,6 +32,16 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           <span className="text-lg">👤 {player.name}</span>
           {player.archived === 1 && <span className="badge badge-plain">已归档</span>}
         </div>
+        {aliases.length > 0 && (
+          <p className="mb-3 text-sm text-stone-600">
+            也可以叫：
+            {aliases.map((a) => (
+              <span key={a} className="badge badge-plain ml-1">
+                {a}
+              </span>
+            ))}
+          </p>
+        )}
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
             <p className="text-xl font-semibold text-brand">{attended}</p>
@@ -136,7 +148,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
                   <span className="min-w-0 flex-1 truncate font-medium text-stone-800">
                     {u.achievementName}
                   </span>
-                  <Stars stars={u.stars} />
+                  <RarityBadge rarity={u.rarity} />
                 </Link>
               </li>
             ))}

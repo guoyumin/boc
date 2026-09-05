@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 |---|---|
-| 版本 | v0.2 |
+| 版本 | v0.4 |
 | 日期 | 2026-09-05 |
 | 对应需求 | [requirements.md](requirements.md) |
 
@@ -114,7 +114,8 @@ flowchart LR
 
 ```mermaid
 erDiagram
-    admins ||--o{ admin_sessions : "has"
+    users ||--o{ sessions : "has"
+    users |o--o| players : "binds"
     polls ||--o{ poll_responses : "has"
     players ||--o{ poll_responses : "fills"
     polls o|--o| events : "decides"
@@ -135,19 +136,22 @@ erDiagram
 
 所有表都有 `id`（自增整数）、`created_at`、`updated_at`（ISO 8601 文本，UTC）。
 
-**admins** 管理员账号（玩家没有账号）
+**users** 账号（玩家可以完全不注册；账号只是绑定玩家档案 + 权限）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| username | text unique | |
-| password_hash | text | bcrypt |
-| role | text | `owner` / `admin` |
-| status | text | `pending` / `active` / `disabled` |
-| note | text null | 申请说明 |
+| username | text unique | 登录名 3–32 位 |
+| password_hash | text | bcrypt cost 12 |
+| role | text | `member` / `admin` / `owner` |
+| status | text | `active` / `pending` / `disabled` |
+| player_id | int null unique | 绑定的玩家档案；删账号不删玩家 |
+| admin_request | text null | 管理员申请理由；非空且 role=member 即待审批 |
+| admin_requested_at | text null | |
+| note | text null | |
 
-**admin_sessions**：`id`（随机 token，即 cookie 值）、`admin_id`、`expires_at`。
+**sessions**：`id`（随机 token，即 cookie `boc_session` 的值）、`user_id`、`expires_at`。
 
-**players** 名册：`name`（unique）、`aliases`（JSON 数组）、`archived`。昵称匹配时同时查 name 与 aliases，忽略大小写与首尾空格。
+**players** 名册（`aliases` 是 JSON 字符串数组，注册用户可自助维护，最多 5 个）：`name`（unique）、`aliases`（JSON 数组）、`archived`。昵称匹配时同时查 name 与 aliases，忽略大小写与首尾空格。
 
 **polls** 时间预填
 
@@ -180,9 +184,13 @@ erDiagram
 | signup_note | text null | 接龙备注原文 |
 | seq | int null | 接龙序号 |
 | source | text | `self` / `jielong` / `admin` |
+| status | text | `active` / `cancelled`（本人取消，记录保留） |
+| cancelled_at | text null | |
+| no_show_waived | int | 1 = 管理员已免鸽 |
 | attended | text | `none` / `afternoon` / `evening` / `full` |
 
-派生：`no_show = signup != 'none' AND attended = 'none'`。
+派生：`no_show = 活动已结束 AND signup != 'none' AND attended = 'none' AND no_show_waived = 0`。
+本人取消（`status='cancelled'`）保留 `signup` 值，所以照样算鸽，除非管理员免掉。
 
 **games**
 
@@ -210,7 +218,7 @@ erDiagram
 | description | text | 达成条件 |
 | icon | text | emoji，默认跟所属角色走 |
 | role | text | 角色名，如 `通用` / `厨师` / `麻脸巫婆`，与 `docs/achievements.tsv` 一致 |
-| stars | int | 稀有度 1–5，**星数即积分** |
+| rarity | text | `common` / `rare` / `epic` / `legendary`，积分 1 / 3 / 5 / 10 |
 | script_name | text null | 剧本专属成就的剧本名；null = 全局成就 |
 | hidden / sort_order / active | | 隐藏、排序（成就墙内顺序 = 清单顺序）、是否上架 |
 
@@ -229,14 +237,14 @@ erDiagram
 | unlocked_at | text | 展示时间（`YYYY-MM-DD` 或 ISO 时间戳） |
 | unlocked_at_text | text null | 日期不精确时显示这个（如「已不可考」），有值时优先于 `unlocked_at` |
 
-**audit_logs**、**settings** 同前。
+**audit_logs**（`user_id` 记操作人）、**settings** 同前。
 
 ### 4.3 索引
 
 - `poll_responses(poll_id)`、`event_signups(event_id)`、`event_signups(player_id)`
 - `games(event_id)`、`game_players(game_id)`、`game_players(player_id)`
 - `achievement_claims(achievement_id, status)`、`achievement_claims(player_id)`
-- `events(date desc)`、`admin_sessions(expires_at)`
+- `events(date desc)`、`sessions(expires_at)`、`users(player_id)` unique
 
 ## 5. 目录结构
 
@@ -276,11 +284,20 @@ boc/
 
 ## 6. 身份与权限
 
-- **玩家无账号**。每个写操作都带昵称字段；服务端按昵称匹配或创建 `players` 记录。浏览器用 `localStorage.bocNickname` 记住昵称，纯客户端便利，不作为身份凭证。
-- **管理员**：bcrypt（cost 12）；登录写 `admin_sessions`，cookie `boc_admin` 属性 `HttpOnly; Secure; SameSite=Lax; Max-Age=30d`。
-- `lib/auth.ts` 提供 `getAdmin()` / `requireAdmin()` / `requireOwner()`；管理类 Server Action 首行调用。中间件（Next 16 的 `proxy.ts`）只把未登录访问 `/admin/*` 的请求重定向到 `/admin/login`。
-- **owner 初始化**：启动时 `admins` 为空则用 `OWNER_USERNAME` / `OWNER_PASSWORD` 创建。
-- **滥用防护**：公开写接口按 IP 做简单内存限流（每分钟 30 次）；昵称长度 ≤ 20；管理员可改删任何记录。
+三层，从松到紧：
+
+1. **游客**：不需要账号。每个写操作都带昵称字段，服务端按昵称（含别名，忽略大小写与多余空格）匹配或创建 `players` 记录。浏览器用 `localStorage.bocNickname` 记住昵称，纯客户端便利，**不是身份凭证**。
+2. **注册玩家**（`role=member`）：`/register` 填昵称 + 用户名 + 密码，立即可用。注册时认领同名玩家档案（已被别人绑定则拒绝），没有就新建。登录后可在 `/me` 改自己的昵称与别名、看自己的报名和成就、改密码、申请管理员。**没有任何管理权限。**
+3. **管理员 / owner**：`role=admin|owner`。管理类 Server Action 首行 `requireAdmin()` / `requireOwner()`。
+
+实现要点：
+
+- 密码 bcrypt cost 12；登录写 `sessions`，cookie `boc_session` 属性 `HttpOnly; SameSite=Lax; Max-Age=30d`，生产环境加 `Secure`。改密码会删掉该用户的全部会话。
+- `lib/auth.ts` 提供 `getUser()` / `getAdmin()` / `requireUser()` / `requireAdmin()` / `requireOwner()`；`getUser` 用 React `cache` 包一层，一次请求只查一次库。
+- `src/proxy.ts`（Next 16 的 middleware）只对 `/admin/*` 做「有没有 cookie」的粗判，没有就跳 `/login?next=…`；是不是管理员由页面和 action 自己判。
+- **owner 初始化**：启动时 `users` 为空则用 `OWNER_USERNAME` / `OWNER_PASSWORD` 创建 `role=owner`。
+- **管理员申请**：member 在 `/me` 提交理由写进 `users.admin_request`；owner 在 `/admin/admins` 批准（改 role 为 admin）或拒绝（清空字段）。
+- **滥用防护**：公开写接口按 IP 内存限流；昵称长度 ≤ 20，别名 ≤ 5 个；昵称与别名在全名册唯一；管理员可改删任何记录。
 
 ## 7. 文件存储（已实现）
 
@@ -352,27 +369,22 @@ cd /opt/boc && git pull && docker compose up -d --build
 
 ## 9. 备份与恢复
 
-每日 03:00 由宿主机 cron 执行 `scripts/backup.sh`：
+脚本在仓库里：`scripts/backup.sh` / `scripts/restore.sh`。
 
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-STAMP=$(date +%F)
-DEST=/opt/boc/backups/$STAMP
-mkdir -p "$DEST"
-docker compose -f /opt/boc/docker-compose.yml exec -T app \
-  node -e "require('better-sqlite3')('/data/boc.db').backup('/data/backup.db')"
-cp /opt/boc/data/backup.db "$DEST/boc.db"
-tar czf "$DEST/uploads.tgz" -C /opt/boc/data uploads
-rclone sync /opt/boc/backups remote:boc-backups --max-age 30d
-find /opt/boc/backups -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} +
+VPS 上加一条 cron：
+
+```
+0 3 * * * /opt/boc/scripts/backup.sh >> /var/log/boc-backup.log 2>&1
 ```
 
-恢复：停容器 → 用备份的 `boc.db` 和解压的 `uploads/` 覆盖 `/opt/boc/data` → 启动。整个过程不到一分钟。
+备份做两件事：容器里用 SQLite 的在线备份 API 取一份一致的 `boc.db` 快照（不用停服务），
+再把 `uploads/` 打包，一起放进 `/opt/boc/backups/YYYY-MM-DD/`，保留 30 天。
+配好 rclone 之后把脚本里 `rclone sync` 那行的注释去掉，就有异地副本了。
 
-备选：Litestream 持续把 WAL 复制到对象存储，RPO 秒级；对本项目每日备份已足够。
+恢复：`scripts/restore.sh 2026-09-05`，脚本会停容器、覆盖数据、改回属主、再起来。
 
----
+健康检查：`GET /api/health` 返回 `{"ok":true,"achievements":55}`，能开库并查得动才算健康。
+可以挂到 nginx 或外部监控上。
 
 ## 10. 安全清单
 

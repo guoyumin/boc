@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Flash from "@/components/Flash";
-import { loginAction } from "@/actions/admin";
-import { getAdmin } from "@/lib/auth";
+import { loginAction } from "@/actions/account";
+import { getUser } from "@/lib/auth";
 
 export default async function LoginPage({
   searchParams,
@@ -10,14 +10,15 @@ export default async function LoginPage({
   searchParams: Promise<{ err?: string; ok?: string; next?: string }>;
 }) {
   const sp = await searchParams;
-  if (await getAdmin()) redirect(sp.next && sp.next.startsWith("/") ? sp.next : "/admin");
+  const next = sp.next && sp.next.startsWith("/") ? sp.next : "/me";
+  if (await getUser()) redirect(next);
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">管理员登录</h1>
+      <h1 className="text-lg font-semibold">登录</h1>
       <Flash err={sp.err} ok={sp.ok} />
       <form action={loginAction} className="card space-y-3">
-        <input type="hidden" name="next" value={sp.next ?? "/admin"} />
+        <input type="hidden" name="next" value={next} />
         <div>
           <label className="label" htmlFor="username">
             用户名
@@ -42,9 +43,15 @@ export default async function LoginPage({
         </button>
       </form>
       <p className="muted text-center">
-        还没有账号？<Link href="/admin/register" className="link">申请当管理员</Link>
+        还没有账号？<Link href="/register" className="link">注册一个</Link>
       </p>
-      <p className="muted text-center">玩家不需要登录，直接填昵称就行。</p>
+      <div className="card text-sm text-stone-600">
+        <div className="mb-1 font-medium text-stone-800">要不要注册？</div>
+        <p>
+          只是来玩一次的话不用注册，直接在时间投票和活动页填昵称就行。
+          注册是给常来的人用的：绑定自己的昵称和别名，看自己的报名、出勤和成就。
+        </p>
+      </div>
     </div>
   );
 }

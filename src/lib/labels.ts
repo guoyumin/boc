@@ -1,4 +1,4 @@
-import type { PollSlot, Session } from "@/db/schema";
+import { RARITIES, type PollSlot, type Rarity, type Session } from "@/db/schema";
 
 export const SESSION_LABEL: Record<Session, string> = {
   none: "未到",
@@ -43,17 +43,42 @@ export const SLOT_SHORT: Record<PollSlot, string> = {
 };
 
 /** 星数收敛到 1–5 */
-export function clampStars(n: number): number {
-  if (!Number.isFinite(n)) return 1;
-  return Math.min(5, Math.max(1, Math.round(n)));
+export const RARITY_LABEL: Record<Rarity, string> = {
+  common: "普通",
+  rare: "稀有",
+  epic: "史诗",
+  legendary: "传说",
+};
+
+/** 成就积分：普通 1 / 稀有 3 / 史诗 5 / 传说 10 */
+export const RARITY_POINTS: Record<Rarity, number> = {
+  common: 1,
+  rare: 3,
+  epic: 5,
+  legendary: 10,
+};
+
+export const RARITY_CLASS: Record<Rarity, string> = {
+  common: "bg-stone-100 text-stone-600 border-stone-200",
+  rare: "bg-sky-50 text-sky-700 border-sky-200",
+  epic: "bg-violet-50 text-violet-700 border-violet-200",
+  legendary: "bg-amber-50 text-amber-700 border-amber-200",
+};
+
+export const RARITY_OPTIONS: { value: Rarity; label: string }[] = RARITIES.map((r) => ({
+  value: r,
+  label: `${RARITY_LABEL[r]}（${RARITY_POINTS[r]} 分）`,
+}));
+
+/** 把任意输入收敛成合法稀有度 */
+export function asRarity(v: string | null | undefined): Rarity {
+  return (RARITIES as readonly string[]).includes(String(v)) ? (v as Rarity) : "common";
 }
 
-/** 积分 = 星数 */
-export function starPoints(stars: number): number {
-  return clampStars(stars);
+export function rarityPoints(v: string): number {
+  return RARITY_POINTS[asRarity(v)];
 }
 
-/** 每个角色一个固定 emoji；名单外的角色回退到 🏆 */
 export const ROLE_ICON: Record<string, string> = {
   通用: "🎭",
   厨师: "👨‍🍳",
@@ -142,17 +167,45 @@ export function isFinished(date: string, status: string): boolean {
   return date < today;
 }
 
-/** 报名了但没来 */
-export function isNoShow(signup: string, attended: string): boolean {
-  return signup !== "none" && attended === "none";
+/** 一行报名记录里跟"鸽不鸽"有关的字段 */
+export type NoShowInput = {
+  signup: string;
+  attended: string;
+  status?: string;
+  noShowWaived?: number;
+};
+
+/** 本人取消的报名 */
+export function isCancelled(r: NoShowInput): boolean {
+  return r.status === "cancelled";
+}
+
+/** 管理员已免鸽 */
+export function isWaived(r: NoShowInput): boolean {
+  return (r.noShowWaived ?? 0) === 1;
+}
+
+/**
+ * 报名了但没来 = 鸽。本人取消也算（记录保留），除非管理员点了"免鸽"。
+ * 是否真的显示成鸽子还要看活动是不是已经过去了（isFinished）。
+ */
+export function isNoShow(r: NoShowInput): boolean {
+  if (isWaived(r)) return false;
+  return r.signup !== "none" && r.attended === "none";
 }
 
 /** 报了全天只到一场 */
-export function isPartial(signup: string, attended: string): boolean {
-  return signup === "full" && (attended === "afternoon" || attended === "evening");
+export function isPartial(r: NoShowInput): boolean {
+  return r.signup === "full" && (r.attended === "afternoon" || r.attended === "evening");
 }
 
 /** 没报名却到场 */
-export function isWalkIn(signup: string, attended: string): boolean {
-  return signup === "none" && attended !== "none";
+export function isWalkIn(r: NoShowInput): boolean {
+  return r.signup === "none" && r.attended !== "none";
 }
+
+export const SIGNUP_SOURCE_LABEL: Record<string, string> = {
+  self: "自助报名",
+  jielong: "接龙导入",
+  admin: "管理员添加",
+};

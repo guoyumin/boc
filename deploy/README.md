@@ -66,7 +66,20 @@ cd /opt/boc && git checkout <上一个 sha>
 cd deploy && docker compose up -d --build
 ```
 
-## 三、数据与备份
+## 三、备份（正式运行请务必配上）
+
+```bash
+sudo crontab -e
+# 加一行：每天 03:00 备份，保留 30 天
+0 3 * * * /opt/boc/scripts/backup.sh >> /var/log/boc-backup.log 2>&1
+```
+
+恢复某一天的备份：`/opt/boc/scripts/restore.sh 2026-09-05`。
+异地副本：装好 rclone 并配好 remote 之后，去掉 `scripts/backup.sh` 里 `rclone sync` 那行的注释。
+
+健康检查：`curl -s localhost:3100/api/health` 应该返回 `{"ok":true,...}`。
+
+## 四、数据目录
 
 所有数据都在 `/opt/boc/deploy/data/`：
 
@@ -85,7 +98,7 @@ tar czf "backup-$(date +%F).tgz" -C data backup.db uploads
 
 恢复：停容器 → 用备份文件覆盖 `data/boc.db` → `docker compose up -d`。
 
-## 四、排查
+## 五、排查
 
 | 现象 | 看这里 |
 |---|---|

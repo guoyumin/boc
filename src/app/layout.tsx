@@ -2,13 +2,13 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
-import { getAdmin } from "@/lib/auth";
+import { getUser, isAdminRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "BOC · 苏黎世血染钟楼",
-  description: "苏黎世《血染钟楼》桌游群：时间预填、活动报名、出席记录、游戏记录与成就墙。",
+  description: "苏黎世《血染钟楼》桌游群：时间投票、活动报名、出席记录、游戏记录与成就墙。",
 };
 
 export const viewport: Viewport = {
@@ -18,7 +18,8 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const admin = await getAdmin();
+  const me = await getUser();
+  const isAdmin = me !== null && isAdminRole(me.role);
   return (
     <html lang="zh-CN" className="h-full">
       <body className="min-h-full">
@@ -27,19 +28,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" className="flex items-center gap-1.5 font-semibold text-stone-800">
               <span className="text-brand">🩸</span> 苏黎世血染钟楼
             </Link>
-            {admin ? (
-              <Link href="/admin" className="badge badge-brand">
-                {admin.username}
+            {me ? (
+              <Link href="/me" className="badge badge-brand">
+                {me.playerName ?? me.username}
               </Link>
             ) : (
-              <Link href="/admin/login" className="text-xs text-stone-400">
-                管理员
+              <Link href="/login" className="text-xs text-stone-400">
+                登录
               </Link>
             )}
           </div>
         </header>
         <main className="mx-auto w-full max-w-3xl px-4 pt-4 pb-28">{children}</main>
-        <BottomNav isAdmin={admin !== null} />
+        <BottomNav isAdmin={isAdmin} />
       </body>
     </html>
   );

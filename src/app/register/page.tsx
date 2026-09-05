@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import Flash from "@/components/Flash";
-import { registerAction } from "@/actions/admin";
+import NicknameInput from "@/components/NicknameInput";
+import { registerAction } from "@/actions/account";
+import { getUser } from "@/lib/auth";
 
 export default async function RegisterPage({
   searchParams,
@@ -8,14 +11,28 @@ export default async function RegisterPage({
   searchParams: Promise<{ err?: string; ok?: string }>;
 }) {
   const sp = await searchParams;
+  if (await getUser()) redirect("/me");
+
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">申请当管理员</h1>
+      <h1 className="text-lg font-semibold">注册</h1>
       <Flash err={sp.err} ok={sp.ok} />
+      <p className="muted">
+        只玩一次不用注册，直接填昵称报名就行。注册是为了把历史记录和成就都挂到你名下。
+      </p>
       <form action={registerAction} className="card space-y-3">
         <div>
+          <label className="label" htmlFor="nickname">
+            昵称（群里大家怎么叫你）
+          </label>
+          <NicknameInput id="nickname" name="nickname" required />
+          <p className="mt-1 text-xs text-stone-500">
+            填的昵称如果名册里已经有了，就会认领那条记录，以前的报名和成就都跟过来。
+          </p>
+        </div>
+        <div>
           <label className="label" htmlFor="username">
-            用户名（3–32 位字母、数字、下划线）
+            用户名（登录用，3–32 位字母、数字、下划线）
           </label>
           <input id="username" className="input" name="username" autoComplete="username" required />
         </div>
@@ -45,19 +62,12 @@ export default async function RegisterPage({
             required
           />
         </div>
-        <div>
-          <label className="label" htmlFor="note">
-            说明（你是谁，为什么要管理权限）
-          </label>
-          <textarea id="note" className="input" name="note" rows={3} maxLength={200} />
-        </div>
         <button type="submit" className="btn btn-primary btn-block">
-          提交申请
+          注册
         </button>
-        <p className="muted">提交后要初始管理员批准才能登录。</p>
       </form>
       <p className="muted text-center">
-        已经有账号了？<Link href="/admin/login" className="link">去登录</Link>
+        已经有账号了？<Link href="/login" className="link">去登录</Link>
       </p>
     </div>
   );

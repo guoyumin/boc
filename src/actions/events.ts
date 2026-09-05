@@ -84,7 +84,9 @@ export async function updateEvent(fd: FormData): Promise<void> {
 export async function deleteEvent(fd: FormData): Promise<void> {
   const admin = await requireAdmin();
   const id = num(fd, "eventId");
-  if (str(fd, "confirm") !== "删除") {
+  const back = str(fd, "back") || "/events";
+  // 活动详情页要手打「删除」两个字；后台列表页走浏览器确认框（confirm=1）
+  if (str(fd, "confirm") !== "删除" && str(fd, "confirm") !== "1") {
     redirect(withMsg(`/events/${id}`, "请在确认框里输入「删除」两个字"));
   }
   db.update(polls).set({ status: "closed", eventId: null }).where(eq(polls.eventId, id)).run();
@@ -92,6 +94,28 @@ export async function deleteEvent(fd: FormData): Promise<void> {
   await removeEventDir(id); // 磁盘上的图片和 JSON 跟着走
   logAudit(admin.id, "event.delete", "event", id);
   revalidatePath("/events");
+  revalidatePath("/admin/events");
   revalidatePath("/");
-  redirect(withMsg("/events", "活动已删除", "ok"));
+  redirect(withMsg(back, "活动已删除", "ok"));
+}
+
+/** 后台列表里改活动状态：计划中 / 已结束 / 已取消 */
+export async function setEventStatus(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const id = num(fd, "eventId");
+  const status = str(fd, "status");
+  try {
+    if (!["planned", "done", "cancelled"].includes(status)) throw new Error("状态不对");
+    const ev = db.select().from(events).where(eq(events.id, id)).get();
+    if (!ev) throw new Error("活动不存在");
+    db.update(events).set({ status, updatedAt: new Date().toISOString() }).where(eq(events.id, id)).run();
+    logAudit(admin.id, `event.status.${status}`, "event", id, ev.title);
+  } catch (e) {
+    redirect(withMsg("/admin/events", errMsg(e)));
+  }
+  revalidatePath("/admin/events");
+  revalidatePath(`/events/${id}`);
+  revalidatePath("/events");
+  revalidatePath("/");
+  redirect(withMsg("/admin/events", "已更新", "ok"));
 }

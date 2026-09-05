@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Flash from "@/components/Flash";
-import Stars from "@/components/Stars";
+import RarityBadge from "@/components/RarityBadge";
 import { getAdmin } from "@/lib/auth";
 import { roleIcon } from "@/lib/labels";
 import {
@@ -33,7 +33,7 @@ function Row({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="font-medium text-stone-800">{masked ? "???" : a.name}</span>
-              <Stars stars={a.stars} />
+              <RarityBadge rarity={a.rarity} />
               {a.hidden === 1 && <span className="badge badge-plain">隐藏</span>}
             </div>
             <p className="muted mt-0.5">

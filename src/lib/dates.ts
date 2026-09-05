@@ -39,8 +39,13 @@ export function formatDate(ymd: string): string {
   return `${formatMd(ymd)}（${weekdayCn(ymd)}）`;
 }
 
-/** 周六日期 → "9月6日–7日"；跨月时 → "9月30日–10月1日" */
+/** 周六日期 → "9月6日–7日 时间投票"；跨月时 → "9月30日–10月1日 时间投票" */
 export function pollTitle(saturday: string): string {
+  return `${weekendRange(saturday)} 时间投票`;
+}
+
+/** 周六日期 → "9月6日–7日"；跨月时 → "9月30日–10月1日" */
+export function weekendRange(saturday: string): string {
   const sun = addDays(saturday, 1);
   const a = parseYmd(saturday);
   const b = parseYmd(sun);

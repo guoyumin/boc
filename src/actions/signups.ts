@@ -29,10 +29,16 @@ export async function selfSignup(fd: FormData): Promise<void> {
     const signup = asSession(str(fd, "session"));
     const note = optStr(fd, "note");
     db.insert(eventSignups)
-      .values({ eventId, playerId: player.id, signup, signupNote: note, source: "self" })
+      .values({ eventId, playerId: player.id, signup, signupNote: note, source: "self", status: "active" })
       .onConflictDoUpdate({
         target: [eventSignups.eventId, eventSignups.playerId],
-        set: { signup, signupNote: note, updatedAt: new Date().toISOString() },
+        set: {
+          signup,
+          signupNote: note,
+          status: "active",
+          cancelledAt: null,
+          updatedAt: new Date().toISOString(),
+        },
       })
       .run();
   } catch (e) {
@@ -57,12 +63,18 @@ export async function cancelSignup(fd: FormData): Promise<void> {
       .get();
     if (!row) throw new Error("你还没有报名");
     if (row.attended !== "none") throw new Error("已经记了出席，取消请找管理员");
-    db.delete(eventSignups).where(eq(eventSignups.id, row.id)).run();
+    if (row.status === "cancelled") throw new Error("你已经取消过了");
+    // 记录保留：取消也算一次鸽，管理员 review 后可以免掉
+    db.update(eventSignups)
+      .set({ status: "cancelled", cancelledAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+      .where(eq(eventSignups.id, row.id))
+      .run();
   } catch (e) {
     redirect(withMsg(back, errMsg(e)));
   }
   revalidatePath(back);
-  redirect(withMsg(back, "已取消报名", "ok"));
+  revalidatePath("/events");
+  redirect(withMsg(back, "已取消报名。放鸽子会记一笔，情况特殊可以找管理员免掉", "ok"));
 }
 
 /** SIGN-04：管理员点选出席状态，客户端 startTransition 调用 */
@@ -72,7 +84,12 @@ export async function setAttendance(signupId: number, attended: string): Promise
   const row = db.select().from(eventSignups).where(eq(eventSignups.id, signupId)).get();
   if (!row) throw new Error("这条报名不存在");
   db.update(eventSignups)
-    .set({ attended: value, updatedAt: new Date().toISOString() })
+    .set({
+      attended: value,
+      // 人来了就不算取消
+      status: value === "none" ? row.status : "active",
+      updatedAt: new Date().toISOString(),
+    })
     .where(eq(eventSignups.id, signupId))
     .run();
   revalidatePath(`/events/${row.eventId}`);
@@ -169,4 +186,32 @@ export async function importJielong(fd: FormData): Promise<void> {
 /** 页面上给"我是不是管理员"用的轻量查询 */
 export async function amIAdmin(): Promise<boolean> {
   return (await getAdmin()) !== null;
+}
+
+/** 需求 h：管理员 review 后把某次"鸽"免掉，或者撤销免除。 */
+export async function setNoShowWaived(signupId: number, waived: boolean): Promise<void> {
+  const admin = await requireAdmin();
+  const row = db.select().from(eventSignups).where(eq(eventSignups.id, signupId)).get();
+  if (!row) throw new Error("这条报名不存在");
+  db.update(eventSignups)
+    .set({ noShowWaived: waived ? 1 : 0, updatedAt: new Date().toISOString() })
+    .where(eq(eventSignups.id, signupId))
+    .run();
+  logAudit(admin.id, waived ? "signup.waive" : "signup.unwaive", "event_signup", signupId);
+  revalidatePath(`/events/${row.eventId}`);
+  revalidatePath("/events");
+}
+
+/** 管理员代为取消某人的报名（记录保留） */
+export async function adminCancelSignup(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const id = num(fd, "signupId");
+  const eventId = num(fd, "eventId");
+  db.update(eventSignups)
+    .set({ status: "cancelled", cancelledAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+    .where(eq(eventSignups.id, id))
+    .run();
+  logAudit(admin.id, "signup.cancel", "event_signup", id);
+  revalidatePath(`/events/${eventId}`);
+  redirect(withMsg(`/events/${eventId}`, "已标记为取消报名", "ok"));
 }

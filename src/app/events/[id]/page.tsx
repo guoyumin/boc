@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import AttendanceButtons from "@/components/AttendanceButtons";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
+import WaiveButton from "@/components/WaiveButton";
 import CopyButton from "@/components/CopyButton";
 import Flash from "@/components/Flash";
 import NicknameInput from "@/components/NicknameInput";
@@ -20,8 +21,10 @@ import {
   SESSION_OPTIONS,
   SIGNUP_LABEL,
   isFinished,
+  isCancelled,
   isNoShow,
   isPartial,
+  isWaived,
   isWalkIn,
 } from "@/lib/labels";
 import {
@@ -145,13 +148,19 @@ export default async function EventDetailPage({
                       <Link href={`/players/${s.playerId}`} className="font-medium">
                         {s.name}
                       </Link>
-                      {finished && isNoShow(s.signup, s.attended) && (
+                      {finished && isNoShow(s) && (
                         <span className="badge ml-1 border-amber-200 bg-amber-50 text-amber-700">鸽</span>
                       )}
-                      {finished && isPartial(s.signup, s.attended) && (
+                      {finished && isWaived(s) && (
+                        <span className="badge ml-1 border-emerald-200 bg-emerald-50 text-emerald-700">
+                          已免鸽
+                        </span>
+                      )}
+                      {isCancelled(s) && <span className="badge ml-1 badge-plain">已取消</span>}
+                      {finished && isPartial(s) && (
                         <span className="badge ml-1 badge-plain">只到一场</span>
                       )}
-                      {finished && isWalkIn(s.signup, s.attended) && (
+                      {finished && isWalkIn(s) && (
                         <span className="badge ml-1 badge-plain">未报名到场</span>
                       )}
                     </td>
@@ -168,13 +177,18 @@ export default async function EventDetailPage({
                     <td className="max-w-[9rem] truncate text-stone-500">{s.signupNote ?? ""}</td>
                     {admin && (
                       <td>
-                        <form action={removeSignup}>
-                          <input type="hidden" name="signupId" value={s.id} />
-                          <input type="hidden" name="eventId" value={event.id} />
-                          <ConfirmSubmit message={`把 ${s.name} 从名单里移除？`} className="btn btn-sm btn-danger">
-                            移除
-                          </ConfirmSubmit>
-                        </form>
+                        <div className="flex gap-1">
+                          {(isNoShow(s) || isWaived(s)) && (
+                            <WaiveButton signupId={s.id} waived={isWaived(s)} />
+                          )}
+                          <form action={removeSignup}>
+                            <input type="hidden" name="signupId" value={s.id} />
+                            <input type="hidden" name="eventId" value={event.id} />
+                            <ConfirmSubmit message={`把 ${s.name} 从名单里移除？`} className="btn btn-sm btn-danger">
+                              移除
+                            </ConfirmSubmit>
+                          </form>
+                        </div>
                       </td>
                     )}
                   </tr>
@@ -211,13 +225,18 @@ export default async function EventDetailPage({
                 报名 / 更新
               </button>
             </form>
-            <form action={cancelSignup} className="mt-3 flex items-end gap-2">
+            <form action={cancelSignup} className="mt-3 space-y-2 border-t border-stone-200 pt-3">
               <input type="hidden" name="eventId" value={event.id} />
-              <div className="flex-1">
-                <label className="label">要取消报名？填昵称</label>
-                <NicknameInput name="nickname" />
+              <p className="muted">
+                来不了的话可以取消。取消会记一次「鸽」，实在有事跟管理员说一声可以免掉。
+              </p>
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <label className="label">要取消报名？填昵称</label>
+                  <NicknameInput name="nickname" />
+                </div>
+                <ConfirmSubmit message="确定取消报名？这会记一次鸽。">取消报名</ConfirmSubmit>
               </div>
-              <ConfirmSubmit message="确定取消报名？">取消报名</ConfirmSubmit>
             </form>
           </details>
         )}

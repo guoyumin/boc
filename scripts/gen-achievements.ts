@@ -27,11 +27,22 @@ type Row = {
   role: string;
   name: string;
   condition: string;
-  stars: number;
+  rarity: string;
   firstDate: string | null;
   firstDateNote: string | null;
   firstPlayer: string | null;
 };
+
+/**
+ * 飞书表里稀有度是 1–5 星，站内用四档。映射：1–2 星普通，3 星稀有，4 星史诗，5 星传说。
+ * 改这个映射会影响所有成就的档位与积分。
+ */
+function starsToRarity(stars: number): string {
+  if (stars >= 5) return "legendary";
+  if (stars === 4) return "epic";
+  if (stars === 3) return "rare";
+  return "common";
+}
 
 function fail(line: number, msg: string): never {
   console.error(`[gen:achievements] docs/achievements.tsv 第 ${line} 行：${msg}`);
@@ -93,7 +104,7 @@ function main() {
       role,
       name,
       condition,
-      stars,
+      rarity: starsToRarity(stars),
       firstDate: firstDate || null,
       firstDateNote: firstDateNote || null,
       firstPlayer: firstPlayer || null,
@@ -113,7 +124,7 @@ function main() {
         `    role: ${q(r.role)},\n` +
         `    name: ${q(r.name)},\n` +
         `    condition: ${q(r.condition)},\n` +
-        `    stars: ${r.stars},\n` +
+        `    rarity: ${q(r.rarity)},\n` +
         `    firstDate: ${q(r.firstDate)},\n` +
         `    firstDateNote: ${q(r.firstDateNote)},\n` +
         `    firstPlayer: ${q(r.firstPlayer)},\n` +
@@ -131,8 +142,8 @@ export type AchievementSeed = {
   name: string;
   /** 达成条件 */
   condition: string;
-  /** 稀有度 1–5，星数即积分 */
-  stars: number;
+  /** 稀有度四档：common / rare / epic / legendary（由 TSV 的星数换算） */
+  rarity: string;
   /** 首次达成日期 YYYY-MM-DD */
   firstDate: string | null;
   /** 日期不详时的说明，如「已不可考」 */
@@ -149,9 +160,13 @@ ${body}
   fs.writeFileSync(OUT, out, "utf8");
   const roles = [...new Set(rows.map((r) => r.role))];
   const withPlayer = rows.filter((r) => r.firstPlayer).length;
+  const byRarity = ["common", "rare", "epic", "legendary"]
+    .map((k) => `${k} ${rows.filter((r) => r.rarity === k).length}`)
+    .join(" / ");
   console.log(
     `[gen:achievements] 已生成 src/db/achievements-data.ts：` +
-      `${rows.length} 条成就 / ${roles.length} 个角色 / ${withPlayer} 条有首位达成者`,
+      `${rows.length} 条成就 / ${roles.length} 个角色 / ${withPlayer} 条有首位达成者\n` +
+      `[gen:achievements] 稀有度分布：${byRarity}`,
   );
 }
 
