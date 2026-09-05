@@ -4,19 +4,13 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { CATEGORIES, RARITIES, achievementClaims, achievements } from "@/db/schema";
+import { achievementClaims, achievements } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { bool, errMsg, num, optNum, optStr, str, withMsg } from "@/lib/form";
+import { clampStars, roleIcon } from "@/lib/labels";
 import { findOrCreatePlayer } from "@/lib/players";
 import { assertWriteRate } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
-
-function asCategory(v: string): string {
-  return (CATEGORIES as readonly string[]).includes(v) ? v : "other";
-}
-function asRarity(v: string): string {
-  return (RARITIES as readonly string[]).includes(v) ? v : "common";
-}
 
 /** ACH-03：玩家宣告"我达成了" */
 export async function claimAchievement(fd: FormData): Promise<void> {
@@ -105,6 +99,7 @@ export async function grantAchievement(fd: FormData): Promise<void> {
       reviewedBy: admin.id,
       reviewedAt: new Date().toISOString(),
       unlockedAt: new Date().toISOString(),
+      unlockedAtText: null,
       updatedAt: new Date().toISOString(),
     };
     db.insert(achievementClaims)
@@ -131,12 +126,14 @@ export async function saveAchievement(fd: FormData): Promise<void> {
   try {
     const name = str(fd, "name");
     if (!name) throw new Error("请填写成就名称");
+    const role = str(fd, "role") || "通用";
     const values = {
       name,
       description: str(fd, "description"),
-      icon: str(fd, "icon") || "🏆",
-      category: asCategory(str(fd, "category")),
-      rarity: asRarity(str(fd, "rarity")),
+      icon: str(fd, "icon") || roleIcon(role),
+      role,
+      stars: clampStars(num(fd, "stars")),
+      scriptName: optStr(fd, "scriptName"),
       hidden: bool(fd, "hidden") ? 1 : 0,
       sortOrder: num(fd, "sortOrder") || 100,
       active: bool(fd, "active") ? 1 : 0,

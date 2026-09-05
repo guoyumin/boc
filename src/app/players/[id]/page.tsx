@@ -1,17 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Stars from "@/components/Stars";
 import { formatDate, formatMd } from "@/lib/dates";
 import {
   GAME_RESULT_LABEL,
-  RARITY_CLASS,
-  RARITY_LABEL,
   SESSION_LABEL,
   SIGNUP_LABEL,
   isFinished,
   isNoShow,
 } from "@/lib/labels";
 import { getPlayerProfile } from "@/lib/queries";
-import type { Rarity, Session } from "@/db/schema";
+import type { Session } from "@/db/schema";
 
 export default async function PlayerPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -46,7 +45,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           </div>
           <div>
             <p className="text-xl font-semibold text-amber-600">{points}</p>
-            <p className="muted">积分</p>
+            <p className="muted">星数</p>
           </div>
         </div>
         {noShow > 0 && <p className="muted mt-2">报名没到 {noShow} 次 🕊️</p>}
@@ -125,7 +124,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
       </section>
 
       <section className="card">
-        <div className="card-title">🏆 已解锁成就（{points} 分）</div>
+        <div className="card-title">🏆 已解锁成就（共 {points} 分，星数之和）</div>
         {unlocks.length === 0 ? (
           <p className="muted">还没有成就，去成就墙看看能干点什么。</p>
         ) : (
@@ -134,10 +133,10 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
               <li key={u.claimId}>
                 <Link href={`/achievements/${u.achievementId}`} className="flex items-center gap-2 text-sm">
                   <span className="text-lg">{u.icon}</span>
-                  <span className="font-medium text-stone-800">{u.achievementName}</span>
-                  <span className={`badge ${RARITY_CLASS[u.rarity as Rarity]}`}>
-                    {RARITY_LABEL[u.rarity as Rarity]}
+                  <span className="min-w-0 flex-1 truncate font-medium text-stone-800">
+                    {u.achievementName}
                   </span>
+                  <Stars stars={u.stars} />
                 </Link>
               </li>
             ))}

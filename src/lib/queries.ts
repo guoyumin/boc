@@ -14,7 +14,7 @@ import {
   type PollSlot,
 } from "@/db/schema";
 import { POLL_SLOTS } from "@/db/schema";
-import { isFinished, isNoShow } from "./labels";
+import { isFinished, isNoShow, starPoints } from "./labels";
 
 export type Poll = typeof polls.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
@@ -226,10 +226,12 @@ export type UnlockView = {
   achievementId: number;
   achievementName: string;
   icon: string;
-  rarity: string;
+  stars: number;
+  role: string;
   playerId: number;
   playerName: string;
   unlockedAt: string;
+  unlockedAtText: string | null;
   eventId: number | null;
   note: string | null;
   status: string;
@@ -242,11 +244,13 @@ function claimQuery() {
       achievementId: achievements.id,
       achievementName: achievements.name,
       icon: achievements.icon,
-      rarity: achievements.rarity,
+      stars: achievements.stars,
+      role: achievements.role,
       hidden: achievements.hidden,
       playerId: players.id,
       playerName: players.name,
       unlockedAt: achievementClaims.unlockedAt,
+      unlockedAtText: achievementClaims.unlockedAtText,
       eventId: achievementClaims.eventId,
       note: achievementClaims.note,
       status: achievementClaims.status,
@@ -292,6 +296,54 @@ export function listAchievements(includeInactive = false): Achievement[] {
 
 export function getAchievement(id: number): Achievement | null {
   return db.select().from(achievements).where(eq(achievements.id, id)).get() ?? null;
+}
+
+/** 成就管理页用的角色候选（datalist） */
+export function achievementRoles(): string[] {
+  const rows = db
+    .select({ role: achievements.role })
+    .from(achievements)
+    .orderBy(achievements.sortOrder, achievements.id)
+    .all();
+  return [...new Set(rows.map((r) => r.role).filter(Boolean))];
+}
+
+export type AchievementGroup = { role: string; items: Achievement[] };
+
+/**
+ * 按角色分组，组的顺序 = 角色在 sort_order 里首次出现的顺序，
+ * 「通用」永远排第一。
+ */
+export function groupByRole(list: Achievement[]): AchievementGroup[] {
+  const groups: AchievementGroup[] = [];
+  const byRole = new Map<string, AchievementGroup>();
+  for (const a of list) {
+    let g = byRole.get(a.role);
+    if (!g) {
+      g = { role: a.role, items: [] };
+      byRole.set(a.role, g);
+      groups.push(g);
+    }
+    g.items.push(a);
+  }
+  return groups.sort((a, b) => (a.role === "通用" ? -1 : b.role === "通用" ? 1 : 0));
+}
+
+/** 剧本专属成就按剧本名分块，剧本名按首次出现的顺序 */
+export function groupByScript(list: Achievement[]): { scriptName: string; items: Achievement[] }[] {
+  const out: { scriptName: string; items: Achievement[] }[] = [];
+  const seen = new Map<string, { scriptName: string; items: Achievement[] }>();
+  for (const a of list) {
+    const key = a.scriptName ?? "";
+    let g = seen.get(key);
+    if (!g) {
+      g = { scriptName: key, items: [] };
+      seen.set(key, g);
+      out.push(g);
+    }
+    g.items.push(a);
+  }
+  return out;
 }
 
 /** 成就墙用：每个成就的已确认解锁者 */
@@ -398,8 +450,8 @@ export function getPlayerProfile(id: number): PlayerProfile | null {
     .orderBy(desc(achievementClaims.id))
     .all();
 
-  const POINTS: Record<string, number> = { common: 1, rare: 3, epic: 5, legendary: 10 };
-  const points = unlocks.reduce((sum, u) => sum + (POINTS[u.rarity] ?? 0), 0);
+  // 积分 = 星数之和
+  const points = unlocks.reduce((sum, u) => sum + starPoints(u.stars), 0);
 
   return { player, attendance, played, unlocks, points };
 }

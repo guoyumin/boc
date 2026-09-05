@@ -43,9 +43,6 @@ export default async function AdminHome({
         <Link href="/admin/events/new" className="btn btn-primary">
           新建活动
         </Link>
-        <Link href="/admin/achievements" className="btn">
-          成就管理
-        </Link>
         <Link href="/admin/players" className="btn">
           名册
         </Link>
@@ -53,11 +50,27 @@ export default async function AdminHome({
           成就宣告 {claims.length > 0 && `(${claims.length})`}
         </Link>
         {admin.role === "owner" && (
-          <Link href="/admin/admins" className="btn">
+          <Link href="/admin/admins" className="btn col-span-2">
             管理员 {pendingAdmins.length > 0 && `(${pendingAdmins.length})`}
           </Link>
         )}
       </div>
+
+      {/* 成就管理入口单独拎出来：上一版做成小按钮，管理员找不到 */}
+      <Link
+        href="/admin/achievements"
+        className="card block border-brand/30 bg-brand-light/40 transition active:scale-[0.99]"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-3xl leading-none">🏆</span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-brand">成就管理 →</p>
+            <p className="muted mt-0.5">
+              改成就的名称、达成条件、角色、星级和图标，或直接把成就授予某个玩家。
+            </p>
+          </div>
+        </div>
+      </Link>
 
       <section className="card">
         <div className="card-title">

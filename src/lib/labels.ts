@@ -1,4 +1,4 @@
-import type { Category, PollSlot, Rarity, Session } from "@/db/schema";
+import type { PollSlot, Session } from "@/db/schema";
 
 export const SESSION_LABEL: Record<Session, string> = {
   none: "未到",
@@ -42,37 +42,47 @@ export const SLOT_SHORT: Record<PollSlot, string> = {
   sun_eve: "日 晚上",
 };
 
-export const RARITY_LABEL: Record<Rarity, string> = {
-  common: "普通",
-  rare: "稀有",
-  epic: "史诗",
-  legendary: "传说",
+/** 星数收敛到 1–5 */
+export function clampStars(n: number): number {
+  if (!Number.isFinite(n)) return 1;
+  return Math.min(5, Math.max(1, Math.round(n)));
+}
+
+/** 积分 = 星数 */
+export function starPoints(stars: number): number {
+  return clampStars(stars);
+}
+
+/** 每个角色一个固定 emoji；名单外的角色回退到 🏆 */
+export const ROLE_ICON: Record<string, string> = {
+  通用: "🎭",
+  厨师: "👨‍🍳",
+  贵族: "👑",
+  共情者: "💞",
+  舞蛇人: "🐍",
+  数学家: "🧮",
+  僧侣: "🧘",
+  赌徒: "🎲",
+  半兽人: "🐺",
+  女裁缝: "🧵",
+  哲学家: "📜",
+  炼金术士: "⚗️",
+  农夫: "🌾",
+  管家: "🎩",
+  解谜大师: "🧩",
+  疯子: "🤪",
+  食人魔: "👹",
+  麻脸巫婆: "🧙",
+  魔鬼代言人: "😈",
+  鹰身女妖: "🦅",
+  哥布林: "👺",
+  痢蛭: "🩸",
+  精神病患者: "🔪",
 };
 
-export const RARITY_POINTS: Record<Rarity, number> = {
-  common: 1,
-  rare: 3,
-  epic: 5,
-  legendary: 10,
-};
-
-export const RARITY_CLASS: Record<Rarity, string> = {
-  common: "bg-stone-100 text-stone-600 border-stone-200",
-  rare: "bg-sky-50 text-sky-700 border-sky-200",
-  epic: "bg-violet-50 text-violet-700 border-violet-200",
-  legendary: "bg-amber-50 text-amber-700 border-amber-200",
-};
-
-export const CATEGORY_LABEL: Record<Category, string> = {
-  good: "善良阵营",
-  evil: "邪恶阵营",
-  storyteller: "说书人",
-  attendance: "出勤",
-  fun: "整活",
-  other: "其他",
-};
-
-export const CATEGORY_ORDER: Category[] = ["good", "evil", "storyteller", "attendance", "fun", "other"];
+export function roleIcon(role: string): string {
+  return ROLE_ICON[role] ?? "🏆";
+}
 
 export const EVENT_STATUS_LABEL: Record<string, string> = {
   planned: "计划中",

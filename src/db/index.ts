@@ -4,7 +4,7 @@ import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 import fs from "node:fs";
 import path from "node:path";
 import * as schema from "./schema";
-import { seedOwner, seedDemo } from "./seed";
+import { seedAchievements, seedOwner, seedDemo } from "./seed";
 
 function open() {
   const file = process.env.DATABASE_PATH ?? "./data/boc.db";
@@ -20,6 +20,7 @@ function open() {
   // 用 BEGIN IMMEDIATE 串行化，next build 会起多个 worker 同时打开这个库
   const seed = sqlite.transaction(() => {
     seedOwner(db);
+    seedAchievements(db); // 正式成就清单，不受 SEED_DEMO 控制
     if (process.env.SEED_DEMO === "1") seedDemo(db);
   });
   seed.immediate();

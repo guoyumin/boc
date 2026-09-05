@@ -184,11 +184,6 @@ export default async function PollDetailPage({
         </section>
       )}
 
-      {!admin && (
-        <Link href="/polls?all=1" className="btn btn-block">
-          看历史预填
-        </Link>
-      )}
     </div>
   );
 }

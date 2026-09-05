@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { hashSync } from "bcryptjs";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
@@ -15,13 +15,31 @@ import {
   players,
   polls,
 } from "./schema";
+import { ACHIEVEMENT_SEEDS } from "./achievements-data";
 import { addDays, formatMd, nextSaturday, pollTitle } from "@/lib/dates";
+import { roleIcon } from "@/lib/labels";
+import { cleanName, normalizeName } from "@/lib/names";
 
 type DB = BetterSQLite3Database<typeof schema>;
 
-function rows(db: DB, table: typeof players | typeof admins): number {
+function rows(
+  db: DB,
+  table: typeof players | typeof admins | typeof achievements | typeof events,
+): number {
   const r = db.select({ c: sql<number>`count(*)` }).from(table).get();
   return r?.c ?? 0;
+}
+
+/**
+ * seed 专用的昵称 → 玩家。
+ * 不能复用 `@/lib/players`：那边从 `@/db` 取连接，会和 `db/index.ts` 形成循环依赖。
+ */
+function findOrCreate(db: DB, raw: string): number {
+  const name = cleanName(raw);
+  const key = normalizeName(name);
+  const hit = db.select().from(players).all().find((p) => normalizeName(p.name) === key);
+  if (hit) return hit.id;
+  return db.insert(players).values({ name }).returning({ id: players.id }).get().id;
 }
 
 /** admins 表为空时，用环境变量创建初始管理员（ADM-02）。 */
@@ -60,37 +78,71 @@ const PLAYER_NAMES = [
   "Leo",
 ];
 
-const ACHIEVEMENTS = [
-  { name: "初次登场", description: "第一次来参加线下活动。", icon: "🎬", category: "attendance", rarity: "common", hidden: 0, sortOrder: 10 },
-  { name: "全勤月", description: "一个月之内四次活动一次没落。", icon: "📅", category: "attendance", rarity: "rare", hidden: 0, sortOrder: 20 },
-  { name: "第一次说书", description: "第一次给大家当说书人，无论讲得怎么样。", icon: "📖", category: "storyteller", rarity: "common", hidden: 0, sortOrder: 30 },
-  { name: "铁人说书", description: "同一天连说三局，嗓子还在。", icon: "🎙️", category: "storyteller", rarity: "epic", hidden: 0, sortOrder: 40 },
-  { name: "神算子", description: "作为占卜师，全场没有验错过一次。", icon: "🔮", category: "good", rarity: "rare", hidden: 0, sortOrder: 50 },
-  { name: "圣徒之死", description: "作为圣徒被好人投票处决，直接送走全村。", icon: "😇", category: "good", rarity: "common", hidden: 0, sortOrder: 60 },
-  { name: "完美下毒", description: "作为下毒者，每一晚都毒在了关键人身上。", icon: "☠️", category: "evil", rarity: "epic", hidden: 0, sortOrder: 70 },
-  { name: "恶魔通关", description: "作为小恶魔活到最后一夜并取得胜利。", icon: "👹", category: "evil", rarity: "legendary", hidden: 0, sortOrder: 80 },
-  { name: "团宠鸽子", description: "连续两次报名之后放了大家鸽子。", icon: "🕊️", category: "fun", rarity: "common", hidden: 0, sortOrder: 90 },
-  { name: "午夜钟声", description: "在最后一票之前一秒改票，并且改对了。", icon: "🔔", category: "other", rarity: "legendary", hidden: 1, sortOrder: 100 },
-];
+/**
+ * achievements 表为空时写入正式成就清单（来自 docs/achievements.tsv）。
+ * 这是正式数据，不受 SEED_DEMO 控制。sort_order 按数组下标递增，
+ * 所以成就墙里的顺序 = 表里的顺序。
+ */
+export function seedAchievements(db: DB): void {
+  if (rows(db, achievements) > 0) return;
+
+  const idByName = new Map<string, number>();
+  ACHIEVEMENT_SEEDS.forEach((a, i) => {
+    const row = db
+      .insert(achievements)
+      .values({
+        name: a.name,
+        description: a.condition,
+        icon: roleIcon(a.role),
+        role: a.role,
+        stars: a.stars,
+        scriptName: null, // 全局成就；剧本专属成就以后从飞书的对应标签页导入
+        hidden: 0,
+        sortOrder: (i + 1) * 10,
+        active: 1,
+      })
+      .returning({ id: achievements.id })
+      .get();
+    idByName.set(a.name, row.id);
+  });
+
+  // TSV 里带首位达成者的记录 → 已确认的解锁
+  let claims = 0;
+  for (const a of ACHIEVEMENT_SEEDS) {
+    if (!a.firstPlayer) continue;
+    const playerId = findOrCreate(db, a.firstPlayer);
+    db.insert(achievementClaims)
+      .values({
+        achievementId: idByName.get(a.name)!,
+        playerId,
+        status: "confirmed",
+        note: "历史记录导入",
+        reviewNote: "历史记录导入",
+        reviewedAt: new Date().toISOString(),
+        unlockedAt: a.firstDate ?? new Date().toISOString().slice(0, 10),
+        unlockedAtText: a.firstDateNote,
+      })
+      .run();
+    claims += 1;
+  }
+
+  console.log(`[boc] 已写入成就清单：${ACHIEVEMENT_SEEDS.length} 条成就、${claims} 条历史解锁`);
+}
 
 const SCRIPTS = ["暗流涌动", "梦殒春宵", "教派再临"];
 
-/** players 表为空时写入一整套演示数据（SEED_DEMO=1）。 */
+/**
+ * events 表为空时写入一整套演示数据（SEED_DEMO=1）。
+ * 判空看 events 而不是 players：seedAchievements 会先建出历史解锁者。
+ */
 export function seedDemo(db: DB): void {
-  if (rows(db, players) > 0) return;
+  if (rows(db, events) > 0) return;
 
   const pid = new Map<string, number>();
   for (const name of PLAYER_NAMES) {
-    const p = db.insert(players).values({ name }).returning({ id: players.id }).get();
-    pid.set(name, p.id);
+    pid.set(name, findOrCreate(db, name));
   }
   const P = (n: string) => pid.get(n)!;
-
-  const achId = new Map<string, number>();
-  for (const a of ACHIEVEMENTS) {
-    const r = db.insert(achievements).values(a).returning({ id: achievements.id }).get();
-    achId.set(a.name, r.id);
-  }
 
   const upcomingSat = nextSaturday();
   const pastA = addDays(upcomingSat, -20); // 三周前的周日
@@ -370,35 +422,23 @@ export function seedDemo(db: DB): void {
   }
 
   // ---- 成就宣告 ----
-  const claim = (
-    ach: string,
-    player: string,
-    status: string,
-    eventId: number | null,
-    note: string | null,
-  ) => {
+  // 成就本身是正式数据（seedAchievements 写入），演示数据只造两条待确认的宣告，
+  // 好让人在后台看到「待确认 → 确认上墙」这条流程。
+  const pendingClaim = (achName: string, player: string, eventId: number | null, note: string) => {
+    const ach = db.select().from(achievements).where(eq(achievements.name, achName)).get();
+    if (!ach) return;
     db.insert(achievementClaims)
       .values({
-        achievementId: achId.get(ach)!,
+        achievementId: ach.id,
         playerId: P(player),
         eventId,
         note,
-        status,
-        reviewedBy: status === "pending" ? null : 1,
-        reviewedAt: status === "pending" ? null : new Date().toISOString(),
+        status: "pending",
       })
       .run();
   };
-  claim("初次登场", "小圆", "confirmed", evB.id, "第一次来，规则还没背下来。");
-  claim("初次登场", "苏打水", "confirmed", evA.id, null);
-  claim("第一次说书", "钟楼怪人", "confirmed", evB.id, null);
-  claim("恶魔通关", "Kevin", "confirmed", evA.id, "小恶魔活到最后一夜。");
-  claim("神算子", "枫染柒萋", "confirmed", evA.id, "占卜师全场没验错。");
-  claim("圣徒之死", "麦麦", "confirmed", evA.id, "被好人票走，全村送走。");
-  claim("铁人说书", "Leo", "confirmed", evB.id, "一晚上说了两局半。");
-  claim("完美下毒", "老王", "pending", evB.id, "下毒者，每晚都毒对了人。");
-  claim("团宠鸽子", "阿飞", "pending", evB.id, "连续两次没来，自首。");
-  claim("全勤月", "清扬", "pending", null, "上个月四场全到。");
+  pendingClaim("我是疯子？", "老王", evB.id, "我是小恶魔，第二天就公开跳疯子，居然没人信。");
+  pendingClaim("夹心饼干", "洛神", evA.id, "共情者首夜两边都是邪恶，直接摊牌。");
 
   console.log("[boc] 已写入演示数据");
 }

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "gen:achievements": "tsx scripts/gen-achievements.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

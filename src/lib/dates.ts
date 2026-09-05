@@ -65,6 +65,15 @@ export function isFuture(ymd: string): boolean {
   return ymd >= todayYmd();
 }
 
+/** 日期或 ISO 时间戳 → "11月29日"；不是今年则带上年份 "2025年11月29日" */
+export function formatDay(value: string): string {
+  const ymd = value.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return "";
+  const d = parseYmd(ymd);
+  const year = d.getFullYear() === new Date().getFullYear() ? "" : `${d.getFullYear()}年`;
+  return `${year}${d.getMonth() + 1}月${d.getDate()}日`;
+}
+
 /** ISO 时间戳（UTC）→ "9月5日" */
 export function formatStamp(iso: string): string {
   const d = new Date(iso.endsWith("Z") ? iso : `${iso}Z`);

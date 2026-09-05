@@ -1,10 +1,9 @@
 import Link from "next/link";
 import PollFillForm from "@/components/PollFillForm";
 import { formatDate, formatMd } from "@/lib/dates";
+import Stars from "@/components/Stars";
 import {
   EVENT_STATUS_LABEL,
-  RARITY_CLASS,
-  RARITY_LABEL,
   SLOT_SHORT,
   isFinished,
   isNoShow,
@@ -66,9 +65,6 @@ export default async function HomePage() {
         <section className="card">
           <div className="card-title">🗓 本周时间预填</div>
           <p className="muted">现在没有进行中的预填，等管理员发起。</p>
-          <Link href="/polls" className="btn mt-3">
-            看历史预填
-          </Link>
         </section>
       )}
 
@@ -131,9 +127,7 @@ export default async function HomePage() {
                 <Link href={`/achievements/${u.achievementId}`} className="text-brand">
                   {u.achievementName}
                 </Link>
-                <span className={`badge ${RARITY_CLASS[u.rarity as keyof typeof RARITY_CLASS]}`}>
-                  {RARITY_LABEL[u.rarity as keyof typeof RARITY_LABEL]}
-                </span>
+                <Stars stars={u.stars} />
               </li>
             ))}
           </ul>

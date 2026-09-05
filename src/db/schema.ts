@@ -19,10 +19,9 @@ export const GAME_SESSIONS = ["afternoon", "evening"] as const;
 export type GameSession = (typeof GAME_SESSIONS)[number];
 export const POLL_SLOTS = ["sat_pm", "sat_eve", "sun_pm", "sun_eve"] as const;
 export type PollSlot = (typeof POLL_SLOTS)[number];
-export const RARITIES = ["common", "rare", "epic", "legendary"] as const;
-export type Rarity = (typeof RARITIES)[number];
-export const CATEGORIES = ["good", "evil", "storyteller", "attendance", "fun", "other"] as const;
-export type Category = (typeof CATEGORIES)[number];
+/** 成就稀有度：1–5 星，星数即积分 */
+export const STAR_LEVELS = [1, 2, 3, 4, 5] as const;
+export type StarLevel = (typeof STAR_LEVELS)[number];
 
 export const admins = sqliteTable("admins", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -183,10 +182,11 @@ export const eventFiles = sqliteTable(
 export const achievements = sqliteTable("achievements", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull().unique(),
-  description: text("description").notNull(),
+  description: text("description").notNull(), // 达成条件
   icon: text("icon").notNull().default("🏆"),
-  category: text("category").notNull().default("other"),
-  rarity: text("rarity").notNull().default("common"),
+  role: text("role").notNull().default("通用"), // 角色名，与 docs/achievements.tsv 一致
+  stars: integer("stars").notNull().default(1), // 稀有度 1–5，星数即积分
+  scriptName: text("script_name"), // 剧本专属成就；null = 全局成就
   hidden: integer("hidden").notNull().default(0),
   sortOrder: integer("sort_order").notNull().default(100),
   active: integer("active").notNull().default(1),
@@ -207,6 +207,8 @@ export const achievementClaims = sqliteTable(
     reviewedAt: text("reviewed_at"),
     reviewNote: text("review_note"),
     unlockedAt: text("unlocked_at").notNull().default(now),
+    /** 日期不精确时显示这个（如「已不可考」），有值时优先于 unlocked_at */
+    unlockedAtText: text("unlocked_at_text"),
     ...timestamps,
   },
   (t) => [

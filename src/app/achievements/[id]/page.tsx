@@ -6,10 +6,10 @@ import NicknameInput from "@/components/NicknameInput";
 import { claimAchievement, grantAchievement } from "@/actions/achievements";
 import { reviewClaim } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
-import { formatMd } from "@/lib/dates";
-import { CATEGORY_LABEL, RARITY_CLASS, RARITY_LABEL, RARITY_POINTS } from "@/lib/labels";
+import Stars from "@/components/Stars";
+import { formatDay, formatMd } from "@/lib/dates";
+import { roleIcon } from "@/lib/labels";
 import { claimsForAchievement, getAchievement, listEvents } from "@/lib/queries";
-import type { Category, Rarity } from "@/db/schema";
 
 export default async function AchievementDetailPage({
   params,
@@ -39,13 +39,17 @@ export default async function AchievementDetailPage({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="text-lg font-semibold text-stone-800">{masked ? "???" : ach.name}</h1>
-              <span className={`badge ${RARITY_CLASS[ach.rarity as Rarity]}`}>
-                {RARITY_LABEL[ach.rarity as Rarity]} · {RARITY_POINTS[ach.rarity as Rarity]} 分
+              <Stars stars={ach.stars} size="md" showPoints />
+              <span className="badge badge-plain">
+                {roleIcon(ach.role)} {ach.role}
               </span>
-              <span className="badge badge-plain">{CATEGORY_LABEL[ach.category as Category]}</span>
+              {ach.scriptName && <span className="badge badge-plain">📕 {ach.scriptName}</span>}
               {ach.hidden === 1 && <span className="badge badge-plain">隐藏</span>}
             </div>
-            <p className="muted mt-1">{masked ? "隐藏成就，解锁后才会显示。" : ach.description}</p>
+            <p className="mt-1 text-sm text-stone-600">
+              <span className="text-stone-400">达成条件：</span>
+              {masked ? "隐藏成就，解锁后才会显示。" : ach.description}
+            </p>
           </div>
         </div>
       </section>
@@ -61,7 +65,9 @@ export default async function AchievementDetailPage({
                 <Link href={`/players/${c.playerId}`} className="font-medium">
                   {c.playerName}
                 </Link>
-                <span className="muted truncate">{c.note ?? ""}</span>
+                <span className="muted shrink-0">
+                  {c.unlockedAtText ?? formatDay(c.unlockedAt)}
+                </span>
               </li>
             ))}
           </ul>
