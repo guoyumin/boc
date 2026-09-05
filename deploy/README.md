@@ -24,6 +24,7 @@ cd /opt/boc/deploy
 cp .env.example .env
 $EDITOR .env          # 至少改 OWNER_PASSWORD
 mkdir -p data         # SQLite 和上传目录挂在这里
+sudo chown -R 1000:1000 data   # 容器内以 node(uid 1000) 运行，否则报 unable to open database file
 ```
 
 `.env` 里的 `OWNER_USERNAME` / `OWNER_PASSWORD` 只在**数据库里一个管理员都没有**的时候用来创建初始管理员，
