@@ -86,7 +86,7 @@ export default async function AchievementsPage({
       ) : (
         <>
           <p className="muted">
-            共 {list.length} 个成就，已解锁 {unlockedCount} 个。星级即积分（1–5 分）。
+            共 {list.length} 个成就，已解锁 {unlockedCount} 个。积分：普通 1 / 稀有 3 / 史诗 5 / 传说 10。
           </p>
 
           {/* 角色快捷跳转：横向滚动的锚点条，手机上一屏能扫完 */}

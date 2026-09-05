@@ -42,7 +42,6 @@ export const SLOT_SHORT: Record<PollSlot, string> = {
   sun_eve: "日 晚上",
 };
 
-/** 星数收敛到 1–5 */
 export const RARITY_LABEL: Record<Rarity, string> = {
   common: "普通",
   rare: "稀有",

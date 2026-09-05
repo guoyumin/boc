@@ -57,7 +57,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           </div>
           <div>
             <p className="text-xl font-semibold text-amber-600">{points}</p>
-            <p className="muted">星数</p>
+            <p className="muted">积分</p>
           </div>
         </div>
         {noShow > 0 && <p className="muted mt-2">报名没到 {noShow} 次 🕊️</p>}
@@ -136,7 +136,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
       </section>
 
       <section className="card">
-        <div className="card-title">🏆 已解锁成就（共 {points} 分，星数之和）</div>
+        <div className="card-title">🏆 已解锁成就（共 {points} 分）</div>
         {unlocks.length === 0 ? (
           <p className="muted">还没有成就，去成就墙看看能干点什么。</p>
         ) : (
