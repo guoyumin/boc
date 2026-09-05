@@ -1,0 +1,194 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import CopyButton from "@/components/CopyButton";
+import Flash from "@/components/Flash";
+import PollFillForm from "@/components/PollFillForm";
+import { closePoll, decidePoll, reopenPoll } from "@/actions/polls";
+import { getAdmin } from "@/lib/auth";
+import { addDays, formatDate, formatMd } from "@/lib/dates";
+import { POLL_STATUS_LABEL, SLOT_LABEL, SLOT_SHORT } from "@/lib/labels";
+import { getPollView } from "@/lib/queries";
+
+export default async function PollDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ err?: string; ok?: string }>;
+}) {
+  const { id } = await params;
+  const sp = await searchParams;
+  const view = getPollView(Number(id));
+  if (!view) notFound();
+  const admin = await getAdmin();
+  const { poll, slots, responses, counts, best } = view;
+
+  const summary = [
+    `${poll.title} 时间预填（${responses.length} 人已填）`,
+    ...slots.map(
+      (s) =>
+        `${SLOT_LABEL[s]}（${counts[s] ?? 0}人）：${
+          responses.filter((r) => r.slots.includes(s)).map((r) => r.name).join("、") || "—"
+        }`,
+    ),
+    best > 0 ? `人最多：${slots.filter((s) => counts[s] === best).map((s) => SLOT_LABEL[s]).join(" / ")}` : "",
+    view.event ? `已定：${formatDate(view.event.date)}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <div className="space-y-4">
+      <Flash err={sp.err} ok={sp.ok} />
+
+      <div className="card">
+        <div className="card-title">
+          <span>🗓 {poll.title}</span>
+          <span className={`badge ${poll.status === "open" ? "badge-brand" : "badge-plain"}`}>
+            {POLL_STATUS_LABEL[poll.status]}
+          </span>
+        </div>
+        {poll.note && <p className="muted">{poll.note}</p>}
+        {view.event && (
+          <Link href={`/events/${view.event.id}`} className="btn btn-primary btn-block mt-3">
+            已定在 {formatDate(view.event.date)} · 去活动页
+          </Link>
+        )}
+      </div>
+
+      <section className="card">
+        <div className="card-title">
+          <span>结果（{responses.length} 人）</span>
+        </div>
+        {responses.length === 0 ? (
+          <p className="muted">还没有人填。</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 bg-white">昵称</th>
+                  {slots.map((s) => (
+                    <th key={s} className={`text-center ${counts[s] === best && best > 0 ? "text-brand" : ""}`}>
+                      {SLOT_SHORT[s]}
+                    </th>
+                  ))}
+                  <th>备注</th>
+                </tr>
+              </thead>
+              <tbody>
+                {responses.map((r) => (
+                  <tr key={r.id}>
+                    <td className="sticky left-0 bg-white font-medium">
+                      <Link href={`/players/${r.playerId}`}>{r.name}</Link>
+                    </td>
+                    {slots.map((s) => (
+                      <td
+                        key={s}
+                        className={`text-center ${
+                          counts[s] === best && best > 0 ? "bg-brand-light" : ""
+                        }`}
+                      >
+                        {r.slots.includes(s) ? <span className="text-brand">✓</span> : <span className="text-stone-300">·</span>}
+                      </td>
+                    ))}
+                    <td className="max-w-[10rem] truncate text-stone-500">{r.note ?? ""}</td>
+                  </tr>
+                ))}
+                <tr className="font-semibold">
+                  <td className="sticky left-0 bg-white">合计</td>
+                  {slots.map((s) => (
+                    <td
+                      key={s}
+                      className={`text-center ${
+                        counts[s] === best && best > 0 ? "bg-brand-light text-brand" : ""
+                      }`}
+                    >
+                      {counts[s] ?? 0}
+                    </td>
+                  ))}
+                  <td />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="mt-3">
+          <CopyButton text={summary} />
+        </div>
+      </section>
+
+      {poll.status === "open" && (
+        <section className="card">
+          <div className="card-title">✍️ 填我的时间</div>
+          <PollFillForm pollId={poll.id} slots={slots} />
+        </section>
+      )}
+
+      {admin && (
+        <section className="card border-brand/30">
+          <div className="card-title">🛠 管理员</div>
+          {poll.status !== "decided" && (
+            <form action={decidePoll} className="space-y-3">
+              <input type="hidden" name="pollId" value={poll.id} />
+              <div>
+                <label className="label">定在哪天</label>
+                <select className="input" name="day" defaultValue="sat">
+                  <option value="sat">周六 · {formatMd(poll.saturday)}</option>
+                  <option value="sun">周日 · {formatMd(addDays(poll.saturday, 1))}</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">场次</label>
+                <select className="input" name="sessions" defaultValue="full">
+                  <option value="full">下午 + 晚上</option>
+                  <option value="afternoon">只有下午</option>
+                  <option value="evening">只有晚上</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">地点（可选）</label>
+                  <input className="input" name="location" placeholder="Oerlikon 桌游吧" />
+                </div>
+                <div>
+                  <label className="label">开始时间（可选）</label>
+                  <input className="input" name="startTime" placeholder="下午一点半" />
+                </div>
+              </div>
+              <button type="submit" className="btn btn-primary btn-block">
+                定下来并创建活动
+              </button>
+            </form>
+          )}
+          <div className="mt-3 flex gap-2">
+            {poll.status === "open" ? (
+              <form action={closePoll}>
+                <input type="hidden" name="pollId" value={poll.id} />
+                <button type="submit" className="btn">
+                  关闭预填
+                </button>
+              </form>
+            ) : (
+              <form action={reopenPoll}>
+                <input type="hidden" name="pollId" value={poll.id} />
+                <button type="submit" className="btn">
+                  重新打开
+                </button>
+              </form>
+            )}
+            <Link href="/polls?all=1" className="btn">
+              全部预填
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {!admin && (
+        <Link href="/polls?all=1" className="btn btn-block">
+          看历史预填
+        </Link>
+      )}
+    </div>
+  );
+}

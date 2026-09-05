@@ -1,0 +1,158 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import Flash from "@/components/Flash";
+import MyPending from "@/components/MyPending";
+import NicknameInput from "@/components/NicknameInput";
+import { claimAchievement, grantAchievement } from "@/actions/achievements";
+import { reviewClaim } from "@/actions/achievements";
+import { getAdmin } from "@/lib/auth";
+import { formatMd } from "@/lib/dates";
+import { CATEGORY_LABEL, RARITY_CLASS, RARITY_LABEL, RARITY_POINTS } from "@/lib/labels";
+import { claimsForAchievement, getAchievement, listEvents } from "@/lib/queries";
+import type { Category, Rarity } from "@/db/schema";
+
+export default async function AchievementDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ err?: string; ok?: string }>;
+}) {
+  const { id } = await params;
+  const sp = await searchParams;
+  const ach = getAchievement(Number(id));
+  if (!ach) notFound();
+  const admin = await getAdmin();
+  const claims = claimsForAchievement(ach.id);
+  const confirmed = claims.filter((c) => c.status === "confirmed");
+  const pending = claims.filter((c) => c.status === "pending");
+  const events = listEvents(30);
+  const masked = ach.hidden === 1 && confirmed.length === 0 && !admin;
+
+  return (
+    <div className="space-y-4">
+      <Flash err={sp.err} ok={sp.ok} />
+
+      <section className="card">
+        <div className="flex items-start gap-3">
+          <span className="text-4xl leading-none">{masked ? "❓" : ach.icon}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg font-semibold text-stone-800">{masked ? "???" : ach.name}</h1>
+              <span className={`badge ${RARITY_CLASS[ach.rarity as Rarity]}`}>
+                {RARITY_LABEL[ach.rarity as Rarity]} · {RARITY_POINTS[ach.rarity as Rarity]} 分
+              </span>
+              <span className="badge badge-plain">{CATEGORY_LABEL[ach.category as Category]}</span>
+              {ach.hidden === 1 && <span className="badge badge-plain">隐藏</span>}
+            </div>
+            <p className="muted mt-1">{masked ? "隐藏成就，解锁后才会显示。" : ach.description}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="card">
+        <div className="card-title">已解锁（{confirmed.length} 人）</div>
+        {confirmed.length === 0 ? (
+          <p className="muted">还没有人解锁。</p>
+        ) : (
+          <ul className="space-y-2 text-sm">
+            {confirmed.map((c) => (
+              <li key={c.claimId} className="flex items-center justify-between gap-2">
+                <Link href={`/players/${c.playerId}`} className="font-medium">
+                  {c.playerName}
+                </Link>
+                <span className="muted truncate">{c.note ?? ""}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <MyPending names={pending.map((p) => p.playerName)} />
+      </section>
+
+      {ach.active === 1 && (
+        <section className="card">
+          <div className="card-title">🙋 我达成了</div>
+          <form action={claimAchievement} className="space-y-3">
+            <input type="hidden" name="achievementId" value={ach.id} />
+            <div>
+              <label className="label">你的昵称</label>
+              <NicknameInput />
+            </div>
+            <div>
+              <label className="label">哪次活动（可选）</label>
+              <select className="input" name="eventId" defaultValue="">
+                <option value="">不指定</option>
+                {events.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {formatMd(e.date)} · {e.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">说明（可选）</label>
+              <input className="input" name="note" maxLength={200} placeholder="当时发生了什么" />
+            </div>
+            <button type="submit" className="btn btn-primary btn-block">
+              提交宣告
+            </button>
+            <p className="muted">提交后要管理员确认才会上墙。</p>
+          </form>
+        </section>
+      )}
+
+      {admin && (
+        <section className="card border-brand/30">
+          <div className="card-title">🛠 管理员</div>
+          {pending.length > 0 && (
+            <div className="mb-4">
+              <p className="label">待确认的宣告</p>
+              <ul className="space-y-2">
+                {pending.map((c) => (
+                  <li key={c.claimId} className="rounded-lg border border-stone-200 p-2">
+                    <p className="text-sm font-medium">{c.playerName}</p>
+                    {c.note && <p className="muted">{c.note}</p>}
+                    <div className="mt-2 flex gap-2">
+                      <form action={reviewClaim}>
+                        <input type="hidden" name="claimId" value={c.claimId} />
+                        <input type="hidden" name="decision" value="confirm" />
+                        <input type="hidden" name="back" value={`/achievements/${ach.id}`} />
+                        <button type="submit" className="btn btn-sm btn-primary">
+                          确认
+                        </button>
+                      </form>
+                      <form action={reviewClaim}>
+                        <input type="hidden" name="claimId" value={c.claimId} />
+                        <input type="hidden" name="decision" value="reject" />
+                        <input type="hidden" name="back" value={`/achievements/${ach.id}`} />
+                        <button type="submit" className="btn btn-sm btn-danger">
+                          驳回
+                        </button>
+                      </form>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <form action={grantAchievement} className="space-y-2">
+            <input type="hidden" name="achievementId" value={ach.id} />
+            <input type="hidden" name="back" value={`/achievements/${ach.id}`} />
+            <label className="label">直接授予给（昵称）</label>
+            <div className="flex gap-2">
+              <input className="input flex-1" name="nickname" maxLength={20} required />
+              <button type="submit" className="btn btn-primary">
+                授予
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      <Link href="/achievements" className="btn btn-block">
+        返回成就墙
+      </Link>
+    </div>
+  );
+}

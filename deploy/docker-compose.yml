@@ -1,0 +1,13 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: boc:latest
+    container_name: boc
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "127.0.0.1:3100:3000"
+    volumes:
+      - ./data:/data

@@ -2,7 +2,7 @@
 
 > 一个给苏黎世《血染钟楼》（Blood on the Clocktower）桌游群用的小型管理网站：记录每周活动的出席情况、保存板子图片与剧本 JSON、维护成就墙。
 
-站点计划部署在 `https://boc.jiliguru.dev`。
+站点计划部署在 `https://boc.example.com`。
 
 ## 文档
 
@@ -13,14 +13,39 @@
 
 ## 当前状态
 
-- [x] 需求与架构设计（v0.1 草稿）
-- [ ] MVP 第一阶段：账号 / 名册 / 活动与出席 / 文件上传
-- [ ] MVP 第二阶段：成就墙
-- [ ] 第二期：游戏 log、在线报名、统计
+- [x] 需求与架构设计（v0.2）
+- [x] 原型：时间预填 / 活动与报名 / 接龙导入 / 出席 / 游戏记录 / 成就墙 / 管理员
+- [ ] MVP：文件上传（板子图片、剧本 JSON）、剧本角色字典、审计日志、备份脚本
+- [ ] 第二期：游戏 log、统计（出勤率、鸽子榜、角色胜率）、成就自动判定
 
 ## 本地开发
 
-技术栈与开发步骤见 [docs/architecture.md](docs/architecture.md)，代码骨架搭好后会在这里补充命令。
+```bash
+cp .env.example .env
+npm install
+npm run dev              # http://localhost:3000
+```
+
+首次启动会自动建库（`./data/boc.db`）、跑迁移，并按 `.env` 里的
+`OWNER_USERNAME` / `OWNER_PASSWORD` 创建初始管理员。
+
+想要一份演示数据（约 15 个玩家、一次进行中的预填、两场已结束的活动和几局游戏、示例成就）：
+
+```bash
+SEED_DEMO=1 npm run dev
+```
+
+演示数据只在 `players` 表为空时写入；想重新来一次就删掉 `data/` 再启动。
+
+| 命令 | 作用 |
+|---|---|
+| `npm run dev` | 开发服务器 |
+| `npm run build` / `npm start` | 生产构建与启动 |
+| `npm run lint` | ESLint |
+| `npm test` | Vitest（接龙解析、日期） |
+| `npx drizzle-kit generate` | 改完 `src/db/schema.ts` 后生成迁移 |
+
+部署到 VPS 见 [deploy/README.md](deploy/README.md)。
 
 ## 声明
 
