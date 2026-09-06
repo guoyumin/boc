@@ -203,7 +203,9 @@ export default function Home() {
             ))}
           </ol>
           <p className="muted mt-4">
-            想先了解一下，可以加群 —— <span className="badge badge-plain">加群方式待定</span>
+            想先了解一下，加微信{" "}
+            <span className="badge badge-brand select-all">CHDC1047</span>{" "}
+            —— 申请好友时备注一句「血染新人」。
           </p>
         </Section>
 
