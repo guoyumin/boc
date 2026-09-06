@@ -1,4 +1,5 @@
 import Link from "next/link";
+import GrimoireLink from "@/components/GrimoireLink";
 import PollFillForm from "@/components/PollFillForm";
 import { formatDate, formatMd } from "@/lib/dates";
 import RarityBadge from "@/components/RarityBadge";
@@ -30,6 +31,9 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-end">
+        <GrimoireLink />
+      </div>
       {pollView ? (
         <section className="card">
           <div className="card-title">
