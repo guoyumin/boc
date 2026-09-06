@@ -45,15 +45,6 @@ const FAQ = [
   ],
 ];
 
-/** 活动日期是不是今天或以后（决定文案是「下一次」还是「最近一次」） */
-function isUpcoming(date: string) {
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-    now.getDate(),
-  ).padStart(2, "0")}`;
-  return date >= today;
-}
-
 function Section({
   id,
   title,
@@ -79,9 +70,14 @@ export default async function Home() {
   // 两个站是同一个应用同一个库，这里读的就是功能站的数据。
   const poll = getOpenPoll();
   const pollView = poll ? getPollView(poll.id) : null;
-  const event = nextEvent() ?? latestEvent();
+  // 还没办的那场（nextEvent 只认 status=planned）；没有就退回最近一场做回顾。
+  // 注意别用日期判断「是不是下一场」：管理员当天把活动标成已结束之后，
+  // 日期还是今天，但它已经不是下一场了（issue #25）。
+  const upcoming = nextEvent();
+  const event = upcoming ?? latestEvent();
   const signups = event ? getSignups(event.id) : [];
   const signedUp = signups.filter((x) => x.signup !== "none").length;
+  const attended = signups.filter((x) => x.attended !== "none").length;
 
   return (
     <div>
@@ -137,7 +133,7 @@ export default async function Home() {
             className="card group transition hover:border-brand-line hover:bg-surface-2"
           >
             <div className="card-title">
-              <span>🎲 {event && isUpcoming(event.date) ? "下一次活动" : "最近一次活动"}</span>
+              <span>🎲 {upcoming ? "下一次活动" : "最近一次活动"}</span>
               <span className="text-faint transition group-hover:text-brand-bright">→</span>
             </div>
             {event ? (
@@ -146,8 +142,12 @@ export default async function Home() {
                 <p className="muted mt-0.5">
                   {[event.location, event.startTime].filter(Boolean).join(" · ") || event.title}
                 </p>
-                <p className="mt-2 text-sm text-ink-2">已报名 {signedUp} 人</p>
-                <span className="btn btn-primary btn-block mt-3">去报名</span>
+                <p className="mt-2 text-sm text-ink-2">
+                  {upcoming ? `已报名 ${signedUp} 人` : `到场 ${attended} 人`}
+                </p>
+                <span className={`btn btn-block mt-3 ${upcoming ? "btn-primary" : ""}`}>
+                  {upcoming ? "去报名" : "看看这一场"}
+                </span>
               </>
             ) : (
               <p className="muted">还没有排下一场，加微信进群能第一时间知道。</p>
