@@ -188,7 +188,6 @@ export default async function MePage({
           <ul className="space-y-1">
             {profile!.unlocks.map((u) => (
               <li key={u.claimId} className="flex items-center gap-2 text-sm">
-                <span>{u.icon}</span>
                 <Link href={`/achievements/${u.achievementId}`} className="min-w-0 flex-1 truncate">
                   {u.achievementName}
                 </Link>

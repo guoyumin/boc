@@ -1,5 +1,6 @@
 import Link from "next/link";
 import GrimoireLink from "@/components/GrimoireLink";
+import NavIcon from "@/components/NavIcon";
 import PollFillForm from "@/components/PollFillForm";
 import { formatDate, formatMd } from "@/lib/dates";
 import RarityBadge from "@/components/RarityBadge";
@@ -38,7 +39,10 @@ export default async function HomePage() {
       {pollView ? (
         <section className="card">
           <div className="card-title">
-            <span>🗓 {pollView.poll.title}</span>
+            <span className="inline-flex items-center gap-2">
+              <NavIcon name="calendar" className="size-[18px]" />
+              {pollView.poll.title}
+            </span>
             <span className="badge badge-brand">进行中</span>
           </div>
           {pollView.poll.note && <p className="muted mb-3">{pollView.poll.note}</p>}
@@ -68,7 +72,12 @@ export default async function HomePage() {
         </section>
       ) : (
         <section className="card">
-          <div className="card-title">🗓 时间投票</div>
+          <div className="card-title">
+            <span className="inline-flex items-center gap-2">
+              <NavIcon name="calendar" className="size-[18px]" />
+              时间投票
+            </span>
+          </div>
           <p className="muted">现在没有进行中的时间投票，等管理员发起。</p>
         </section>
       )}
@@ -76,7 +85,10 @@ export default async function HomePage() {
       {upcoming && (
         <section className="card">
           <div className="card-title">
-            <span>🎲 下一次活动</span>
+            <span className="inline-flex items-center gap-2">
+              <NavIcon name="dice" className="size-[18px]" />
+              下一次活动
+            </span>
             <span className={`badge ${EVENT_STATUS_CLASS[upcoming.status] ?? "badge-plain"}`}>
               {EVENT_STATUS_LABEL[upcoming.status]}
             </span>
@@ -99,7 +111,10 @@ export default async function HomePage() {
       {recent && (
         <section className="card">
           <div className="card-title">
-            <span>📋 最近一次活动</span>
+            <span className="inline-flex items-center gap-2">
+              <NavIcon name="dice" className="size-[18px]" />
+              最近一次活动
+            </span>
             <span className={`badge ${EVENT_STATUS_CLASS[recent.status] ?? "badge-plain"}`}>
               {EVENT_STATUS_LABEL[recent.status]}
             </span>
@@ -117,7 +132,10 @@ export default async function HomePage() {
 
       <section className="card">
         <div className="card-title">
-          <span>🏆 最近解锁</span>
+          <span className="inline-flex items-center gap-2">
+            <NavIcon name="trophy" className="size-[18px]" />
+            最近解锁
+          </span>
           <Link href="/achievements" className="text-xs text-brand-bright">
             成就墙 →
           </Link>
@@ -128,7 +146,6 @@ export default async function HomePage() {
           <ul className="space-y-2">
             {unlocks.map((u) => (
               <li key={u.claimId} className="flex items-center gap-2 text-sm">
-                <span className="text-lg">{u.icon}</span>
                 <Link href={`/players/${u.playerId}`} className="font-medium text-ink">
                   {u.playerName}
                 </Link>

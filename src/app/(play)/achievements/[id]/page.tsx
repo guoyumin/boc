@@ -8,6 +8,7 @@ import { reviewClaim } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
 import RarityBadge from "@/components/RarityBadge";
 import { formatDay, formatMd } from "@/lib/dates";
+import NavIcon from "@/components/NavIcon";
 import RoleIcon from "@/components/RoleIcon";
 import { claimsForAchievement, compareUnlock, getAchievement, listEvents } from "@/lib/queries";
 
@@ -37,7 +38,11 @@ export default async function AchievementDetailPage({
 
       <section className="card">
         <div className="flex items-start gap-3">
-          <span className="text-4xl leading-none">{masked ? "❓" : ach.icon}</span>
+          {masked ? (
+            <span className="font-serif text-4xl leading-none text-faint">?</span>
+          ) : (
+            <RoleIcon role={ach.role} className="size-12" />
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="page-title text-ink">{masked ? "???" : ach.name}</h1>
@@ -46,7 +51,12 @@ export default async function AchievementDetailPage({
                 <RoleIcon role={ach.role} className="size-4" />
                 {ach.role}
               </span>
-              {ach.scriptName && <span className="badge badge-plain">📕 {ach.scriptName}</span>}
+              {ach.scriptName && (
+                <span className="badge badge-plain gap-1.5">
+                  <NavIcon name="book" className="size-3.5" />
+                  {ach.scriptName}
+                </span>
+              )}
               {ach.hidden === 1 && <span className="badge badge-plain">隐藏</span>}
             </div>
             <p className="mt-1 text-sm text-ink-2">
@@ -84,7 +94,7 @@ export default async function AchievementDetailPage({
 
       {ach.active === 1 && (
         <section className="card">
-          <div className="card-title">🙋 我达成了</div>
+          <div className="card-title">我达成了</div>
           <form action={claimAchievement} className="space-y-3">
             <input type="hidden" name="achievementId" value={ach.id} />
             <div>
@@ -116,7 +126,12 @@ export default async function AchievementDetailPage({
 
       {admin && (
         <section className="card border-brand/30">
-          <div className="card-title">🛠 管理员</div>
+          <div className="card-title">
+            <span className="inline-flex items-center gap-2">
+              <NavIcon name="tools" className="size-[18px]" />
+              管理员
+            </span>
+          </div>
           {pending.length > 0 && (
             <div className="mb-4">
               <p className="label">待确认的宣告</p>
