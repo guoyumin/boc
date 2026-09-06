@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import NavIcon from "./NavIcon";
 import { ADMIN_ITEM, NAV_ITEMS, isActive } from "./nav-items";
 
 /**
@@ -43,7 +44,7 @@ export default function SideNav({
                   : "border border-transparent text-ink-2 hover:bg-surface-2"
               }`}
             >
-              <span className="text-base leading-none">{it.icon}</span>
+              <NavIcon name={it.icon} className="size-[18px] shrink-0" />
               <span className="leading-tight">
                 {it.label}
                 <span className="block text-[10px] tracking-[0.16em] text-faint uppercase">

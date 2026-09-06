@@ -65,10 +65,12 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 
 - **改了 `src/db/schema.ts` 一定要跑 `npx drizzle-kit generate` 并提交 `drizzle/` 下的新文件**，
   容器启动时会自动执行迁移。迁移只增不减，保持向前兼容。
-- **成就数据改 `docs/achievements.tsv` 后要跑 `npm run gen:achievements`**，并把生成的
-  `src/db/achievements-data.ts` 一起提交。TSV 是唯一数据源（用户从飞书导出覆盖），
-  生成的 TS 文件别手改；`seedAchievements()` 只在 `achievements` 表为空时写入，
-  已经跑过的库要重新导入得先清表。
+- **成就数据的权威是数据库，不是 TSV**。`docs/achievements.tsv` 和它生成的
+  `src/db/achievements-data.ts` 只是**空库首次导入**用的种子（`seedAchievements()` 只在
+  `achievements` 表为空时写入，不受 `SEED_DEMO` 控制）。库一旦有数据，改成就就走
+  `/admin/achievements` 后台，或者在生产库上直接 SQL 改——改 TSV 对已有的库没有任何作用。
+  仍然要维护 TSV 的场景只有一个：将来重建空库时种子得是对的。改了 TSV 记得跑
+  `npm run gen:achievements` 并把生成的 TS 一起提交，生成的文件别手改。
 - 上传的文件在 `UPLOAD_DIR`（默认 `./data/uploads`），路径是 `{活动 id}/{uuid}.{ext}`，
   永远不用用户给的文件名做路径。图片上传要过 sharp（去 EXIF + 缩略图），类型按 magic bytes 判断。
   改上传大小上限时，`next.config.ts` 的 `serverActions.bodySizeLimit` 和 nginx 的
@@ -113,6 +115,9 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
   `bg-brand-soft` / `border-brand-line`，状态 `ok` / `warn` / `danger`，稀有度
   `rare` / `epic` / `legend`。**别再写 `bg-white`、`text-stone-*` 这类固定色**。
   标题用 `.display` / `.page-title`（系统衬线栈，不加载字体文件），配 `.eyebrow` 小字英文。
+- 角色图标是官方美术，放在 `public/roles/<英文 id>.webp`（trim 掉留白后统一 128px）。
+  中文角色名 → 英文 id 的映射在 `src/lib/roles.ts`，页面里用 `<RoleIcon role=... />`，
+  别再往界面上写角色 emoji。导航图标用 `<NavIcon>` 的线图，同样不用 emoji。
 - 成就卡（`src/components/AchievementCard.tsx`）的颜色全部来自卡片根节点上的
   `data-skin` / `data-rarity`，组件里不写死颜色。**加皮肤只要在 `globals.css` 里加一个
   `[data-skin="xxx"]` 块**，再往 `SKINS` 和 `SKIN_LABEL` 各加一条。皮肤现在只跟着

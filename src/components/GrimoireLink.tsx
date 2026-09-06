@@ -1,3 +1,4 @@
+import NavIcon from "./NavIcon";
 import { GRIMOIRE_URL } from "@/lib/urls";
 
 /**
@@ -11,8 +12,9 @@ export default function GrimoireLink({ variant = "btn" }: { variant?: "btn" | "c
     return (
       <a {...common} className="card group block transition hover:border-brand-line hover:bg-surface-2">
         <div className="card-title">
-          <span>
-            <span className="mr-1.5">📖</span>在线魔典
+          <span className="inline-flex items-center gap-1.5">
+            <NavIcon name="book" className="size-[18px]" />
+            在线魔典
           </span>
           <span className="text-faint transition group-hover:text-brand-bright">↗</span>
         </div>
@@ -23,8 +25,9 @@ export default function GrimoireLink({ variant = "btn" }: { variant?: "btn" | "c
   }
 
   return (
-    <a {...common} className="btn btn-sm">
-      📖 在线魔典 ↗
+    <a {...common} className="btn btn-sm gap-1.5">
+      <NavIcon name="book" className="size-4" />
+      在线魔典 ↗
     </a>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import NavIcon from "./NavIcon";
 import { ADMIN_ITEM, NAV_ITEMS, isActive } from "./nav-items";
 
 /** 手机上的底部 tab bar。桌面（lg 起）换成 SideNav 的左侧栏，这里整条藏掉。 */
@@ -23,7 +24,7 @@ export default function BottomNav({ isAdmin }: { isAdmin: boolean }) {
               isActive(pathname, it.href) ? "font-medium text-brand-bright" : "text-muted"
             }`}
           >
-            <span className="text-lg leading-none">{it.icon}</span>
+            <NavIcon name={it.icon} className="size-5" />
             {it.label}
           </Link>
         ))}

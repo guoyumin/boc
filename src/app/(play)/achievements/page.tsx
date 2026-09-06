@@ -1,9 +1,10 @@
 import Link from "next/link";
-import AchievementCard, { AchievementTile, SKINS, asSkin } from "@/components/AchievementCard";
+import AchievementCard, { SKINS, asSkin } from "@/components/AchievementCard";
 import Flash from "@/components/Flash";
 import { getAdmin } from "@/lib/auth";
 import { RARITIES, type Rarity } from "@/db/schema";
-import { RARITY_LABEL, asRarity, roleIcon } from "@/lib/labels";
+import RoleIcon from "@/components/RoleIcon";
+import { RARITY_LABEL, asRarity } from "@/lib/labels";
 import {
   confirmedUnlockMap,
   groupByRole,
@@ -42,41 +43,28 @@ function Group({
   skin,
   id,
 }: {
-  title: string;
+  title: React.ReactNode;
   items: Achievement[];
   unlocks: Map<number, Unlocker[]>;
   skin: ReturnType<typeof asSkin>;
   id?: string;
 }) {
-  const unlocked = items.filter((a) => (unlocks.get(a.id) ?? []).length > 0);
-  const locked = items.filter((a) => (unlocks.get(a.id) ?? []).length === 0);
   if (items.length === 0) return null;
+  const unlockedCount = items.filter((a) => (unlocks.get(a.id) ?? []).length > 0).length;
 
   return (
     <section id={id} className="scroll-mt-16">
       <h2 className="section-title">
-        {title} · 已解锁 {unlocked.length}/{items.length}
+        {title} · 已解锁 {unlockedCount}/{items.length}
       </h2>
-
-      {unlocked.length > 0 && (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {unlocked.map((a) => (
-            <li key={a.id}>
-              <AchievementCard a={a} owners={unlocks.get(a.id) ?? []} skin={skin} />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {locked.length > 0 && (
-        <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-9">
-          {locked.map((a) => (
-            <li key={a.id}>
-              <AchievementTile a={a} />
-            </li>
-          ))}
-        </ul>
-      )}
+      {/* 手机两列，再窄的屏幕上宁可一列也不把卡片挤小（#15） */}
+      <ul className="grid grid-cols-1 gap-3 min-[23rem]:grid-cols-2 sm:grid-cols-3 xl:grid-cols-4">
+        {items.map((a) => (
+          <li key={a.id}>
+            <AchievementCard a={a} owners={unlocks.get(a.id) ?? []} skin={skin} />
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -150,11 +138,12 @@ export default async function AchievementsPage({
 
           {sort === "role" && (
             <>
-              {/* 角色快捷跳转：横向滚动的锚点条，手机上一屏能扫完 */}
-              <div className="table-wrap flex gap-1.5 pb-0.5">
+              {/* 角色菜单：换行铺开，别让后面的角色藏在横向滚动里（#15） */}
+              <div className="flex flex-wrap gap-1.5">
                 {groupByRole(list.filter((a) => !a.scriptName)).map((g, i) => (
-                  <a key={g.role} href={`#${anchorId(i)}`} className="btn btn-sm shrink-0">
-                    {roleIcon(g.role)} {g.role}
+                  <a key={g.role} href={`#${anchorId(i)}`} className="btn btn-sm gap-1.5">
+                    <RoleIcon role={g.role} className="size-4" />
+                    {g.role}
                   </a>
                 ))}
               </div>
@@ -162,7 +151,12 @@ export default async function AchievementsPage({
                 <Group
                   key={g.role}
                   id={anchorId(i)}
-                  title={`${roleIcon(g.role)} ${g.role}`}
+                  title={
+                    <span className="inline-flex items-center gap-1.5">
+                      <RoleIcon role={g.role} className="size-4" />
+                      {g.role}
+                    </span>
+                  }
                   items={g.items}
                   unlocks={unlocks}
                   skin={skin}
