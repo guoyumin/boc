@@ -1,4 +1,5 @@
 import GrimoireLink from "@/components/GrimoireLink";
+import WechatCallout from "@/components/WechatCallout";
 import { PLAY_LINKS } from "@/lib/urls";
 
 // 文案定稿见 issue #7 的评论（v2）。带「待定」的地方是还没确认的事实。
@@ -88,6 +89,9 @@ function Section({
 export default function Home() {
   return (
     <div>
+      {/* 加群提示放在最上面：光在网站上报名是收不到时间地点的 */}
+      <WechatCallout variant="bar" />
+
       {/* hero：整幅苏黎世夜景，左侧压暗好放标题 */}
       <section className="relative isolate overflow-hidden border-b border-line">
         <picture>
@@ -204,11 +208,9 @@ export default function Home() {
               </li>
             ))}
           </ol>
-          <p className="muted mt-4">
-            想先了解一下，加微信{" "}
-            <span className="badge badge-brand select-all">CHDC1047</span>{" "}
-            —— 申请好友时备注一句「血染新人」。
-          </p>
+          <div className="mt-4">
+            <WechatCallout />
+          </div>
         </Section>
 
         <Section id="faq" title="常见问题" sub="questions">

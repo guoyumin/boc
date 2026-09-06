@@ -15,6 +15,7 @@ import {
   requireUser,
   verifyPassword,
 } from "@/lib/auth";
+import { JOIN_HINT } from "@/lib/contact";
 import { errMsg, many, num, optStr, str, withMsg } from "@/lib/form";
 import { assertLoginRate, assertWriteRate } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
@@ -91,7 +92,7 @@ export async function registerAction(fd: FormData): Promise<void> {
     redirect(withMsg("/register", errMsg(e)));
   }
   revalidatePath("/", "layout");
-  redirect(withMsg("/me", "注册成功，欢迎", "ok"));
+  redirect(withMsg("/me", `注册成功。${JOIN_HINT}`, "ok"));
 }
 
 export async function logoutAction(): Promise<void> {

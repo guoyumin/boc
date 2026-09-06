@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { eventSignups, events, SESSIONS, type Session } from "@/db/schema";
 import { getAdmin, requireAdmin } from "@/lib/auth";
+import { JOIN_HINT } from "@/lib/contact";
 import { errMsg, num, optStr, str, withMsg } from "@/lib/form";
 import { findOrCreatePlayer, findPlayer } from "@/lib/players";
 import { assertWriteRate } from "@/lib/rate-limit";
@@ -46,7 +47,7 @@ export async function selfSignup(fd: FormData): Promise<void> {
   }
   revalidatePath(back);
   revalidatePath("/events");
-  redirect(withMsg(back, "报名成功，到时候见", "ok"));
+  redirect(withMsg(back, `报名成功。${JOIN_HINT}`, "ok"));
 }
 
 export async function cancelSignup(fd: FormData): Promise<void> {
