@@ -113,6 +113,10 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
   `bg-brand-soft` / `border-brand-line`，状态 `ok` / `warn` / `danger`，稀有度
   `rare` / `epic` / `legend`。**别再写 `bg-white`、`text-stone-*` 这类固定色**。
   标题用 `.display` / `.page-title`（系统衬线栈，不加载字体文件），配 `.eyebrow` 小字英文。
+- 成就卡（`src/components/AchievementCard.tsx`）的颜色全部来自卡片根节点上的
+  `data-skin` / `data-rarity`，组件里不写死颜色。**加皮肤只要在 `globals.css` 里加一个
+  `[data-skin="xxx"]` 块**，再往 `SKINS` 和 `SKIN_LABEL` 各加一条。皮肤现在只跟着
+  `?skin=` 走，没有记在账号上。
 - 移动端底部 tab bar 是 `BottomNav`，桌面（`lg` 起）换成 `SideNav` 左侧栏，导航项在
   `src/components/nav-items.ts` 里共用一份。列表和成就墙在桌面上要铺成多列，别留大片空白。
 - 首页 hero 图在 `public/hero/`（webp，三档尺寸，窄屏用 portrait 裁切）。`src/proxy.ts` 的

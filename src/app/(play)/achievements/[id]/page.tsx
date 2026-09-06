@@ -9,7 +9,7 @@ import { getAdmin } from "@/lib/auth";
 import RarityBadge from "@/components/RarityBadge";
 import { formatDay, formatMd } from "@/lib/dates";
 import { roleIcon } from "@/lib/labels";
-import { claimsForAchievement, getAchievement, listEvents } from "@/lib/queries";
+import { claimsForAchievement, compareUnlock, getAchievement, listEvents } from "@/lib/queries";
 
 export default async function AchievementDetailPage({
   params,
@@ -24,7 +24,9 @@ export default async function AchievementDetailPage({
   if (!ach) notFound();
   const admin = await getAdmin();
   const claims = claimsForAchievement(ach.id);
-  const confirmed = claims.filter((c) => c.status === "confirmed");
+  const confirmed = claims
+    .filter((c) => c.status === "confirmed")
+    .sort(compareUnlock);
   const pending = claims.filter((c) => c.status === "pending");
   const events = listEvents(30);
   const masked = ach.hidden === 1 && confirmed.length === 0 && !admin;
@@ -60,11 +62,15 @@ export default async function AchievementDetailPage({
           <p className="muted">还没有人解锁。</p>
         ) : (
           <ul className="space-y-2 text-sm">
-            {confirmed.map((c) => (
+            {confirmed.map((c, i) => (
               <li key={c.claimId} className="flex items-center justify-between gap-2">
-                <Link href={`/players/${c.playerId}`} className="font-medium">
-                  {c.playerName}
-                </Link>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <Link href={`/players/${c.playerId}`} className="font-medium">
+                    {c.playerName}
+                  </Link>
+                  {/* 名单按解锁时间升序，第一个就是首解 */}
+                  {i === 0 && <span className="badge badge-brand">首解</span>}
+                </span>
                 <span className="muted shrink-0">
                   {c.unlockedAtText ?? formatDay(c.unlockedAt)}
                 </span>

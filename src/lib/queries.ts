@@ -393,25 +393,56 @@ export function groupByScript(list: Achievement[]): { scriptName: string; items:
   return out;
 }
 
-/** 成就墙用：每个成就的已确认解锁者 */
-export function confirmedUnlockMap(): Map<number, { playerId: number; name: string }[]> {
+export type Unlocker = {
+  playerId: number;
+  name: string;
+  unlockedAt: string;
+  /** 日期不精确时用这个（如「已不可考」），有值时优先显示 */
+  unlockedAtText: string | null;
+};
+
+/**
+ * 成就墙用：每个成就的已确认解锁者，**按解锁时间升序**，
+ * 所以 list[0] 就是首解者。日期不精确（unlockedAtText 有值）的排在最后，
+ * 不让「已不可考」抢走首解的位置。
+ */
+export function confirmedUnlockMap(): Map<number, Unlocker[]> {
   const rows = db
     .select({
       achievementId: achievementClaims.achievementId,
       playerId: players.id,
       name: players.name,
+      unlockedAt: achievementClaims.unlockedAt,
+      unlockedAtText: achievementClaims.unlockedAtText,
     })
     .from(achievementClaims)
     .innerJoin(players, eq(players.id, achievementClaims.playerId))
     .where(eq(achievementClaims.status, "confirmed"))
     .all();
-  const map = new Map<number, { playerId: number; name: string }[]>();
+  const map = new Map<number, Unlocker[]>();
   for (const r of rows) {
     const list = map.get(r.achievementId) ?? [];
-    list.push({ playerId: r.playerId, name: r.name });
+    list.push(r);
     map.set(r.achievementId, list);
   }
+  for (const list of map.values()) list.sort(compareUnlock);
   return map;
+}
+
+/** 解锁记录的排序：日期确切的按时间升序在前，「已不可考」这类沉底 */
+type UnlockTime = { unlockedAt: string; unlockedAtText: string | null };
+export function compareUnlock(a: UnlockTime, b: UnlockTime) {
+  const av = a.unlockedAtText ? 1 : 0;
+  const bv = b.unlockedAtText ? 1 : 0;
+  if (av !== bv) return av - bv;
+  return a.unlockedAt.localeCompare(b.unlockedAt);
+}
+
+/** 全站最近解锁的成就 id，按时间倒序（成就墙的「最近解锁」排序用） */
+export function latestUnlockAt(list: UnlockTime[]): string | null {
+  const dated = list.filter((u) => !u.unlockedAtText);
+  if (dated.length === 0) return null;
+  return dated.reduce((m, u) => (u.unlockedAt > m ? u.unlockedAt : m), dated[0]!.unlockedAt);
 }
 
 export type PlayerProfile = {
