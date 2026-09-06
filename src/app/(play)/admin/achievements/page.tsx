@@ -2,10 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import Flash from "@/components/Flash";
+import RoleIcon from "@/components/RoleIcon";
 import RarityBadge from "@/components/RarityBadge";
 import { deleteAchievement, grantAchievement, saveAchievement } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
-import { RARITY_OPTIONS, roleIcon } from "@/lib/labels";
+import { RARITY_OPTIONS } from "@/lib/labels";
 import {
   achievementRoles,
   confirmedUnlockMap,
@@ -206,7 +207,7 @@ export default async function AdminAchievementsPage({
       {global.map((g) => (
         <section key={g.role}>
           <h2 className="section-title">
-            {roleIcon(g.role)} {g.role}（{g.items.length}）
+            <RoleIcon role={g.role} className="size-4" /> {g.role}（{g.items.length}）
           </h2>
           <ul className="space-y-2">
             {g.items.map((a) => (

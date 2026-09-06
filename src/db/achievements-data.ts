@@ -30,7 +30,7 @@ export const ACHIEVEMENT_SEEDS: readonly AchievementSeed[] = [
   },
   {
     role: "通用",
-    name: "”无恶不做“",
+    name: "“无恶不做”",
     condition: "拿到过所有恶魔角色",
     rarity: "legendary",
     firstDate: null,

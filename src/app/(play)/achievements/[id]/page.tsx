@@ -8,7 +8,7 @@ import { reviewClaim } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
 import RarityBadge from "@/components/RarityBadge";
 import { formatDay, formatMd } from "@/lib/dates";
-import { roleIcon } from "@/lib/labels";
+import RoleIcon from "@/components/RoleIcon";
 import { claimsForAchievement, compareUnlock, getAchievement, listEvents } from "@/lib/queries";
 
 export default async function AchievementDetailPage({
@@ -42,8 +42,9 @@ export default async function AchievementDetailPage({
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="page-title text-ink">{masked ? "???" : ach.name}</h1>
               <RarityBadge rarity={ach.rarity} showPoints />
-              <span className="badge badge-plain">
-                {roleIcon(ach.role)} {ach.role}
+              <span className="badge badge-plain gap-1.5">
+                <RoleIcon role={ach.role} className="size-4" />
+                {ach.role}
               </span>
               {ach.scriptName && <span className="badge badge-plain">📕 {ach.scriptName}</span>}
               {ach.hidden === 1 && <span className="badge badge-plain">隐藏</span>}

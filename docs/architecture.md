@@ -274,9 +274,12 @@ erDiagram
 | script_name | text null | 剧本专属成就的剧本名；null = 全局成就 |
 | hidden / sort_order / active | | 隐藏、排序（成就墙内顺序 = 清单顺序）、是否上架 |
 
-数据源是 `docs/achievements.tsv`（唯一数据源，从飞书导出）。
-`npm run gen:achievements` 读它生成 `src/db/achievements-data.ts`；
+`docs/achievements.tsv`（从飞书导出）是**首次导入的种子**，不是长期数据源。
+`npm run gen:achievements` 读它生成 `src/db/achievements-data.ts`，
 `seedAchievements()` 在空表时把 55 条写进去，不受 `SEED_DEMO` 控制（这是正式数据）。
+
+**库里有数据之后，权威就是数据库**：改成就走 `/admin/achievements` 后台，
+或在生产库上直接 SQL 改；改 TSV 对已有的库没有作用。维护 TSV 只为了将来重建空库时种子是对的。
 
 **achievement_claims**（`unique(achievement_id, player_id)`）
 
