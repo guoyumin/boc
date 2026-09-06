@@ -115,8 +115,9 @@ export const EVENT_STATUS_LABEL: Record<string, string> = {
 };
 
 export const EVENT_STATUS_CLASS: Record<string, string> = {
-  planned: "bg-brand-soft text-brand-bright border-brand-line",
-  done: "bg-surface-2 text-muted border-line",
+  // 一眼分清：没结束的绿、结束了的红、取消的灰（issue #25）
+  planned: "bg-ok-soft text-ok border-ok/40",
+  done: "bg-danger-soft text-danger border-danger/40",
   cancelled: "bg-surface-2 text-faint border-line line-through",
 };
 

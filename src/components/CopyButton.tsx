@@ -6,10 +6,13 @@ export default function CopyButton({
   text,
   label = "复制到微信",
   className = "btn",
+  block = true,
 }: {
   text: string;
   label?: string;
   className?: string;
+  /** false = 不占满整行，可以和别的按钮排一排 */
+  block?: boolean;
 }) {
   const [state, setState] = useState<"idle" | "done" | "manual">("idle");
   const areaRef = useRef<HTMLTextAreaElement>(null);
@@ -34,12 +37,12 @@ export default function CopyButton({
   }
 
   return (
-    <div className="w-full">
+    <div className={block ? "w-full" : "contents"}>
       <button type="button" className={className} onClick={copy}>
         {state === "done" ? "已复制 ✓" : label}
       </button>
       {state === "manual" && (
-        <div className="mt-2">
+        <div className="mt-2 w-full">
           <p className="muted mb-1">复制没成功，长按下面的文字自己复制：</p>
           <textarea ref={areaRef} className="input h-40 font-mono text-xs" readOnly value={text} />
         </div>

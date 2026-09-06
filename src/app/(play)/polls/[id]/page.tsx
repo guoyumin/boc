@@ -9,6 +9,7 @@ import { getAdmin } from "@/lib/auth";
 import { addDays, formatDate, formatMd } from "@/lib/dates";
 import { POLL_STATUS_LABEL, SLOT_LABEL, SLOT_SHORT } from "@/lib/labels";
 import { getPollView } from "@/lib/queries";
+import { playUrl } from "@/lib/urls";
 
 export default async function PollDetailPage({
   params,
@@ -23,6 +24,12 @@ export default async function PollDetailPage({
   if (!view) notFound();
   const admin = await getAdmin();
   const { poll, slots, responses, counts, best } = view;
+
+  // 复制到微信的分享文案：说清是哪一轮投票，后面跟可点的链接
+  const shareText = [
+    poll.title,
+    `填你有空的时段：${playUrl(`/polls/${poll.id}`)}`,
+  ].join("\n");
 
   const summary = [
     `${poll.title}（${responses.length} 人已填）`,
@@ -114,8 +121,15 @@ export default async function PollDetailPage({
             </table>
           </div>
         )}
-        <div className="mt-3">
-          <CopyButton text={summary} />
+        <div className="mt-3 flex flex-wrap gap-2">
+          {/* 分享到群里用的链接（issue #22） */}
+          <CopyButton
+            text={shareText}
+            label="复制分享链接"
+            className="btn btn-sm btn-primary"
+            block={false}
+          />
+          <CopyButton text={summary} label="复制结果到微信" className="btn btn-sm" block={false} />
         </div>
       </section>
 

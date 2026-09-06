@@ -5,6 +5,7 @@ import AttendanceButtons from "@/components/AttendanceButtons";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import WaiveButton from "@/components/WaiveButton";
 import CopyButton from "@/components/CopyButton";
+import { playUrl } from "@/lib/urls";
 import Flash from "@/components/Flash";
 import NicknameInput from "@/components/NicknameInput";
 import { deleteEvent, updateEvent } from "@/actions/events";
@@ -15,6 +16,7 @@ import { getAdmin } from "@/lib/auth";
 import { formatDate, formatMd } from "@/lib/dates";
 import { buildJielong } from "@/lib/jielong";
 import {
+  EVENT_STATUS_CLASS,
   EVENT_STATUS_LABEL,
   GAME_RESULT_CLASS,
   GAME_RESULT_LABEL,
@@ -81,6 +83,15 @@ export default async function EventDetailPage({
       (o.value === "evening" && event.hasEvening === 1) ||
       (o.value === "full" && event.hasAfternoon === 1 && event.hasEvening === 1),
   );
+  // 复制到微信的分享文案：一句话说清是哪一场，后面跟可点的链接
+  const shareText = [
+    `${formatDate(event.date)} ${event.title}`,
+    [event.location, event.startTime].filter(Boolean).join(" · "),
+    `报名：${playUrl(`/events/${event.id}`)}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   const jielongText = buildJielong(
     `${formatMd(event.date)} 血染钟楼接龙${event.startTime ? `（${event.startTime}）` : ""}`,
     signups
@@ -96,7 +107,9 @@ export default async function EventDetailPage({
       <section className="card">
         <div className="card-title">
           <span>{formatDate(event.date)}</span>
-          <span className="badge badge-plain">{EVENT_STATUS_LABEL[event.status]}</span>
+          <span className={`badge ${EVENT_STATUS_CLASS[event.status] ?? "badge-plain"}`}>
+            {EVENT_STATUS_LABEL[event.status]}
+          </span>
         </div>
         <p className="font-medium text-ink">{event.title}</p>
         <dl className="mt-2 space-y-1 text-sm text-ink-2">
@@ -111,7 +124,14 @@ export default async function EventDetailPage({
           {event.note && <div className="text-muted">📝 {event.note}</div>}
         </dl>
         <div className="mt-3 flex flex-wrap gap-2">
-          <CopyButton text={jielongText} label="复制接龙" className="btn btn-sm" />
+          {/* 分享到群里用的链接（issue #22） */}
+          <CopyButton
+            text={shareText}
+            label="复制分享链接"
+            className="btn btn-sm btn-primary"
+            block={false}
+          />
+          <CopyButton text={jielongText} label="复制接龙" className="btn btn-sm" block={false} />
           {admin && (
             <Link href={`/events/${event.id}/jielong`} className="btn btn-sm btn-primary">
               粘贴接龙

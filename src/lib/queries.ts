@@ -546,7 +546,8 @@ export function nextEvent(): EventRow | null {
     db
       .select()
       .from(events)
-      .where(and(sql`${events.date} >= ${ymd}`, sql`${events.status} != 'cancelled'`))
+      // 只认还没办的：管理员一旦标成 done / cancelled，首页就不再拿它当下一场（issue #25）
+      .where(and(sql`${events.date} >= ${ymd}`, sql`${events.status} = 'planned'`))
       .orderBy(events.date)
       .get() ?? null
   );
