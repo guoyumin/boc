@@ -120,8 +120,9 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
   别再往界面上写角色 emoji。导航图标用 `<NavIcon>` 的线图，同样不用 emoji。
 - 成就卡（`src/components/AchievementCard.tsx`）的颜色全部来自卡片根节点上的
   `data-skin` / `data-rarity`，组件里不写死颜色。**加皮肤只要在 `globals.css` 里加一个
-  `[data-skin="xxx"]` 块**，再往 `SKINS` 和 `SKIN_LABEL` 各加一条。皮肤现在只跟着
-  `?skin=` 走，没有记在账号上。
+  `[data-skin="xxx"]` 块**，再往 `src/lib/skins.ts` 的 `SKINS` / `SKIN_LABEL` 各加一条，
+  组件和页面都不用动。皮肤优先级：URL 的 `?skin=`（预览、分享）> 账号里的
+  `users.card_skin`（个人中心里选）> 默认 `gothic`。
 - 移动端底部 tab bar 是 `BottomNav`，桌面（`lg` 起）换成 `SideNav` 左侧栏，导航项在
   `src/components/nav-items.ts` 里共用一份。列表和成就墙在桌面上要铺成多列，别留大片空白。
 - 首页 hero 图在 `public/hero/`（webp，三档尺寸，窄屏用 portrait 裁切）。`src/proxy.ts` 的

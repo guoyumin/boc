@@ -44,6 +44,8 @@ export const users = sqliteTable(
     /** 绑定的玩家档案；一个玩家最多被一个账号绑定 */
     playerId: integer("player_id").references(() => players.id, { onDelete: "set null" }),
     note: text("note"),
+    /** 成就卡的卡面皮肤，见 src/lib/skins.ts */
+    cardSkin: text("card_skin").notNull().default("gothic"),
     /** 申请管理员时填的理由；非空且 role=member 即为待审批 */
     adminRequest: text("admin_request"),
     adminRequestedAt: text("admin_requested_at"),

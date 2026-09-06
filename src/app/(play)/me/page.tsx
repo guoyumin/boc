@@ -1,9 +1,12 @@
 import Link from "next/link";
 import Flash from "@/components/Flash";
 import GuestMe from "@/components/GuestMe";
+import BrandMark from "@/components/BrandMark";
+import NavIcon from "@/components/NavIcon";
 import RarityBadge from "@/components/RarityBadge";
-import { cancelAdminRequest, logoutAction, requestAdmin, updateMyProfile } from "@/actions/account";
+import { cancelAdminRequest, logoutAction, requestAdmin, saveCardSkin, updateMyProfile } from "@/actions/account";
 import { getUser } from "@/lib/auth";
+import { SKINS, SKIN_LABEL } from "@/lib/skins";
 import { formatDate, formatDay } from "@/lib/dates";
 import {
   ATTEND_OPTIONS,
@@ -199,6 +202,43 @@ export default async function MePage({
             ))}
           </ul>
         )}
+      </section>
+
+      {/* 卡面皮肤（issue #12） */}
+      <section className="card">
+        <div className="card-title">
+          <span className="inline-flex items-center gap-2">
+            <NavIcon name="trophy" className="size-[18px]" />
+            成就卡卡面
+          </span>
+        </div>
+        <p className="muted mb-3">选一套，成就墙上你看到的卡片就按这套渲染。</p>
+        <ul className="grid grid-cols-3 gap-2">
+          {SKINS.map((k) => (
+            <li key={k}>
+              <form action={saveCardSkin}>
+                <input type="hidden" name="skin" value={k} />
+                <button
+                  type="submit"
+                  className={`w-full rounded-lg border p-2 text-center transition ${
+                    me.cardSkin === k
+                      ? "border-brand-line bg-brand-soft"
+                      : "border-line hover:border-line-strong"
+                  }`}
+                >
+                  {/* 用卡片本身的变量画一小块预览，加皮肤时这里不用动 */}
+                  <span data-skin={k} className="skin-swatch">
+                    <BrandMark className="size-6" />
+                  </span>
+                  <span className="mt-1.5 block text-xs text-ink-2">{SKIN_LABEL[k]}</span>
+                  {me.cardSkin === k && (
+                    <span className="text-[10px] text-brand-bright">当前</span>
+                  )}
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
       </section>
 
       {/* 管理员申请 */}

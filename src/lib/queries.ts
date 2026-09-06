@@ -574,6 +574,7 @@ export function listUsers(): UserRow[] {
       status: users.status,
       playerId: users.playerId,
       note: users.note,
+      cardSkin: users.cardSkin,
       adminRequest: users.adminRequest,
       adminRequestedAt: users.adminRequestedAt,
       createdAt: users.createdAt,
