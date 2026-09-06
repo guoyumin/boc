@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyButton from "@/components/CopyButton";
+import NavIcon from "@/components/NavIcon";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import Flash from "@/components/Flash";
 import PollFillForm from "@/components/PollFillForm";
@@ -51,7 +52,10 @@ export default async function PollDetailPage({
 
       <div className="card">
         <div className="card-title">
-          <span>🗓 {poll.title}</span>
+          <span className="inline-flex items-center gap-2">
+            <NavIcon name="calendar" className="size-[18px]" />
+            {poll.title}
+          </span>
           <span className={`badge ${poll.status === "open" ? "badge-brand" : "badge-plain"}`}>
             {POLL_STATUS_LABEL[poll.status]}
           </span>
@@ -135,14 +139,19 @@ export default async function PollDetailPage({
 
       {poll.status === "open" && (
         <section className="card">
-          <div className="card-title">✍️ 填我的时间</div>
+          <div className="card-title">填我的时间</div>
           <PollFillForm pollId={poll.id} slots={slots} />
         </section>
       )}
 
       {admin && (
         <section className="card border-brand/30">
-          <div className="card-title">🛠 管理员</div>
+          <div className="card-title">
+            <span className="inline-flex items-center gap-2">
+              <NavIcon name="tools" className="size-[18px]" />
+              管理员
+            </span>
+          </div>
           {poll.status !== "decided" && (
             <form action={decidePoll} className="space-y-3">
               <input type="hidden" name="pollId" value={poll.id} />
