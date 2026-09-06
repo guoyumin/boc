@@ -1,32 +1,11 @@
 import GrimoireLink from "@/components/GrimoireLink";
 import WechatCallout from "@/components/WechatCallout";
-import { PLAY_LINKS } from "@/lib/urls";
+import { formatDate } from "@/lib/dates";
+import { SLOT_SHORT } from "@/lib/labels";
+import { getOpenPoll, getPollView, getSignups, latestEvent, nextEvent } from "@/lib/queries";
+import { PLAY_LINKS, playUrl } from "@/lib/urls";
 
 // 文案定稿见 issue #7 的评论（v2）。带「待定」的地方是还没确认的事实。
-const ENTRIES = [
-  {
-    href: PLAY_LINKS.events(),
-    icon: "🎲",
-    title: "活动报名",
-    sub: "GATHERINGS",
-    desc: "看最近几场活动，填个昵称就能报名，不用注册账号。",
-  },
-  {
-    href: PLAY_LINKS.polls(),
-    icon: "🗓",
-    title: "时间投票",
-    sub: "TIME POLL",
-    desc: "日期还没定的时候，来这里勾一下你哪个时段有空。",
-  },
-  {
-    href: PLAY_LINKS.me(),
-    icon: "👤",
-    title: "我的主页",
-    sub: "MY TOWN",
-    desc: "自己的报名、出勤、游戏记录和成就，注册账号后可见。",
-  },
-];
-
 const FACTS = [
   ["频率", "每周一次"],
   ["地点", "ETH Hönggerberg"],
@@ -57,7 +36,7 @@ const FAQ = [
   ["在哪儿玩？", "ETH Hönggerberg，每周一次。具体教室和日期看活动页，每场都会写清楚。"],
   ["要会德语或英语吗？", "不用，桌上说中文。"],
   ["一个人来会不会尴尬？", "一半以上的人第一次都是自己来的。游戏本身就是强制社交，坐下十分钟就熟了。"],
-  ["没玩过狼人杀能玩吗？", "能。没有狼人杀的坏习惯反而更好带。"],
+  ["没玩过狼人杀能玩吗？", "当然能！把血染当作逻辑推理的剧本杀就好。"],
   ["要花钱吗？", "不要，场地目前免费。"],
   ["只能来半场行吗？", "行。下午场和晚上场分开报名，来一个就够。"],
   [
@@ -65,6 +44,15 @@ const FAQ = [
     "回活动页取消报名。取消会留下记录，但比放鸽子好——桌子是按人数排的。",
   ],
 ];
+
+/** 活动日期是不是今天或以后（决定文案是「下一次」还是「最近一次」） */
+function isUpcoming(date: string) {
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+    now.getDate(),
+  ).padStart(2, "0")}`;
+  return date >= today;
+}
 
 function Section({
   id,
@@ -86,7 +74,15 @@ function Section({
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  // 主页直接把最近一次活动和进行中的时间投票摊开，省掉一层跳转（issue #17）。
+  // 两个站是同一个应用同一个库，这里读的就是功能站的数据。
+  const poll = getOpenPoll();
+  const pollView = poll ? getPollView(poll.id) : null;
+  const event = nextEvent() ?? latestEvent();
+  const signups = event ? getSignups(event.id) : [];
+  const signedUp = signups.filter((x) => x.signup !== "none").length;
+
   return (
     <div>
       {/* 加群提示放在最上面：光在网站上报名是收不到时间地点的 */}
@@ -134,54 +130,70 @@ export default function Home() {
       </section>
 
       <div className="mx-auto max-w-6xl space-y-14 px-4 pt-12 sm:px-6">
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {ENTRIES.map((e) => (
-            <a
-              key={e.href}
-              href={e.href}
-              className="card group transition hover:border-brand-line hover:bg-surface-2"
-            >
-              <div className="card-title">
-                <span>
-                  <span className="mr-1.5">{e.icon}</span>
-                  {e.title}
-                </span>
-                <span className="text-faint transition group-hover:text-brand-bright">→</span>
-              </div>
-              <p className="eyebrow -mt-2 mb-2">{e.sub}</p>
-              <p className="muted">{e.desc}</p>
-            </a>
-          ))}
+        <section className="grid gap-3 lg:grid-cols-3">
+          {/* 最近一次活动 */}
+          <a
+            href={event ? playUrl(`/events/${event.id}`) : PLAY_LINKS.events()}
+            className="card group transition hover:border-brand-line hover:bg-surface-2"
+          >
+            <div className="card-title">
+              <span>🎲 {event && isUpcoming(event.date) ? "下一次活动" : "最近一次活动"}</span>
+              <span className="text-faint transition group-hover:text-brand-bright">→</span>
+            </div>
+            {event ? (
+              <>
+                <p className="font-serif text-lg font-semibold text-ink">{formatDate(event.date)}</p>
+                <p className="muted mt-0.5">
+                  {[event.location, event.startTime].filter(Boolean).join(" · ") || event.title}
+                </p>
+                <p className="mt-2 text-sm text-ink-2">已报名 {signedUp} 人</p>
+                <span className="btn btn-primary btn-block mt-3">去报名</span>
+              </>
+            ) : (
+              <p className="muted">还没有排下一场，加微信进群能第一时间知道。</p>
+            )}
+          </a>
+
+          {/* 进行中的时间投票 */}
+          <a
+            href={pollView ? playUrl(`/polls/${pollView.poll.id}`) : PLAY_LINKS.polls()}
+            className="card group transition hover:border-brand-line hover:bg-surface-2"
+          >
+            <div className="card-title">
+              <span>🗓 时间投票</span>
+              <span className="text-faint transition group-hover:text-brand-bright">→</span>
+            </div>
+            {pollView ? (
+              <>
+                <p className="font-serif text-lg font-semibold text-ink">{pollView.poll.title}</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {pollView.slots.map((slot) => (
+                    <span
+                      key={slot}
+                      className={`badge ${
+                        pollView.counts[slot] === pollView.best && pollView.best > 0
+                          ? "badge-brand"
+                          : "badge-plain"
+                      }`}
+                    >
+                      {SLOT_SHORT[slot]} {pollView.counts[slot] ?? 0}人
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-2 text-sm text-ink-2">{pollView.responses.length} 人已填</p>
+                <span className="btn btn-primary btn-block mt-3">填我的时间</span>
+              </>
+            ) : (
+              <p className="muted">现在没有进行中的时间投票。日期定下来之前会在这里发起。</p>
+            )}
+          </a>
+
           <GrimoireLink variant="card" />
         </section>
 
-        <Section id="about" title="关于我们" sub="who we are">
-          <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
-            <div className="space-y-3 text-ink-2">
-              <p>我们是一群在苏黎世玩《血染钟楼》（Blood on the Clocktower）的人。</p>
-              <p>
-                没有门槛，没有考核，不需要你读过任何攻略。带一双愿意怀疑的眼睛来就够了——剩下的，说书人会在开局前用十分钟讲明白。
-              </p>
-              <p>
-                你可以只来一个半场，也可以从头坐到最后一颗钟声敲完。每局大约 60–90
-                分钟，所以一个半场通常能玩上好几轮。
-              </p>
-              <p>桌上说中文，欢迎所有在苏黎世（以及愿意坐火车过来）的朋友。</p>
-            </div>
-            <dl className="card h-fit divide-y divide-line text-sm">
-              {FACTS.map(([k, v]) => (
-                <div key={k} className="flex items-baseline justify-between gap-3 py-2 first:pt-0 last:pb-0">
-                  <dt className="text-xs text-faint">{k}</dt>
-                  <dd className="font-medium text-ink">{v}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </Section>
-
         <Section id="what" title="《血染钟楼》是什么" sub="the game">
           <p className="text-ink-2">
-            一个社交推理游戏，可以粗暴地理解成「进化版狼人杀」，但几乎解决了狼人杀所有让人扫兴的地方：
+            一个社交推理游戏。玩过狼人杀的话上手很快，不过它自己有一套玩法：
           </p>
           <ul className="mt-4 grid gap-3 sm:grid-cols-2">
             {WHAT.map(([t, d]) => (
@@ -192,6 +204,34 @@ export default function Home() {
             ))}
           </ul>
           <p className="mt-4 text-ink-2">完全不懂规则也没关系，我们每次活动都会留新手桌。</p>
+        </Section>
+
+        <Section id="about" title="关于我们" sub="who we are">
+          <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
+            <div className="space-y-3 text-ink-2">
+              <p>我们是一群在苏黎世玩《血染钟楼》（Blood on the Clocktower）的人。</p>
+              <p>
+                这里有专业严谨的说书人组织（已说书超百次），经验丰富的编剧团队（场均 8
+                个剧本量大管饱），和谐友好的新人环境（来自说书人的特别保护），以及可靠有效的活动安排（有染必染、有鸽必惩）。
+              </p>
+              <p>
+                没有门槛，没有考核，不需要你读过任何攻略。带一双愿意怀疑的眼睛来就够了——剩下的，说书人会在开局前用十分钟讲明白。如果你喜欢推理、娱乐、社交、体验剧本交互，血染正是你的最佳去处。
+              </p>
+              <p>
+                你可以只来一个半场，也可以从头坐到最后一声钟声敲响。每局大约 60–90
+                分钟，所以一个半场通常能玩上好几轮。
+              </p>
+              <p>欢迎所有爱玩、想玩、想爽玩血染的朋友来苏黎世加入我们！</p>
+            </div>
+            <dl className="card h-fit divide-y divide-line text-sm">
+              {FACTS.map(([k, v]) => (
+                <div key={k} className="flex items-baseline justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                  <dt className="text-xs text-faint">{k}</dt>
+                  <dd className="font-medium text-ink">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </Section>
 
         <Section id="first" title="第一次来，需要准备什么" sub="your first night">

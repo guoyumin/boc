@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 };
 
 const SECTIONS = [
-  { href: "/#about", label: "关于我们" },
   { href: "/#what", label: "这是什么游戏" },
+  { href: "/#about", label: "关于我们" },
   { href: "/#first", label: "第一次来" },
   { href: "/#faq", label: "常见问题" },
 ];
@@ -22,24 +22,36 @@ export default function WwwLayout({ children }: { children: React.ReactNode }) {
     <>
       <header className="sticky top-0 z-20 border-b border-line bg-bg/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-5 px-4 py-3 sm:px-6">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex shrink-0 items-center gap-2">
             <span className="text-lg text-brand-bright">🩸</span>
             <span className="leading-tight">
-              <span className="display block text-base">苏黎世血染钟楼</span>
+              <span className="display block text-base whitespace-nowrap">苏黎世血染钟楼</span>
               <span className="eyebrow hidden sm:block">blood on the clocktower</span>
             </span>
           </Link>
           {/* 锚点导航在手机上会挤成一列，直接藏掉，页面本身就是从上往下读的 */}
-          <nav className="hidden flex-1 items-center gap-5 text-sm text-muted sm:flex">
+          <nav className="hidden flex-1 items-center gap-4 text-sm text-muted lg:flex">
             {SECTIONS.map((s) => (
               <a key={s.href} href={s.href} className="transition hover:text-brand-bright">
                 {s.label}
               </a>
             ))}
           </nav>
-          <a href={PLAY_LINKS.events()} className="btn btn-primary btn-sm ml-auto sm:ml-0">
-            活动报名
-          </a>
+          {/* 手机上用短标签，三个按钮才排得下一行 */}
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <a href={PLAY_LINKS.events()} className="btn btn-primary btn-sm">
+              <span className="sm:hidden">报名</span>
+              <span className="hidden sm:inline">活动报名</span>
+            </a>
+            <a href={PLAY_LINKS.polls()} className="btn btn-sm">
+              <span className="sm:hidden">投票</span>
+              <span className="hidden sm:inline">时间投票</span>
+            </a>
+            <a href={PLAY_LINKS.me()} className="btn btn-sm">
+              <span className="sm:hidden">我的</span>
+              <span className="hidden sm:inline">我的主页</span>
+            </a>
+          </div>
         </div>
       </header>
       <main className="w-full pb-16">{children}</main>
