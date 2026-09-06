@@ -4,6 +4,11 @@
 
 站点部署在 `https://play.zurich-boca.party`。旧域名 `boc.example.com` 会 301 跳到这里。
 
+**设计约束**：这个仓库的长期目标是**自包含**——在一台只装了 Docker 的干净机器上，
+`git clone` + 拷一份 `data/` 目录 + `docker compose up -d` 就能把整站（含 TLS）跑起来，
+不需要任何手工的宿主机配置。当前还差反向代理、证书和备份定时任务这几项，
+详见 [docs/architecture.md](docs/architecture.md) 的第 0 节。
+
 ## 文档
 
 | 文档 | 说明 |

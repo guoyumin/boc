@@ -9,6 +9,34 @@
 
 需求见 `docs/requirements.md`，架构见 `docs/architecture.md`。
 
+## 长期设计约束：仓库自包含
+
+**目标状态**：在一台只装了 Docker 的干净机器上，`git clone` + 拷一份 `data/` 目录 +
+`docker compose up -d`，整站（含 TLS）就能跑起来，**不需要任何手工的宿主机配置步骤**。
+判断标准就这一句话，新写的东西都拿它衡量。
+
+由此推出两条硬规矩：
+
+1. **不要新增宿主机依赖。** 需要一个新组件（反代、定时任务、队列、缓存）时，
+   在 `deploy/docker-compose.yml` 里加服务，配置文件放进仓库，而不是叫人去宿主机
+   `apt install` 或手改 `/etc` 下的文件。定时任务同理——宁可在容器里跑，也不要写进宿主机 crontab。
+2. **不要硬编码环境。** 路径、域名、端口一律走环境变量（见 `deploy/.env.example`）。
+   代码里出现 `/opt/...`、具体域名或 IP，都是 bug。
+
+**当前欠的债**（现网 服务器 上这些还在宿主机，搬家时要手工重做一遍）：
+
+| 欠的东西 | 现在在哪 | 打算怎么还 |
+|---|---|---|
+| nginx 反向代理 | `/etc/nginx/sites-enabled/` | compose 里加 Caddy，自动申请与续期证书 |
+| Let's Encrypt 证书与续期 | `/etc/letsencrypt/` | 同上，Caddy 接管后这块整个消失 |
+| 续期后 reload nginx 的 hook | `/etc/letsencrypt/renewal-hooks/deploy/` | 同上 |
+| 每日备份 | 宿主机 root crontab | 放进容器，或加一个只跑备份的 sidecar |
+
+现网这台 VPS 上 80/443 被既有 nginx 占着（还跑着 别的服务），所以**暂时不动**，
+维持现状。等真要换机器时再切到自包含版本。在那之前，别为了"跟现状一致"
+而给这四项之外再添新的宿主机依赖。
+
+
 ## 命令
 
 ```bash
