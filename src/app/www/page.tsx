@@ -1,3 +1,4 @@
+import GrimoireLink from "@/components/GrimoireLink";
 import { PLAY_LINKS } from "@/lib/urls";
 
 // 文案定稿见 issue #7 的评论（v2）。带「待定」的地方是还没确认的事实。
@@ -129,7 +130,7 @@ export default function Home() {
       </section>
 
       <div className="mx-auto max-w-6xl space-y-14 px-4 pt-12 sm:px-6">
-        <section className="grid gap-3 sm:grid-cols-3">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {ENTRIES.map((e) => (
             <a
               key={e.href}
@@ -147,6 +148,7 @@ export default function Home() {
               <p className="muted">{e.desc}</p>
             </a>
           ))}
+          <GrimoireLink variant="card" />
         </section>
 
         <Section id="about" title="关于我们" sub="who we are">

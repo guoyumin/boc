@@ -1,4 +1,5 @@
 import Link from "next/link";
+import GrimoireLink from "@/components/GrimoireLink";
 import Flash from "@/components/Flash";
 import { getAdmin } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
@@ -19,11 +20,14 @@ export default async function EventsPage({
       <Flash err={sp.err} ok={sp.ok} />
       <div className="flex items-center justify-between">
         <h1 className="page-title">活动</h1>
-        {admin && (
-          <Link href="/admin/events/new" className="btn btn-primary btn-sm">
-            ＋ 新建活动
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          <GrimoireLink />
+          {admin && (
+            <Link href="/admin/events/new" className="btn btn-primary btn-sm">
+              ＋ 新建活动
+            </Link>
+          )}
+        </div>
       </div>
 
       {rows.length === 0 ? (

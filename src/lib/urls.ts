@@ -22,3 +22,9 @@ export const PLAY_LINKS = {
   polls: () => playUrl("/polls"),
   me: () => playUrl("/me"),
 };
+
+/**
+ * 在线魔典（说书人用的模拟器）。第三方站点，不是我们维护的，
+ * 所以只在这一处写死地址，页面上一律用 GrimoireLink 组件。
+ */
+export const GRIMOIRE_URL = "https://avalon2.top/botc/";

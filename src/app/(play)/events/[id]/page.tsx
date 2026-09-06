@@ -1,4 +1,5 @@
 import Link from "next/link";
+import GrimoireLink from "@/components/GrimoireLink";
 import { notFound } from "next/navigation";
 import AttendanceButtons from "@/components/AttendanceButtons";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
@@ -271,7 +272,10 @@ export default async function EventDetailPage({
 
       {/* 游戏记录 */}
       <section className="card">
-        <div className="card-title">🎲 游戏记录（{games.length} 局）</div>
+        <div className="card-title">
+          <span>🎲 游戏记录（{games.length} 局）</span>
+          <GrimoireLink />
+        </div>
         {games.length === 0 ? (
           <p className="muted">还没有记录。谁说书谁来记一下。</p>
         ) : (
