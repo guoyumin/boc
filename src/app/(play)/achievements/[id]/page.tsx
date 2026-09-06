@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Flash from "@/components/Flash";
 import MyPending from "@/components/MyPending";
 import NicknameInput from "@/components/NicknameInput";
-import { claimAchievement, grantAchievement } from "@/actions/achievements";
+import { claimAchievement, editClaimTime, grantAchievement } from "@/actions/achievements";
 import { reviewClaim } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
 import RarityBadge from "@/components/RarityBadge";
@@ -143,6 +143,49 @@ export default async function AchievementDetailPage({
                         </button>
                       </form>
                     </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {confirmed.length > 0 && (
+            <div className="mb-4">
+              <p className="label">改解锁时间</p>
+              <ul className="space-y-2">
+                {confirmed.map((c) => (
+                  <li key={c.claimId} className="rounded-lg border border-line p-2">
+                    <details>
+                      <summary className="flex cursor-pointer items-center justify-between gap-2 text-sm">
+                        <span className="font-medium">{c.playerName}</span>
+                        <span className="muted">{c.unlockedAtText ?? formatDay(c.unlockedAt)}</span>
+                      </summary>
+                      <form action={editClaimTime} className="mt-2 space-y-2">
+                        <input type="hidden" name="claimId" value={c.claimId} />
+                        <input type="hidden" name="back" value={`/achievements/${ach.id}`} />
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            className="input flex-1"
+                            type="date"
+                            name="unlockedDay"
+                            defaultValue={c.unlockedAt.slice(0, 10)}
+                          />
+                          <input
+                            className="input flex-1"
+                            name="unlockedAtText"
+                            maxLength={20}
+                            defaultValue={c.unlockedAtText ?? ""}
+                            placeholder="日期不可考就写一句话"
+                          />
+                        </div>
+                        <button type="submit" className="btn btn-sm btn-primary">
+                          保存
+                        </button>
+                        <p className="muted">
+                          写了右边那句话就以它为准，日期本身仍然留着；清空它就回到按日期显示。
+                        </p>
+                      </form>
+                    </details>
                   </li>
                 ))}
               </ul>

@@ -118,6 +118,36 @@ export async function grantAchievement(fd: FormData): Promise<void> {
   redirect(withMsg(back, "已授予", "ok"));
 }
 
+/**
+ * 管理员改解锁时间（issue #26）。
+ *
+ * 两种写法二选一：给确切日期就存 unlockedAt（当天中午，避免时区把日期推前一天）；
+ * 日期不可考就填 unlockedAtText（如「已不可考」），展示时优先用它，
+ * 排序时这类记录沉底，不抢首解位置。
+ */
+export async function editClaimTime(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const claimId = num(fd, "claimId");
+  const back = str(fd, "back") || "/admin/claims";
+  const day = optStr(fd, "unlockedDay");
+  const text = optStr(fd, "unlockedAtText");
+  if (!day && !text) redirect(withMsg(back, "填个日期，或者写一句「已不可考」"));
+  db.update(achievementClaims)
+    .set({
+      // 中午 12 点：按日期存 00:00 的话，换算到本地时区可能变成前一天
+      ...(day ? { unlockedAt: `${day}T12:00:00.000Z` } : {}),
+      unlockedAtText: text,
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(achievementClaims.id, claimId))
+    .run();
+  logAudit(admin.id, "claim.edit_time", "achievement_claim", claimId, day ?? text ?? undefined);
+  revalidatePath("/achievements");
+  revalidatePath("/admin/claims");
+  revalidatePath(back);
+  redirect(withMsg(back, "解锁时间已更新", "ok"));
+}
+
 /** ACH-01 */
 export async function saveAchievement(fd: FormData): Promise<void> {
   const admin = await requireAdmin();

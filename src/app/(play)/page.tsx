@@ -4,6 +4,7 @@ import PollFillForm from "@/components/PollFillForm";
 import { formatDate, formatMd } from "@/lib/dates";
 import RarityBadge from "@/components/RarityBadge";
 import {
+  EVENT_STATUS_CLASS,
   EVENT_STATUS_LABEL,
   SLOT_SHORT,
   isFinished,
@@ -76,7 +77,9 @@ export default async function HomePage() {
         <section className="card">
           <div className="card-title">
             <span>🎲 下一次活动</span>
-            <span className="badge badge-plain">{EVENT_STATUS_LABEL[upcoming.status]}</span>
+            <span className={`badge ${EVENT_STATUS_CLASS[upcoming.status] ?? "badge-plain"}`}>
+              {EVENT_STATUS_LABEL[upcoming.status]}
+            </span>
           </div>
           <Link href={`/events/${upcoming.id}`} className="block">
             <p className="text-lg font-semibold text-ink">{formatDate(upcoming.date)}</p>
@@ -97,7 +100,9 @@ export default async function HomePage() {
         <section className="card">
           <div className="card-title">
             <span>📋 最近一次活动</span>
-            <span className="badge badge-plain">{EVENT_STATUS_LABEL[recent.status]}</span>
+            <span className={`badge ${EVENT_STATUS_CLASS[recent.status] ?? "badge-plain"}`}>
+              {EVENT_STATUS_LABEL[recent.status]}
+            </span>
           </div>
           <Link href={`/events/${recent.id}`} className="block">
             <p className="font-semibold text-ink">{formatMd(recent.date)} · {recent.title}</p>
