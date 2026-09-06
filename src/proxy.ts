@@ -7,10 +7,17 @@ const COOKIE_NAME = "boc_session";
 /** 主页站的页面都放在 src/app/www/ 下，对外的路径不带这个前缀 */
 const WWW_PREFIX = "/www";
 
-/** 跳到另一个站的同一个路径上，协议和端口沿用当前请求（本地开发也就能用） */
+/**
+ * 跳到另一个站的同一个路径上。
+ *
+ * 注意 URL 的 host setter：赋一个不带端口的主机名**不会**清掉原来的端口，而
+ * req.nextUrl 的端口是容器内部的 3000，不清就会跳到 play.zurich-boca.party:3000 上去。
+ * 本地开发时 WWW_HOST / PLAY_HOST 自带 :3000，那种情况下端口是要保留的。
+ */
 function otherSite(req: NextRequest, host: string) {
   const url = req.nextUrl.clone();
   url.host = host;
+  if (!host.includes(":")) url.port = "";
   url.protocol = host.includes("localhost") ? "http:" : "https:";
   return url;
 }
@@ -19,7 +26,7 @@ function otherSite(req: NextRequest, host: string) {
  * Next 16 的 middleware。两件事：
  *
  * 1. 按 Host 分流。www.zurich-boca.party（含根域）是社团主页，请求 rewrite 到 /www/*；
- *    play.zurich-boca.party 是功能站，路径原样走。走错域名的路径互相 301。
+ *    play.zurich-boca.party 是功能站，路径原样走。走错域名的路径互相跳转。
  * 2. 没有会话 cookie 就把 /admin/* 弹到登录页。
  *    真正的权限校验（是不是管理员）在每个 Server Action 和页面里做。
  */
@@ -28,7 +35,9 @@ export function proxy(req: NextRequest) {
   const onWww = isWwwHost(req.headers.get("host"));
 
   if (onWww) {
-    // 功能站的路径跑到主页站上了：301 过去，别在 www 上渲染一份登录/后台
+    // 功能站的路径跑到主页站上了：跳过去，别在 www 上渲染一份登录/后台
+    // 用 307 而不是 301：这套映射还会变（比如 /achievements 之后要搬到主页站），
+    // 301 会被浏览器和 Cloudflare 长期缓存，改回来的时候很难收拾
     if (isPlayOnlyPath(pathname)) {
       return NextResponse.redirect(otherSite(req, PLAY_HOST));
     }

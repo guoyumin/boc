@@ -30,10 +30,10 @@ export function isWwwHost(host: string | null | undefined) {
 }
 
 /**
- * 主页站上不该出现的路径 —— 这些是功能站的东西，命中就 301 到 play 同路径。
+ * 主页站上不该出现的路径 —— 这些是功能站的东西，命中就跳到 play 同路径。
  *
  * `/achievements` 现在还在功能站上，所以暂时也列在这里；等 issue #8 把公开成就墙
- * 搬到主页站之后，要把它从这个列表里删掉，否则会自己把自己 301 走。
+ * 搬到主页站之后，要把它从这个列表里删掉，否则会自己把自己跳走。
  */
 export const PLAY_ONLY_PREFIXES = [
   "/achievements",

@@ -148,8 +148,10 @@ flowchart LR
 
 同一个容器、同一个 SQLite，`src/proxy.ts` 读 `Host` 头决定 rewrite 到哪套页面：
 
-- 主页站上出现功能站路径（`/admin`、`/me`、`/login`、`/events`、`/polls` …）→ 301 到 play 同路径
-- 功能站上出现 `/www/*` → 301 到主页站
+- 主页站上出现功能站路径（`/admin`、`/me`、`/login`、`/events`、`/polls` …）→ 307 到 play 同路径
+- 功能站上出现 `/www/*` → 307 到主页站
+- 跨站跳转一律用 307（临时）不用 301：这套映射还会变（`/achievements` 之后要搬到主页站），
+  301 会被浏览器和 Cloudflare 长期缓存。根域 → `www` 的 301 在 nginx 上做，那个是稳定的
 - 域名常量与判定在 `src/lib/hosts.ts`（proxy 也 import 它，所以那个文件里不能有 native 依赖）
 - 跨站链接一律用 `src/lib/urls.ts` 的 `wwwUrl()` / `playUrl()`，不硬编码域名
 - 登录会话 cookie 只属于 play 站，**不放宽到 `.zurich-boca.party`**；主页站是匿名只读
