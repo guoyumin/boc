@@ -33,7 +33,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           {player.archived === 1 && <span className="badge badge-plain">已归档</span>}
         </div>
         {aliases.length > 0 && (
-          <p className="mb-3 text-sm text-stone-600">
+          <p className="mb-3 text-sm text-ink-2">
             也可以叫：
             {aliases.map((a) => (
               <span key={a} className="badge badge-plain ml-1">
@@ -44,19 +44,19 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
         )}
         <div className="grid grid-cols-4 gap-2 text-center">
           <div>
-            <p className="text-xl font-semibold text-brand">{attended}</p>
+            <p className="text-xl font-semibold text-brand-bright">{attended}</p>
             <p className="muted">到场</p>
           </div>
           <div>
-            <p className="text-xl font-semibold text-stone-700">{played.length}</p>
+            <p className="text-xl font-semibold text-ink-2">{played.length}</p>
             <p className="muted">局数</p>
           </div>
           <div>
-            <p className="text-xl font-semibold text-stone-700">{unlocks.length}</p>
+            <p className="text-xl font-semibold text-ink-2">{unlocks.length}</p>
             <p className="muted">成就</p>
           </div>
           <div>
-            <p className="text-xl font-semibold text-amber-600">{points}</p>
+            <p className="text-xl font-semibold text-warn">{points}</p>
             <p className="muted">积分</p>
           </div>
         </div>
@@ -85,12 +85,12 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
                         {formatDate(a.date)}
                       </Link>
                     </td>
-                    <td className="text-stone-600">{SIGNUP_LABEL[a.signup as Session]}</td>
+                    <td className="text-ink-2">{SIGNUP_LABEL[a.signup as Session]}</td>
                     <td
                       className={
                         a.attended === "none" && isFinished(a.date, a.eventStatus)
-                          ? "text-amber-600"
-                          : "text-stone-700"
+                          ? "text-warn"
+                          : "text-ink-2"
                       }
                     >
                       {SESSION_LABEL[a.attended as Session]}
@@ -125,8 +125,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
                       <Link href={`/games/${g.gameId}`}>{formatMd(g.date)}</Link>
                     </td>
                     <td>{g.scriptName}</td>
-                    <td className={g.asStoryteller ? "text-brand" : ""}>{g.roleName || "—"}</td>
-                    <td className="text-stone-500">{GAME_RESULT_LABEL[g.result]}</td>
+                    <td className={g.asStoryteller ? "text-brand-bright" : ""}>{g.roleName || "—"}</td>
+                    <td className="text-muted">{GAME_RESULT_LABEL[g.result]}</td>
                   </tr>
                 ))}
               </tbody>
@@ -145,7 +145,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
               <li key={u.claimId}>
                 <Link href={`/achievements/${u.achievementId}`} className="flex items-center gap-2 text-sm">
                   <span className="text-lg">{u.icon}</span>
-                  <span className="min-w-0 flex-1 truncate font-medium text-stone-800">
+                  <span className="min-w-0 flex-1 truncate font-medium text-ink">
                     {u.achievementName}
                   </span>
                   <RarityBadge rarity={u.rarity} />

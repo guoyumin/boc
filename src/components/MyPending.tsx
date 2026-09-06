@@ -8,7 +8,7 @@ export default function MyPending({ names }: { names: string[] }) {
   const mine = nick !== "" && names.some((n) => n.trim().toLowerCase() === nick);
   if (!mine) return null;
   return (
-    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+    <div className="mt-3 rounded-lg border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">
       ⏳ 你的宣告已提交，等管理员确认后才会上墙。
     </div>
   );

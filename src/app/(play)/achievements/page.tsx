@@ -27,19 +27,19 @@ function Row({
   const masked = a.hidden === 1 && locked;
   return (
     <li>
-      <Link href={`/achievements/${a.id}`} className={`card block ${locked ? "opacity-60" : ""}`}>
+      <Link href={`/achievements/${a.id}`} className={`card block h-full ${locked ? "opacity-60" : ""}`}>
         <div className="flex items-start gap-3">
           <span className="text-2xl leading-none">{masked ? "❓" : a.icon}</span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-              <span className="font-medium text-stone-800">{masked ? "???" : a.name}</span>
+              <span className="font-medium text-ink">{masked ? "???" : a.name}</span>
               <RarityBadge rarity={a.rarity} />
               {a.hidden === 1 && <span className="badge badge-plain">隐藏</span>}
             </div>
             <p className="muted mt-0.5">
               {masked ? "隐藏成就，解锁后才会显示。" : a.description}
             </p>
-            <p className="mt-1 text-xs text-stone-500">
+            <p className="mt-1 text-xs text-muted">
               {locked
                 ? "还没有人解锁"
                 : `已解锁：${owners.slice(0, 6).map((o) => o.name).join("、")}${
@@ -71,7 +71,7 @@ export default async function AchievementsPage({
     <div className="space-y-4">
       <Flash err={sp.err} ok={sp.ok} />
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-lg font-semibold">成就墙</h1>
+        <h1 className="page-title">成就墙</h1>
         {admin && (
           <Link href="/admin/achievements" className="btn btn-sm btn-primary">
             管理成就 →
@@ -90,7 +90,7 @@ export default async function AchievementsPage({
           </p>
 
           {/* 角色快捷跳转：横向滚动的锚点条，手机上一屏能扫完 */}
-          <nav className="sticky top-0 z-10 -mx-4 border-b border-stone-200 bg-paper/95 px-4 py-2 backdrop-blur">
+          <nav className="sticky top-0 z-10 -mx-4 border-b border-line bg-bg/95 px-4 py-2 backdrop-blur">
             <div className="table-wrap flex gap-1.5 pb-0.5">
               {global.map((g, i) => (
                 <a key={g.role} href={`#${anchorId(i)}`} className="btn btn-sm shrink-0">
@@ -107,7 +107,7 @@ export default async function AchievementsPage({
                 <h2 className="section-title">
                   {roleIcon(g.role)} {g.role} · 已解锁 {done}/{g.items.length}
                 </h2>
-                <ul className="space-y-2">
+                <ul className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
                   {g.items.map((a) => (
                     <Row key={a.id} a={a} owners={unlocks.get(a.id) ?? []} />
                   ))}
@@ -123,7 +123,7 @@ export default async function AchievementsPage({
                 <h2 className="section-title">
                   📕 剧本专属 · {g.scriptName} · 已解锁 {done}/{g.items.length}
                 </h2>
-                <ul className="space-y-2">
+                <ul className="grid gap-2 lg:grid-cols-2 xl:grid-cols-3">
                   {g.items.map((a) => (
                     <Row key={a.id} a={a} owners={unlocks.get(a.id) ?? []} />
                   ))}

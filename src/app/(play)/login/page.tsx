@@ -14,8 +14,8 @@ export default async function LoginPage({
   if (await getUser()) redirect(next);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold">登录</h1>
+    <div className="mx-auto max-w-md space-y-4">
+      <h1 className="page-title">登录</h1>
       <Flash err={sp.err} ok={sp.ok} />
       <form action={loginAction} className="card space-y-3">
         <input type="hidden" name="next" value={next} />
@@ -45,8 +45,8 @@ export default async function LoginPage({
       <p className="muted text-center">
         还没有账号？<Link href="/register" className="link">注册一个</Link>
       </p>
-      <div className="card text-sm text-stone-600">
-        <div className="mb-1 font-medium text-stone-800">要不要注册？</div>
+      <div className="card text-sm text-ink-2">
+        <div className="mb-1 font-medium text-ink">要不要注册？</div>
         <p>
           只是来玩一次的话不用注册，直接在时间投票和活动页填昵称就行。
           注册是给常来的人用的：绑定自己的昵称和别名，看自己的报名、出勤和成就。

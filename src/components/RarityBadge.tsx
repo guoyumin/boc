@@ -14,7 +14,7 @@ export default function RarityBadge({
   return (
     <span className={`inline-flex items-center gap-1 whitespace-nowrap ${className}`}>
       <span className={`badge ${RARITY_CLASS[r]}`}>{RARITY_LABEL[r]}</span>
-      {showPoints && <span className="text-xs text-stone-500">{RARITY_POINTS[r]} 分</span>}
+      {showPoints && <span className="text-xs text-muted">{RARITY_POINTS[r]} 分</span>}
     </span>
   );
 }

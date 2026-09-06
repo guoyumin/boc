@@ -1,16 +1,58 @@
 @import "tailwindcss";
 
+/*
+ * 暗黑哥特配色。取自首页那张苏黎世夜景（public/hero/）：
+ * 近黑的夜空、血色云、被灯照亮的石塔、窗户里的琥珀色灯光。
+ * 全站只有深色一套，不跟随系统浅色。
+ */
 @theme {
-  --color-brand: #8b1e2d;
-  --color-brand-dark: #6d1723;
-  --color-brand-light: #f8eef0;
-  --color-paper: #faf8f6;
+  /* 底 */
+  --color-bg: #0a090c;
+  --color-surface: #131117;
+  --color-surface-2: #1a1620;
+
+  /* 描边 */
+  --color-line: #2a2530;
+  --color-line-strong: #3d3546;
+
+  /* 文字：暖白，像石头被灯打亮 */
+  --color-ink: #ece7e2;
+  --color-ink-2: #cdc5be;
+  --color-muted: #9a918c;
+  --color-faint: #6d6570;
+
+  /* 血色。brand 是主色，soft 用来做底 */
+  --color-brand: #b3352f;
+  --color-brand-bright: #d24a3f;
+  --color-brand-dark: #8a2622;
+  --color-brand-soft: #2a1518;
+  --color-brand-line: #5a2523;
+
+  /* 状态色：琥珀取自画面里的窗灯 */
+  --color-ok: #6fbf8a;
+  --color-ok-soft: #12211a;
+  --color-warn: #e0a45e;
+  --color-warn-soft: #241a12;
+  --color-danger: #e0685c;
+  --color-danger-soft: #2a1414;
+
+  /* 稀有度四档。普通用中性色，稀有/史诗/传说各给一个在深底上认得出的色 */
+  --color-rare: #6ea8d8;
+  --color-rare-soft: #101a28;
+  --color-epic: #a98ae2;
+  --color-epic-soft: #1a1330;
+  --color-legend: #e0b45e;
+  --color-legend-soft: #241c10;
+
   --font-sans: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  /* 标题走系统衬线，不加载字体文件（微信里首屏不等字体） */
+  --font-serif: "Songti SC", "Noto Serif CJK SC", "Source Han Serif SC",
+    "Source Han Serif CN", STSong, SimSun, "Times New Roman", Georgia, serif;
 }
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 html {
@@ -18,29 +60,45 @@ html {
 }
 
 body {
-  background: var(--color-paper);
-  color: #1c1917;
+  background: var(--color-bg);
+  color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 选中态也用血色 */
+::selection {
+  background: var(--color-brand);
+  color: #fff;
+}
+
 @layer components {
+  /* 卡片：深色底 + 极细描边 + 一点内发光，不用浅色阴影 */
   .card {
-    @apply rounded-xl border border-stone-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.03)];
+    @apply rounded-xl border border-line bg-surface p-4
+      shadow-[inset_0_1px_0_rgba(255,255,255,0.03)];
   }
   .card-title {
-    @apply mb-3 flex items-center justify-between gap-2 text-base font-semibold text-stone-800;
+    @apply mb-3 flex items-center justify-between gap-2 font-serif text-base font-semibold text-ink;
+  }
+  /* 双语标题：中文衬线大标 + 上面一行全大写的小字英文 */
+  .display {
+    @apply font-serif font-bold tracking-tight text-ink;
+  }
+  .eyebrow {
+    @apply text-[11px] font-medium tracking-[0.22em] text-faint uppercase;
   }
   .btn {
-    @apply inline-flex min-h-9 cursor-pointer items-center justify-center gap-1 rounded-lg border border-stone-300
-      bg-white px-3 py-1.5 text-sm font-medium text-stone-700 transition active:scale-[0.98]
-      disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-9 cursor-pointer items-center justify-center gap-1 rounded-lg border
+      border-line-strong bg-surface-2 px-3 py-1.5 text-sm font-medium text-ink-2 transition
+      hover:border-brand-line hover:text-ink active:scale-[0.98]
+      disabled:cursor-not-allowed disabled:opacity-40;
   }
   .btn-primary {
-    @apply border-transparent bg-brand text-white hover:bg-brand-dark;
+    @apply border-brand-line bg-brand text-white hover:bg-brand-bright hover:text-white;
   }
   .btn-danger {
-    @apply border-red-200 bg-white text-red-700;
+    @apply border-danger/30 bg-danger-soft text-danger hover:border-danger/60;
   }
   .btn-block {
     @apply w-full;
@@ -49,20 +107,20 @@ body {
     @apply min-h-7 px-2 py-1 text-xs;
   }
   .input {
-    @apply w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-base text-stone-900
-      outline-none placeholder:text-stone-400 focus:border-brand focus:ring-2 focus:ring-brand/15;
+    @apply w-full rounded-lg border border-line-strong bg-surface-2 px-3 py-2 text-base text-ink
+      outline-none placeholder:text-faint focus:border-brand focus:ring-2 focus:ring-brand/25;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-stone-600;
+    @apply mb-1 block text-sm font-medium text-muted;
   }
   .badge {
     @apply inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap;
   }
   .badge-plain {
-    @apply border-stone-200 bg-stone-100 text-stone-600;
+    @apply border-line bg-surface-2 text-muted;
   }
   .badge-brand {
-    @apply border-brand/20 bg-brand-light text-brand;
+    @apply border-brand-line bg-brand-soft text-brand-bright;
   }
   .table-wrap {
     @apply -mx-4 overflow-x-auto px-4;
@@ -71,18 +129,22 @@ body {
     @apply w-full min-w-max border-collapse text-sm;
   }
   .tbl th {
-    @apply border-b border-stone-200 px-2 py-2 text-left text-xs font-medium text-stone-500 whitespace-nowrap;
+    @apply border-b border-line px-2 py-2 text-left text-xs font-medium text-muted whitespace-nowrap;
   }
   .tbl td {
-    @apply border-b border-stone-100 px-2 py-2 align-middle whitespace-nowrap;
+    @apply border-b border-line/60 px-2 py-2 align-middle whitespace-nowrap;
   }
   .link {
-    @apply text-brand underline underline-offset-2;
+    @apply text-brand-bright underline underline-offset-2 hover:text-ink;
   }
   .muted {
-    @apply text-sm text-stone-500;
+    @apply text-sm text-muted;
   }
   .section-title {
-    @apply mb-2 mt-6 text-sm font-semibold tracking-wide text-stone-500;
+    @apply mt-6 mb-2 font-serif text-sm font-semibold tracking-wide text-muted;
+  }
+  /* 页面主标题：站名那种双语层次 */
+  .page-title {
+    @apply font-serif text-2xl font-bold text-ink;
   }
 }

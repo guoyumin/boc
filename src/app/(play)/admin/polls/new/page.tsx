@@ -18,7 +18,7 @@ export default async function NewPollPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">发起时间投票</h1>
+      <h1 className="page-title">发起时间投票</h1>
       <Flash err={sp.err} ok={sp.ok} />
       <form action={createPoll} className="card space-y-3">
         <PollDateTitle defaultSaturday={sat} />
@@ -28,7 +28,7 @@ export default async function NewPollPage({
             {POLL_SLOTS.map((s) => (
               <label
                 key={s}
-                className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+                className="flex items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
               >
                 <input
                   type="checkbox"

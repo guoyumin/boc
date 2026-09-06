@@ -45,7 +45,7 @@ export default async function MePage({
       <div className="card">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h1 className="text-lg font-semibold">{profile?.player.name ?? me.username}</h1>
+            <h1 className="page-title">{profile?.player.name ?? me.username}</h1>
             <p className="muted">
               账号 {me.username}
               {me.role !== "member" && ` · ${me.role === "owner" ? "初始管理员" : "管理员"}`}
@@ -59,25 +59,25 @@ export default async function MePage({
         </div>
         {profile && (
           <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-            <div className="rounded-lg bg-stone-50 p-2">
+            <div className="rounded-lg bg-surface-2 p-2">
               <div className="text-lg font-semibold">{attended.length}</div>
-              <div className="text-xs text-stone-500">到场</div>
+              <div className="text-xs text-muted">到场</div>
             </div>
-            <div className="rounded-lg bg-stone-50 p-2">
+            <div className="rounded-lg bg-surface-2 p-2">
               <div className="text-lg font-semibold">{profile.unlocks.length}</div>
-              <div className="text-xs text-stone-500">成就 · {profile.points} 分</div>
+              <div className="text-xs text-muted">成就 · {profile.points} 分</div>
             </div>
-            <div className="rounded-lg bg-stone-50 p-2">
+            <div className="rounded-lg bg-surface-2 p-2">
               <div className="text-lg font-semibold">{noShows.length}</div>
-              <div className="text-xs text-stone-500">鸽</div>
+              <div className="text-xs text-muted">鸽</div>
             </div>
           </div>
         )}
       </div>
 
       {me.role !== "member" && (
-        <Link href="/admin" className="card block border-brand/30 bg-brand-light/40">
-          <p className="font-semibold text-brand">进入管理后台 →</p>
+        <Link href="/admin" className="card block border-brand/30 bg-brand-soft">
+          <p className="font-semibold text-brand-bright">进入管理后台 →</p>
           <p className="muted mt-0.5">发起时间投票、建活动、录出席、确认成就。</p>
         </Link>
       )}
@@ -161,11 +161,11 @@ export default async function MePage({
                   <Link href={`/events/${a.eventId}`} className="truncate">
                     {formatDate(a.date)}
                   </Link>
-                  <span className="shrink-0 text-xs text-stone-500">
+                  <span className="shrink-0 text-xs text-muted">
                     报名 {SIGNUP_LABEL[a.signup as never]} · 到场{" "}
                     {ATTEND_OPTIONS.find((o) => o.value === a.attended)?.label ?? SESSION_LABEL.none}
-                    {finished && isNoShow(a) && <span className="ml-1 text-amber-600">鸽</span>}
-                    {finished && isWaived(a) && <span className="ml-1 text-emerald-600">已免</span>}
+                    {finished && isNoShow(a) && <span className="ml-1 text-warn">鸽</span>}
+                    {finished && isWaived(a) && <span className="ml-1 text-ok">已免</span>}
                   </span>
                 </li>
               );
@@ -178,7 +178,7 @@ export default async function MePage({
       <section className="card">
         <div className="card-title">
           <span>🏆 我的成就（{profile?.unlocks.length ?? 0}）</span>
-          <Link href="/achievements" className="text-xs text-brand">
+          <Link href="/achievements" className="text-xs text-brand-bright">
             成就墙 →
           </Link>
         </div>
@@ -193,7 +193,7 @@ export default async function MePage({
                   {u.achievementName}
                 </Link>
                 <RarityBadge rarity={u.rarity} />
-                <span className="shrink-0 text-xs text-stone-400">
+                <span className="shrink-0 text-xs text-faint">
                   {u.unlockedAtText || formatDay(u.unlockedAt)}
                 </span>
               </li>

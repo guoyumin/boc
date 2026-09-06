@@ -107,3 +107,13 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 - eslint 的 `react-hooks/set-state-in-effect` 会拦 effect 里直接 setState：读 localStorage
   用 `src/components/useNickname.ts` 里的 `useSyncExternalStore` 封装。
 - 不装 UI 组件库。样式是 Tailwind v4 + `src/app/globals.css` 里的 `.btn/.card/.input/.badge`。
+- **全站只有暗黑哥特一套深色主题**，不跟随系统浅色。颜色一律用 `globals.css` 的语义 token：
+  底 `bg-bg` / `bg-surface` / `bg-surface-2`，描边 `border-line` / `border-line-strong`，
+  文字 `text-ink` / `text-ink-2` / `text-muted` / `text-faint`，血色 `text-brand-bright` /
+  `bg-brand-soft` / `border-brand-line`，状态 `ok` / `warn` / `danger`，稀有度
+  `rare` / `epic` / `legend`。**别再写 `bg-white`、`text-stone-*` 这类固定色**。
+  标题用 `.display` / `.page-title`（系统衬线栈，不加载字体文件），配 `.eyebrow` 小字英文。
+- 移动端底部 tab bar 是 `BottomNav`，桌面（`lg` 起）换成 `SideNav` 左侧栏，导航项在
+  `src/components/nav-items.ts` 里共用一份。列表和成就墙在桌面上要铺成多列，别留大片空白。
+- 首页 hero 图在 `public/hero/`（webp，三档尺寸，窄屏用 portrait 裁切）。`src/proxy.ts` 的
+  matcher 排掉了带扩展名的路径，否则 www 上的静态资源会被 rewrite 成 `/www/...` 而 404。

@@ -38,7 +38,7 @@ export default async function AchievementDetailPage({
           <span className="text-4xl leading-none">{masked ? "❓" : ach.icon}</span>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-lg font-semibold text-stone-800">{masked ? "???" : ach.name}</h1>
+              <h1 className="page-title text-ink">{masked ? "???" : ach.name}</h1>
               <RarityBadge rarity={ach.rarity} showPoints />
               <span className="badge badge-plain">
                 {roleIcon(ach.role)} {ach.role}
@@ -46,8 +46,8 @@ export default async function AchievementDetailPage({
               {ach.scriptName && <span className="badge badge-plain">📕 {ach.scriptName}</span>}
               {ach.hidden === 1 && <span className="badge badge-plain">隐藏</span>}
             </div>
-            <p className="mt-1 text-sm text-stone-600">
-              <span className="text-stone-400">达成条件：</span>
+            <p className="mt-1 text-sm text-ink-2">
+              <span className="text-faint">达成条件：</span>
               {masked ? "隐藏成就，解锁后才会显示。" : ach.description}
             </p>
           </div>
@@ -115,7 +115,7 @@ export default async function AchievementDetailPage({
               <p className="label">待确认的宣告</p>
               <ul className="space-y-2">
                 {pending.map((c) => (
-                  <li key={c.claimId} className="rounded-lg border border-stone-200 p-2">
+                  <li key={c.claimId} className="rounded-lg border border-line p-2">
                     <p className="text-sm font-medium">{c.playerName}</p>
                     {c.note && <p className="muted">{c.note}</p>}
                     <div className="mt-2 flex gap-2">

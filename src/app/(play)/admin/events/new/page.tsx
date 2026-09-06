@@ -15,7 +15,7 @@ export default async function NewEventPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">新建活动</h1>
+      <h1 className="page-title">新建活动</h1>
       <Flash err={sp.err} ok={sp.ok} />
       <form action={createEvent} className="card space-y-3">
         <div>

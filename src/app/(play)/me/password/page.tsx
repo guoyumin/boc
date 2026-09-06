@@ -12,8 +12,8 @@ export default async function ChangePasswordPage({
   if (!(await getUser())) redirect("/login?next=/me/password");
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold">修改密码</h1>
+    <div className="mx-auto max-w-md space-y-4">
+      <h1 className="page-title">修改密码</h1>
       <Flash err={sp.err} ok={sp.ok} />
       <form action={changePasswordAction} className="card space-y-3">
         <div>

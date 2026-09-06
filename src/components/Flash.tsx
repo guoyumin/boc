@@ -4,8 +4,8 @@ export default function Flash({ err, ok }: { err?: string; ok?: string }) {
     <div
       className={`mb-3 rounded-lg border px-3 py-2 text-sm ${
         err
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          ? "border-danger/30 bg-danger-soft text-danger"
+          : "border-ok/30 bg-ok-soft text-ok"
       }`}
     >
       {err ?? ok}

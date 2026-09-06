@@ -32,7 +32,7 @@ export default async function AdminUsersPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">账号与权限</h1>
+        <h1 className="page-title">账号与权限</h1>
         <Link href="/admin" className="btn btn-sm">
           返回后台
         </Link>
@@ -46,14 +46,14 @@ export default async function AdminUsersPage({
         ) : (
           <ul className="space-y-2">
             {requests.map((u) => (
-              <li key={u.id} className="rounded-lg border border-stone-200 p-2">
+              <li key={u.id} className="rounded-lg border border-line p-2">
                 <p className="text-sm font-medium">
                   {u.username}
                   {u.playerName && <span className="muted"> · {u.playerName}</span>}
                 </p>
                 <p className="muted">{u.adminRequest}</p>
                 {u.adminRequestedAt && (
-                  <p className="text-xs text-stone-400">{formatStamp(u.adminRequestedAt)} 提交</p>
+                  <p className="text-xs text-faint">{formatStamp(u.adminRequestedAt)} 提交</p>
                 )}
                 <div className="mt-2 flex gap-2">
                   <form action={reviewAdminRequest}>
@@ -84,14 +84,14 @@ export default async function AdminUsersPage({
         </p>
         <ul className="space-y-2">
           {users.map((u) => (
-            <li key={u.id} className="rounded-lg border border-stone-200 p-2">
+            <li key={u.id} className="rounded-lg border border-line p-2">
               <div className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">
                     {u.username}
                     {u.playerName && <span className="muted"> · {u.playerName}</span>}
                   </p>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-xs text-muted">
                     {ROLE_LABEL[u.role] ?? u.role}
                     {u.status !== "active" && ` · ${u.status === "pending" ? "待审批" : "已停用"}`}
                   </p>

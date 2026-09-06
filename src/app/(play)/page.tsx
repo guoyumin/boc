@@ -49,8 +49,8 @@ export default async function HomePage() {
               </span>
             ))}
           </div>
-          <details className="rounded-lg border border-stone-200 p-3">
-            <summary className="cursor-pointer text-sm font-medium text-brand">
+          <details className="rounded-lg border border-line p-3">
+            <summary className="cursor-pointer text-sm font-medium text-brand-bright">
               ✍️ 填我的时间（{pollView.responses.length} 人已填）
             </summary>
             <div className="mt-3">
@@ -75,11 +75,11 @@ export default async function HomePage() {
             <span className="badge badge-plain">{EVENT_STATUS_LABEL[upcoming.status]}</span>
           </div>
           <Link href={`/events/${upcoming.id}`} className="block">
-            <p className="text-lg font-semibold text-stone-800">{formatDate(upcoming.date)}</p>
+            <p className="text-lg font-semibold text-ink">{formatDate(upcoming.date)}</p>
             <p className="muted mt-0.5">
               {[upcoming.location, upcoming.startTime].filter(Boolean).join(" · ") || upcoming.title}
             </p>
-            <p className="mt-2 text-sm text-stone-600">
+            <p className="mt-2 text-sm text-ink-2">
               已报名 {upcomingSignups.filter((s) => s.signup !== "none").length} 人
             </p>
           </Link>
@@ -96,7 +96,7 @@ export default async function HomePage() {
             <span className="badge badge-plain">{EVENT_STATUS_LABEL[recent.status]}</span>
           </div>
           <Link href={`/events/${recent.id}`} className="block">
-            <p className="font-semibold text-stone-800">{formatMd(recent.date)} · {recent.title}</p>
+            <p className="font-semibold text-ink">{formatMd(recent.date)} · {recent.title}</p>
             <p className="muted mt-1">
               到场 {lastSignups.filter((s) => s.attended !== "none").length} 人
               {isFinished(recent.date, recent.status) &&
@@ -109,7 +109,7 @@ export default async function HomePage() {
       <section className="card">
         <div className="card-title">
           <span>🏆 最近解锁</span>
-          <Link href="/achievements" className="text-xs text-brand">
+          <Link href="/achievements" className="text-xs text-brand-bright">
             成就墙 →
           </Link>
         </div>
@@ -120,11 +120,11 @@ export default async function HomePage() {
             {unlocks.map((u) => (
               <li key={u.claimId} className="flex items-center gap-2 text-sm">
                 <span className="text-lg">{u.icon}</span>
-                <Link href={`/players/${u.playerId}`} className="font-medium text-stone-800">
+                <Link href={`/players/${u.playerId}`} className="font-medium text-ink">
                   {u.playerName}
                 </Link>
-                <span className="text-stone-500">解锁了</span>
-                <Link href={`/achievements/${u.achievementId}`} className="text-brand">
+                <span className="text-muted">解锁了</span>
+                <Link href={`/achievements/${u.achievementId}`} className="text-brand-bright">
                   {u.achievementName}
                 </Link>
                 <RarityBadge rarity={u.rarity} />

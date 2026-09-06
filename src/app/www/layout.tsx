@@ -19,35 +19,40 @@ const SECTIONS = [
 export default function WwwLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <header className="sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center gap-5 px-4 py-2.5">
-          <Link href="/" className="flex items-center gap-1.5 font-semibold text-stone-800">
-            <span className="text-brand">🩸</span> 苏黎世血染钟楼
+      <header className="sticky top-0 z-20 border-b border-line bg-bg/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center gap-5 px-4 py-3 sm:px-6">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="text-lg text-brand-bright">🩸</span>
+            <span className="leading-tight">
+              <span className="display block text-base">苏黎世血染钟楼</span>
+              <span className="eyebrow hidden sm:block">blood on the clocktower</span>
+            </span>
           </Link>
           {/* 锚点导航在手机上会挤成一列，直接藏掉，页面本身就是从上往下读的 */}
-          <nav className="hidden flex-1 items-center gap-4 text-sm text-stone-500 sm:flex">
+          <nav className="hidden flex-1 items-center gap-5 text-sm text-muted sm:flex">
             {SECTIONS.map((s) => (
-              <a key={s.href} href={s.href} className="hover:text-brand">
+              <a key={s.href} href={s.href} className="transition hover:text-brand-bright">
                 {s.label}
               </a>
             ))}
           </nav>
-          <a href={PLAY_LINKS.events()} className="btn btn-primary btn-sm">
+          <a href={PLAY_LINKS.events()} className="btn btn-primary btn-sm ml-auto sm:ml-0">
             活动报名
           </a>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl px-4 pt-4 pb-12">{children}</main>
-      <footer className="border-t border-stone-200 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-8 text-sm text-stone-500">
-          <p className="font-medium text-stone-700">苏黎世《血染钟楼》 · Blood on the Clocktower Zurich</p>
+      <main className="w-full pb-16">{children}</main>
+      <footer className="border-t border-line bg-surface">
+        <div className="mx-auto max-w-6xl px-4 py-10 text-sm text-muted sm:px-6">
+          <p className="display text-base">苏黎世《血染钟楼》</p>
+          <p className="eyebrow mt-1">blood on the clocktower · zürich</p>
           <p className="mt-1">
             活动报名与投票请到{" "}
             <a href={PLAY_LINKS.events()} className="link">
               play.zurich-boca.party
             </a>
           </p>
-          <p className="mt-3 text-xs text-stone-400">
+          <p className="mt-3 text-xs text-faint">
             《血染钟楼》是 The Pandemonium Institute 的作品，本站与其无隶属关系。
           </p>
         </div>

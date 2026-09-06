@@ -58,10 +58,10 @@ export const RARITY_POINTS: Record<Rarity, number> = {
 };
 
 export const RARITY_CLASS: Record<Rarity, string> = {
-  common: "bg-stone-100 text-stone-600 border-stone-200",
-  rare: "bg-sky-50 text-sky-700 border-sky-200",
-  epic: "bg-violet-50 text-violet-700 border-violet-200",
-  legendary: "bg-amber-50 text-amber-700 border-amber-200",
+  common: "bg-surface-2 text-muted border-line",
+  rare: "bg-rare-soft text-rare border-rare/35",
+  epic: "bg-epic-soft text-epic border-epic/35",
+  legendary: "bg-legend-soft text-legend border-legend/40",
 };
 
 export const RARITY_OPTIONS: { value: Rarity; label: string }[] = RARITIES.map((r) => ({
@@ -115,9 +115,9 @@ export const EVENT_STATUS_LABEL: Record<string, string> = {
 };
 
 export const EVENT_STATUS_CLASS: Record<string, string> = {
-  planned: "bg-brand-light text-brand border-brand/20",
-  done: "bg-stone-100 text-stone-600 border-stone-200",
-  cancelled: "bg-stone-100 text-stone-400 border-stone-200 line-through",
+  planned: "bg-brand-soft text-brand-bright border-brand-line",
+  done: "bg-surface-2 text-muted border-line",
+  cancelled: "bg-surface-2 text-faint border-line line-through",
 };
 
 export const POLL_STATUS_LABEL: Record<string, string> = {
@@ -139,9 +139,9 @@ export const GAME_RESULT_LABEL: Record<string, string> = {
 };
 
 export const GAME_RESULT_CLASS: Record<string, string> = {
-  good: "bg-sky-50 text-sky-700 border-sky-200",
-  evil: "bg-red-50 text-red-700 border-red-200",
-  unknown: "bg-stone-100 text-stone-500 border-stone-200",
+  good: "bg-rare-soft text-rare border-rare/35",
+  evil: "bg-danger-soft text-danger border-danger/30",
+  unknown: "bg-surface-2 text-muted border-line",
 };
 
 export const ADMIN_STATUS_LABEL: Record<string, string> = {

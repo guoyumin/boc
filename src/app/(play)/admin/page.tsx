@@ -26,7 +26,7 @@ export default async function AdminHome({
     <div className="space-y-4">
       <Flash err={sp.err} ok={sp.ok} />
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">管理后台</h1>
+        <h1 className="page-title">管理后台</h1>
         <span className="badge badge-plain">
           {admin.username} · {ADMIN_ROLE_LABEL[admin.role]}
         </span>
@@ -61,12 +61,12 @@ export default async function AdminHome({
       {/* 成就管理入口单独拎出来：上一版做成小按钮，管理员找不到 */}
       <Link
         href="/admin/achievements"
-        className="card block border-brand/30 bg-brand-light/40 transition active:scale-[0.99]"
+        className="card block border-brand/30 bg-brand-soft transition active:scale-[0.99]"
       >
         <div className="flex items-center gap-3">
           <span className="text-3xl leading-none">🏆</span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-brand">成就管理 →</p>
+            <p className="font-semibold text-brand-bright">成就管理 →</p>
             <p className="muted mt-0.5">
               改成就的名称、达成条件、角色、稀有度和图标，或直接把成就授予某个玩家。
             </p>
@@ -77,7 +77,7 @@ export default async function AdminHome({
       <section className="card">
         <div className="card-title">
           <span>⏳ 待确认成就（{claims.length}）</span>
-          <Link href="/admin/claims" className="text-xs text-brand">
+          <Link href="/admin/claims" className="text-xs text-brand-bright">
             全部 →
           </Link>
         </div>
@@ -86,7 +86,7 @@ export default async function AdminHome({
         ) : (
           <ul className="space-y-2">
             {claims.slice(0, 5).map((c) => (
-              <li key={c.claimId} className="rounded-lg border border-stone-200 p-2">
+              <li key={c.claimId} className="rounded-lg border border-line p-2">
                 <p className="text-sm">
                   <span className="font-medium">{c.playerName}</span> 宣告了{" "}
                   <span className="font-medium">
@@ -122,7 +122,7 @@ export default async function AdminHome({
         <section className="card">
           <div className="card-title">
             <span>👮 待审管理员申请（{pendingAdmins.length}）</span>
-            <Link href="/admin/admins" className="text-xs text-brand">
+            <Link href="/admin/admins" className="text-xs text-brand-bright">
               去审批 →
             </Link>
           </div>
@@ -144,7 +144,7 @@ export default async function AdminHome({
       <section className="card">
         <div className="card-title">
           <span>🗓 进行中的时间投票（{polls.length}）</span>
-          <Link href="/admin/polls" className="text-xs text-brand">
+          <Link href="/admin/polls" className="text-xs text-brand-bright">
             全部 →
           </Link>
         </div>

@@ -110,7 +110,7 @@ function Item({ a, owners }: { a: Ach; owners: number }) {
       <div className="flex items-start gap-2">
         <span className="text-2xl leading-none">{a.icon}</span>
         <div className="min-w-0 flex-1">
-          <p className="font-medium text-stone-800">
+          <p className="font-medium text-ink">
             {a.name}
             {a.active === 0 && <span className="badge badge-plain ml-2">已下架</span>}
             {a.hidden === 1 && <span className="badge badge-plain ml-1">隐藏</span>}
@@ -124,7 +124,7 @@ function Item({ a, owners }: { a: Ach; owners: number }) {
       </div>
 
       <details className="mt-2">
-        <summary className="cursor-pointer text-sm text-brand">编辑</summary>
+        <summary className="cursor-pointer text-sm text-brand-bright">编辑</summary>
         <form action={saveAchievement} className="mt-3 space-y-3">
           <input type="hidden" name="achievementId" value={a.id} />
           <Fields a={a} />
@@ -175,7 +175,7 @@ export default async function AdminAchievementsPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">成就管理</h1>
+        <h1 className="page-title">成就管理</h1>
         <Link href="/achievements" className="btn btn-sm">
           看成就墙
         </Link>
@@ -194,7 +194,7 @@ export default async function AdminAchievementsPage({
       </p>
 
       <details className="card">
-        <summary className="cursor-pointer text-sm font-medium text-brand">＋ 新建成就</summary>
+        <summary className="cursor-pointer text-sm font-medium text-brand-bright">＋ 新建成就</summary>
         <form action={saveAchievement} className="mt-3 space-y-3">
           <Fields />
           <button type="submit" className="btn btn-primary btn-block">

@@ -17,7 +17,7 @@ export default function PollFillForm({ pollId, slots }: { pollId: number; slots:
           {slots.map((s) => (
             <label
               key={s}
-              className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+              className="flex items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
             >
               <input type="checkbox" name="slots" value={s} className="h-4 w-4 accent-[#8b1e2d]" />
               {SLOT_LABEL[s]}

@@ -68,9 +68,9 @@ export default async function PollDetailPage({
             <table className="tbl">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-white">昵称</th>
+                  <th className="sticky left-0 bg-surface">昵称</th>
                   {slots.map((s) => (
-                    <th key={s} className={`text-center ${counts[s] === best && best > 0 ? "text-brand" : ""}`}>
+                    <th key={s} className={`text-center ${counts[s] === best && best > 0 ? "text-brand-bright" : ""}`}>
                       {SLOT_SHORT[s]}
                     </th>
                   ))}
@@ -80,29 +80,29 @@ export default async function PollDetailPage({
               <tbody>
                 {responses.map((r) => (
                   <tr key={r.id}>
-                    <td className="sticky left-0 bg-white font-medium">
+                    <td className="sticky left-0 bg-surface font-medium">
                       <Link href={`/players/${r.playerId}`}>{r.name}</Link>
                     </td>
                     {slots.map((s) => (
                       <td
                         key={s}
                         className={`text-center ${
-                          counts[s] === best && best > 0 ? "bg-brand-light" : ""
+                          counts[s] === best && best > 0 ? "bg-brand-soft" : ""
                         }`}
                       >
-                        {r.slots.includes(s) ? <span className="text-brand">✓</span> : <span className="text-stone-300">·</span>}
+                        {r.slots.includes(s) ? <span className="text-brand-bright">✓</span> : <span className="text-faint">·</span>}
                       </td>
                     ))}
-                    <td className="max-w-[10rem] truncate text-stone-500">{r.note ?? ""}</td>
+                    <td className="max-w-[10rem] truncate text-muted">{r.note ?? ""}</td>
                   </tr>
                 ))}
                 <tr className="font-semibold">
-                  <td className="sticky left-0 bg-white">合计</td>
+                  <td className="sticky left-0 bg-surface">合计</td>
                   {slots.map((s) => (
                     <td
                       key={s}
                       className={`text-center ${
-                        counts[s] === best && best > 0 ? "bg-brand-light text-brand" : ""
+                        counts[s] === best && best > 0 ? "bg-brand-soft text-brand-bright" : ""
                       }`}
                     >
                       {counts[s] ?? 0}

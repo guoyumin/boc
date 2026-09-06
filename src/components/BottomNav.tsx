@@ -2,22 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ADMIN_ITEM, NAV_ITEMS, isActive } from "./nav-items";
 
-const ITEMS = [
-  { href: "/", label: "首页", icon: "🏠" },
-  { href: "/polls", label: "时间", icon: "🗓" },
-  { href: "/events", label: "活动", icon: "🎲" },
-  { href: "/achievements", label: "成就", icon: "🏆" },
-  { href: "/me", label: "我的", icon: "👤" },
-];
-
+/** 手机上的底部 tab bar。桌面（lg 起）换成 SideNav 的左侧栏，这里整条藏掉。 */
 export default function BottomNav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname() ?? "/";
-  const items = isAdmin ? [...ITEMS, { href: "/admin", label: "管理", icon: "🛠" }] : ITEMS;
-  const active = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const items = isAdmin ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS;
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200 bg-white/95 backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/85 backdrop-blur lg:hidden">
       <div
         className="mx-auto flex max-w-3xl"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -27,7 +20,7 @@ export default function BottomNav({ isAdmin }: { isAdmin: boolean }) {
             key={it.href}
             href={it.href}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[11px] ${
-              active(it.href) ? "text-brand font-medium" : "text-stone-500"
+              isActive(pathname, it.href) ? "font-medium text-brand-bright" : "text-muted"
             }`}
           >
             <span className="text-lg leading-none">{it.icon}</span>

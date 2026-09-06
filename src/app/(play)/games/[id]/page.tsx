@@ -33,7 +33,7 @@ export default async function GameDetailPage({
       <Flash err={sp.err} ok={sp.ok} />
 
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">
+        <h1 className="page-title">
           第 {game.seq} 局 · {game.scriptName}
         </h1>
         <Link href={`/events/${event.id}`} className="btn btn-sm">
@@ -46,7 +46,7 @@ export default async function GameDetailPage({
           <span>{formatDate(event.date)} · {SESSION_LABEL[game.session as Session]}</span>
           <span className={`badge ${GAME_RESULT_CLASS[game.result]}`}>{GAME_RESULT_LABEL[game.result]}</span>
         </div>
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-ink-2">
           说书人：
           {game.storytellers.length
             ? game.storytellers.map((s, i) => (
@@ -80,13 +80,13 @@ export default async function GameDetailPage({
               <tbody>
                 {game.lineup.map((l) => (
                   <tr key={l.id}>
-                    <td className="text-stone-400">{l.seat ?? ""}</td>
+                    <td className="text-faint">{l.seat ?? ""}</td>
                     <td>
                       <Link href={`/players/${l.playerId}`} className="font-medium">
                         {l.name}
                       </Link>
                     </td>
-                    <td>{l.roleName || <span className="text-stone-400">未记录</span>}</td>
+                    <td>{l.roleName || <span className="text-faint">未记录</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -97,7 +97,7 @@ export default async function GameDetailPage({
 
       <section className="card">
         <details>
-          <summary className="cursor-pointer text-sm font-medium text-brand">✏️ 编辑这一局</summary>
+          <summary className="cursor-pointer text-sm font-medium text-brand-bright">✏️ 编辑这一局</summary>
           <form action={updateGame} className="mt-3 space-y-3">
             <input type="hidden" name="gameId" value={game.id} />
             <datalist id="script-names">
@@ -164,7 +164,7 @@ export default async function GameDetailPage({
         </details>
 
         <details className="mt-3">
-          <summary className="cursor-pointer text-sm font-medium text-red-700">🗑 删除这一局</summary>
+          <summary className="cursor-pointer text-sm font-medium text-danger">🗑 删除这一局</summary>
           <form action={deleteGame} className="mt-3 space-y-2">
             <input type="hidden" name="gameId" value={game.id} />
             <div>

@@ -97,8 +97,8 @@ export default async function EventDetailPage({
           <span>{formatDate(event.date)}</span>
           <span className="badge badge-plain">{EVENT_STATUS_LABEL[event.status]}</span>
         </div>
-        <p className="font-medium text-stone-800">{event.title}</p>
-        <dl className="mt-2 space-y-1 text-sm text-stone-600">
+        <p className="font-medium text-ink">{event.title}</p>
+        <dl className="mt-2 space-y-1 text-sm text-ink-2">
           {event.location && <div>📍 {event.location}</div>}
           {event.startTime && <div>⏰ {event.startTime}</div>}
           <div>
@@ -107,7 +107,7 @@ export default async function EventDetailPage({
               .filter(Boolean)
               .join(" + ") || "—"}
           </div>
-          {event.note && <div className="text-stone-500">📝 {event.note}</div>}
+          {event.note && <div className="text-muted">📝 {event.note}</div>}
         </dl>
         <div className="mt-3 flex flex-wrap gap-2">
           <CopyButton text={jielongText} label="复制接龙" className="btn btn-sm" />
@@ -134,7 +134,7 @@ export default async function EventDetailPage({
             <table className="tbl">
               <thead>
                 <tr>
-                  <th className="sticky left-0 bg-white">昵称</th>
+                  <th className="sticky left-0 bg-surface">昵称</th>
                   <th>报名</th>
                   <th>出席</th>
                   <th>备注</th>
@@ -144,15 +144,15 @@ export default async function EventDetailPage({
               <tbody>
                 {signups.map((s) => (
                   <tr key={s.id}>
-                    <td className="sticky left-0 bg-white">
+                    <td className="sticky left-0 bg-surface">
                       <Link href={`/players/${s.playerId}`} className="font-medium">
                         {s.name}
                       </Link>
                       {finished && isNoShow(s) && (
-                        <span className="badge ml-1 border-amber-200 bg-amber-50 text-amber-700">鸽</span>
+                        <span className="badge ml-1 border-warn/30 bg-warn-soft text-warn">鸽</span>
                       )}
                       {finished && isWaived(s) && (
-                        <span className="badge ml-1 border-emerald-200 bg-emerald-50 text-emerald-700">
+                        <span className="badge ml-1 border-ok/30 bg-ok-soft text-ok">
                           已免鸽
                         </span>
                       )}
@@ -164,17 +164,17 @@ export default async function EventDetailPage({
                         <span className="badge ml-1 badge-plain">未报名到场</span>
                       )}
                     </td>
-                    <td className="text-stone-600">{SIGNUP_LABEL[s.signup as Session]}</td>
+                    <td className="text-ink-2">{SIGNUP_LABEL[s.signup as Session]}</td>
                     <td>
                       {admin ? (
                         <AttendanceButtons signupId={s.id} value={s.attended} />
                       ) : (
-                        <span className={s.attended === "none" ? "text-stone-400" : "text-stone-700"}>
+                        <span className={s.attended === "none" ? "text-faint" : "text-ink-2"}>
                           {SESSION_LABEL[s.attended as Session]}
                         </span>
                       )}
                     </td>
-                    <td className="max-w-[9rem] truncate text-stone-500">{s.signupNote ?? ""}</td>
+                    <td className="max-w-[9rem] truncate text-muted">{s.signupNote ?? ""}</td>
                     {admin && (
                       <td>
                         <div className="flex gap-1">
@@ -199,8 +199,8 @@ export default async function EventDetailPage({
         )}
 
         {event.status !== "cancelled" && (
-          <details className="mt-4 rounded-lg border border-stone-200 p-3" open={signups.length === 0}>
-            <summary className="cursor-pointer text-sm font-medium text-brand">✍️ 我要报名</summary>
+          <details className="mt-4 rounded-lg border border-line p-3" open={signups.length === 0}>
+            <summary className="cursor-pointer text-sm font-medium text-brand-bright">✍️ 我要报名</summary>
             <form action={selfSignup} className="mt-3 space-y-3">
               <input type="hidden" name="eventId" value={event.id} />
               <div>
@@ -225,7 +225,7 @@ export default async function EventDetailPage({
                 报名 / 更新
               </button>
             </form>
-            <form action={cancelSignup} className="mt-3 space-y-2 border-t border-stone-200 pt-3">
+            <form action={cancelSignup} className="mt-3 space-y-2 border-t border-line pt-3">
               <input type="hidden" name="eventId" value={event.id} />
               <p className="muted">
                 来不了的话可以取消。取消会记一次「鸽」，实在有事跟管理员说一声可以免掉。
@@ -243,7 +243,7 @@ export default async function EventDetailPage({
 
         {admin && (
           <details className="mt-3 rounded-lg border border-brand/30 p-3">
-            <summary className="cursor-pointer text-sm font-medium text-brand">🛠 添加临时来的玩家</summary>
+            <summary className="cursor-pointer text-sm font-medium text-brand-bright">🛠 添加临时来的玩家</summary>
             <form action={addAttendee} className="mt-3 space-y-3">
               <input type="hidden" name="eventId" value={event.id} />
               <input type="hidden" name="signup" value="none" />
@@ -279,10 +279,10 @@ export default async function EventDetailPage({
             {games.map((g) => {
               const sf = scriptFileOfGame.get(g.id);
               return (
-                <li key={g.id} className="rounded-lg border border-stone-200 p-3">
+                <li key={g.id} className="rounded-lg border border-line p-3">
                   <Link href={`/games/${g.id}`} className="block">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-stone-800">
+                      <span className="font-medium text-ink">
                         第 {g.seq} 局 · {g.scriptName}
                       </span>
                       <span className={`badge ${GAME_RESULT_CLASS[g.result]}`}>
@@ -305,8 +305,8 @@ export default async function EventDetailPage({
           </ul>
         )}
 
-        <details className="mt-4 rounded-lg border border-stone-200 p-3">
-          <summary className="cursor-pointer text-sm font-medium text-brand">＋ 添加一局</summary>
+        <details className="mt-4 rounded-lg border border-line p-3">
+          <summary className="cursor-pointer text-sm font-medium text-brand-bright">＋ 添加一局</summary>
           <form action={createGame} className="mt-3 space-y-3">
             <input type="hidden" name="eventId" value={event.id} />
             <datalist id="script-names">
@@ -374,10 +374,10 @@ export default async function EventDetailPage({
                       src={`/files/${f.id}?thumb=1`}
                       alt={f.originalName}
                       loading="lazy"
-                      className="aspect-square w-full rounded-lg border border-stone-200 object-cover"
+                      className="aspect-square w-full rounded-lg border border-line object-cover"
                     />
                   </a>
-                  <p className="truncate text-xs text-stone-500">
+                  <p className="truncate text-xs text-muted">
                     {f.session ? `${SESSION_LABEL[f.session as Session]} · ` : ""}
                     {f.originalName}
                   </p>
@@ -403,8 +403,8 @@ export default async function EventDetailPage({
             <p className="label mt-4">📜 剧本 JSON</p>
             <ul className="space-y-2">
               {jsons.map((f) => (
-                <li key={f.id} className="rounded-lg border border-stone-200 p-3">
-                  <p className="font-medium text-stone-800">
+                <li key={f.id} className="rounded-lg border border-line p-3">
+                  <p className="font-medium text-ink">
                     {f.scriptName ?? f.originalName}
                     {f.session && (
                       <span className="badge badge-plain ml-2">
@@ -448,7 +448,7 @@ export default async function EventDetailPage({
 
         {admin && (
           <details className="mt-4 rounded-lg border border-brand/30 p-3">
-            <summary className="cursor-pointer text-sm font-medium text-brand">⬆️ 上传文件</summary>
+            <summary className="cursor-pointer text-sm font-medium text-brand-bright">⬆️ 上传文件</summary>
             <form action={uploadEventFiles} className="mt-3 space-y-3">
               <input type="hidden" name="eventId" value={event.id} />
               <div>
@@ -506,7 +506,7 @@ export default async function EventDetailPage({
                 <Link href={`/players/${u.playerId}`} className="font-medium">
                   {u.playerName}
                 </Link>
-                <Link href={`/achievements/${u.achievementId}`} className="text-brand">
+                <Link href={`/achievements/${u.achievementId}`} className="text-brand-bright">
                   {u.achievementName}
                 </Link>
               </li>
@@ -519,7 +519,7 @@ export default async function EventDetailPage({
       {admin && (
         <section className="card border-brand/30">
           <details>
-            <summary className="cursor-pointer text-sm font-medium text-brand">🛠 编辑活动</summary>
+            <summary className="cursor-pointer text-sm font-medium text-brand-bright">🛠 编辑活动</summary>
             <form action={updateEvent} className="mt-3 space-y-3">
               <input type="hidden" name="eventId" value={event.id} />
               <div>
@@ -581,7 +581,7 @@ export default async function EventDetailPage({
           </details>
 
           <details className="mt-3">
-            <summary className="cursor-pointer text-sm font-medium text-red-700">🗑 删除活动</summary>
+            <summary className="cursor-pointer text-sm font-medium text-danger">🗑 删除活动</summary>
             <form action={deleteEvent} className="mt-3 space-y-2">
               <input type="hidden" name="eventId" value={event.id} />
               <p className="muted">会连同报名、出席、游戏记录一起删掉，不能恢复。</p>

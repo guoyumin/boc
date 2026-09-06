@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#8b1e2d",
+  themeColor: "#0a090c", // 手机浏览器地址栏也跟着变暗
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

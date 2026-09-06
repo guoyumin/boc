@@ -14,8 +14,8 @@ export default async function RegisterPage({
   if (await getUser()) redirect("/me");
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-lg font-semibold">注册</h1>
+    <div className="mx-auto max-w-md space-y-4">
+      <h1 className="page-title">注册</h1>
       <Flash err={sp.err} ok={sp.ok} />
       <p className="muted">
         只玩一次不用注册，直接填昵称报名就行。注册是为了把历史记录和成就都挂到你名下。
@@ -26,7 +26,7 @@ export default async function RegisterPage({
             昵称（群里大家怎么叫你）
           </label>
           <NicknameInput id="nickname" name="nickname" required />
-          <p className="mt-1 text-xs text-stone-500">
+          <p className="mt-1 text-xs text-muted">
             填的昵称如果名册里已经有了，就会认领那条记录，以前的报名和成就都跟过来。
           </p>
         </div>

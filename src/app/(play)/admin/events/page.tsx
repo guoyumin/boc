@@ -20,7 +20,7 @@ export default async function AdminEventsPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">活动管理</h1>
+        <h1 className="page-title">活动管理</h1>
         <Link href="/admin" className="btn btn-sm">
           返回后台
         </Link>
@@ -42,7 +42,7 @@ export default async function AdminEventsPage({
                     {formatDate(e.date)}
                   </Link>
                   <p className="muted truncate">{e.title}</p>
-                  <p className="text-xs text-stone-500">
+                  <p className="text-xs text-muted">
                     报名 {e.signupCount} · 到场 {e.attendCount}
                     {e.noShowCount > 0 && ` · 鸽 ${e.noShowCount}`}
                   </p>

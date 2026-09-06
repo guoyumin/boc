@@ -47,7 +47,7 @@ export default function GuestMe({ err, ok }: { err?: string; ok?: string }) {
     <div className="space-y-4">
       <h1 className="text-lg font-semibold">我的</h1>
       {(err || ok) && (
-        <p className={`card text-sm ${err ? "text-red-700" : "text-emerald-700"}`}>{err || ok}</p>
+        <p className={`card text-sm ${err ? "text-danger" : "text-ok"}`}>{err || ok}</p>
       )}
 
       {looking ? (

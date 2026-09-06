@@ -15,7 +15,7 @@ export default function AttendanceButtons({
   const [pending, startTransition] = useTransition();
 
   return (
-    <div className={`inline-flex overflow-hidden rounded-lg border border-stone-300 ${pending ? "opacity-60" : ""}`}>
+    <div className={`inline-flex overflow-hidden rounded-lg border border-line-strong ${pending ? "opacity-60" : ""}`}>
       {ATTEND_OPTIONS.map((o) => (
         <button
           key={o.value}
@@ -33,8 +33,8 @@ export default function AttendanceButtons({
             });
           }}
           className={`px-2 py-1 text-xs ${
-            current === o.value ? "bg-brand text-white" : "bg-white text-stone-600"
-          } ${o.value !== "none" ? "border-l border-stone-300" : ""}`}
+            current === o.value ? "bg-brand text-white" : "bg-surface text-ink-2"
+          } ${o.value !== "none" ? "border-l border-line-strong" : ""}`}
         >
           {o.label}
         </button>

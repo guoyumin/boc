@@ -70,6 +70,8 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // 静态资源、上传的文件和健康检查不走分流
-  matcher: ["/((?!_next/|api/|files/|favicon.ico).*)"],
+  // 静态资源、上传的文件和健康检查不走分流。
+  // `.*\\.` 那一段排掉所有带扩展名的路径（public/ 下的图片、favicon 等）——
+  // 它们由文件系统路由直接给出，rewrite 到 /www 前缀会 404。
+  matcher: ["/((?!_next/|api/|files/|.*\\.).*)"],
 };

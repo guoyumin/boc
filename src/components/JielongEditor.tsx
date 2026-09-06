@@ -86,9 +86,9 @@ export default function JielongEditor({
             {rows.map((r, i) => {
               const isNew = !known.has(normalizeName(r.name));
               return (
-                <div key={i} className="rounded-lg border border-stone-200 p-2">
+                <div key={i} className="rounded-lg border border-line p-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-6 shrink-0 text-center text-xs text-stone-400">{r.seq ?? i + 1}</span>
+                    <span className="w-6 shrink-0 text-center text-xs text-faint">{r.seq ?? i + 1}</span>
                     <input
                       className="input min-w-0 flex-1"
                       value={r.name}
@@ -122,7 +122,7 @@ export default function JielongEditor({
                       value={r.note}
                       onChange={(e) => update(i, { note: e.target.value })}
                     />
-                    <span className={`badge ${isNew ? "border-amber-200 bg-amber-50 text-amber-700" : "badge-plain"}`}>
+                    <span className={`badge ${isNew ? "border-warn/30 bg-warn-soft text-warn" : "badge-plain"}`}>
                       {isNew ? "将新建" : "名册里有"}
                     </span>
                   </div>
@@ -132,7 +132,7 @@ export default function JielongEditor({
           </div>
 
           {skipped.length > 0 && (
-            <div className="mt-3 rounded-lg border border-stone-200 bg-stone-50 p-2 text-xs text-stone-500">
+            <div className="mt-3 rounded-lg border border-line bg-surface-2 p-2 text-xs text-muted">
               <p className="mb-1 font-medium">跳过了 {skipped.length} 行：</p>
               <ul className="space-y-0.5">
                 {skipped.map((s, i) => (

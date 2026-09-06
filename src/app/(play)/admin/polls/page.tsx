@@ -20,7 +20,7 @@ export default async function AdminPollsPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">时间投票管理</h1>
+        <h1 className="page-title">时间投票管理</h1>
         <Link href="/admin" className="btn btn-sm">
           返回后台
         </Link>

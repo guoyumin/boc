@@ -25,7 +25,7 @@ export default function WaiveButton({ signupId, waived }: { signupId: number; wa
         });
       }}
       className={`btn btn-sm ${pending ? "opacity-60" : ""} ${
-        on ? "border-emerald-300 bg-emerald-50 text-emerald-700" : ""
+        on ? "border-ok/40 bg-ok-soft text-ok" : ""
       }`}
     >
       {on ? "已免鸽" : "免鸽"}

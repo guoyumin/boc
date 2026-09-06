@@ -42,7 +42,7 @@ export default async function JielongPage({
     <div className="space-y-4">
       <Flash err={sp.err} ok={sp.ok} />
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">粘贴接龙</h1>
+        <h1 className="page-title">粘贴接龙</h1>
         <Link href={`/events/${event.id}`} className="btn btn-sm">
           返回活动
         </Link>

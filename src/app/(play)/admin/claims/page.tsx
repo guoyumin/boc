@@ -36,7 +36,7 @@ export default async function AdminClaimsPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">成就宣告</h1>
+      <h1 className="page-title">成就宣告</h1>
       <Flash err={sp.err} ok={sp.ok} />
 
       <section className="card">
@@ -46,13 +46,13 @@ export default async function AdminClaimsPage({
         ) : (
           <ul className="space-y-2">
             {pending.map((c) => (
-              <li key={c.claimId} className="rounded-lg border border-stone-200 p-3">
+              <li key={c.claimId} className="rounded-lg border border-line p-3">
                 <p className="text-sm">
                   <Link href={`/players/${c.playerId}`} className="font-medium">
                     {c.playerName}
                   </Link>{" "}
                   宣告了{" "}
-                  <Link href={`/achievements/${c.achievementId}`} className="font-medium text-brand">
+                  <Link href={`/achievements/${c.achievementId}`} className="font-medium text-brand-bright">
                     {c.icon} {c.achievementName}
                   </Link>
                 </p>

@@ -23,7 +23,7 @@ export default async function PollsPage({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">时间投票</h1>
+        <h1 className="page-title">时间投票</h1>
         {admin && (
           <Link href="/admin/polls/new" className="btn btn-primary btn-sm">
             ＋ 发起投票
@@ -36,12 +36,12 @@ export default async function PollsPage({
           <p className="muted">还没有任何时间投票。</p>
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid gap-2 lg:grid-cols-2">
           {rows.map((p) => (
             <li key={p.id}>
               <Link href={`/polls/${p.id}`} className="card flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-stone-800">{p.title}</p>
+                  <p className="font-medium text-ink">{p.title}</p>
                   <p className="muted">周末 {formatMd(p.saturday)} 起</p>
                 </div>
                 <span className={`badge ${p.status === "open" ? "badge-brand" : "badge-plain"}`}>
