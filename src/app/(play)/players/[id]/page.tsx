@@ -144,7 +144,6 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             {unlocks.map((u) => (
               <li key={u.claimId}>
                 <Link href={`/achievements/${u.achievementId}`} className="flex items-center gap-2 text-sm">
-                  <span className="text-lg">{u.icon}</span>
                   <span className="min-w-0 flex-1 truncate font-medium text-ink">
                     {u.achievementName}
                   </span>

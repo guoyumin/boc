@@ -526,7 +526,6 @@ export default async function EventDetailPage({
           <ul className="space-y-1.5 text-sm">
             {unlocked.map((u) => (
               <li key={u.claimId} className="flex items-center gap-2">
-                <span>{u.icon}</span>
                 <Link href={`/players/${u.playerId}`} className="font-medium">
                   {u.playerName}
                 </Link>

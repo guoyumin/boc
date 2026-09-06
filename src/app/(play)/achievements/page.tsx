@@ -3,6 +3,7 @@ import AchievementCard, { SKINS, asSkin } from "@/components/AchievementCard";
 import Flash from "@/components/Flash";
 import { getAdmin } from "@/lib/auth";
 import { RARITIES, type Rarity } from "@/db/schema";
+import NavIcon from "@/components/NavIcon";
 import RoleIcon from "@/components/RoleIcon";
 import { RARITY_LABEL, asRarity } from "@/lib/labels";
 import {
@@ -165,7 +166,12 @@ export default async function AchievementsPage({
               {groupByScript(list.filter((a) => a.scriptName)).map((g) => (
                 <Group
                   key={g.scriptName}
-                  title={`📕 剧本专属 · ${g.scriptName}`}
+                  title={
+                    <span className="inline-flex items-center gap-1.5">
+                      <NavIcon name="book" className="size-4" />
+                      剧本专属 · {g.scriptName}
+                    </span>
+                  }
                   items={g.items}
                   unlocks={unlocks}
                   skin={skin}
@@ -188,7 +194,12 @@ export default async function AchievementsPage({
 
           {sort === "time" && (
             <Group
-              title="🕰 按解锁时间"
+              title={
+                <span className="inline-flex items-center gap-1.5">
+                  <NavIcon name="calendar" className="size-4" />
+                  按解锁时间
+                </span>
+              }
               items={[...list].sort((a, b) => {
                 // 最近解锁的在前；没解锁的沉底，内部按名字稳定排
                 const at = latestUnlockAt(unlocks.get(a.id) ?? []);
@@ -205,7 +216,12 @@ export default async function AchievementsPage({
 
           {sort === "unlocked" && (
             <Group
-              title="🏆 已解锁"
+              title={
+                <span className="inline-flex items-center gap-1.5">
+                  <NavIcon name="trophy" className="size-4" />
+                  已解锁
+                </span>
+              }
               items={list.filter(isUnlocked).sort((a, b) => {
                 const at = latestUnlockAt(unlocks.get(a.id) ?? []) ?? "";
                 const bt = latestUnlockAt(unlocks.get(b.id) ?? []) ?? "";
