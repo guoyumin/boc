@@ -23,7 +23,7 @@
 2. **不要硬编码环境。** 路径、域名、端口一律走环境变量（见 `deploy/.env.example`）。
    代码里出现 `/opt/...`、具体域名或 IP，都是 bug。
 
-**当前欠的债**（现网 服务器 上这些还在宿主机，搬家时要手工重做一遍）：
+**当前欠的债**（这几项还在宿主机上，换机器时要手工重做一遍）：
 
 | 欠的东西 | 现在在哪 | 打算怎么还 |
 |---|---|---|
@@ -32,9 +32,9 @@
 | 续期后 reload nginx 的 hook | `/etc/letsencrypt/renewal-hooks/deploy/` | 同上 |
 | 每日备份 | 宿主机 root crontab | 放进容器，或加一个只跑备份的 sidecar |
 
-现网这台 VPS 上 80/443 被既有 nginx 占着（还跑着 别的服务），所以**暂时不动**，
-维持现状。等真要换机器时再切到自包含版本。在那之前，别为了"跟现状一致"
-而给这四项之外再添新的宿主机依赖。
+现网那台机器的 80/443 被既有 nginx 占着，还跑着别的服务，硬塞一层反代进去
+风险大于收益，所以**暂时不动**，维持现状。等真要换机器时再切到自包含版本。
+在那之前，别为了"跟现状一致"而给这四项之外再添新的宿主机依赖。
 
 
 ## 命令
@@ -53,9 +53,9 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 
 | 路径 | 内容 |
 |---|---|
-| `src/app/` | 页面。公开页 + `admin/` 后台 |
+| `src/app/` | 页面。`(play)/` 功能站（公开页 + `admin/` 后台）、`www/` 社团主页，两站按 Host 分流 |
 | `src/actions/` | Server Actions，按领域分文件（polls / events / signups / games / achievements / files / account / players） |
-| `src/lib/` | `auth` 会话、`players` 昵称匹配、`jielong` 接龙解析（纯函数）、`dates`、`labels` 中文映射、角色 emoji、稀有度与鸽子判定、`queries` 读查询、`storage` 上传落盘、`script-json` 剧本解析、`rate-limit`、`form` FormData 工具 |
+| `src/lib/` | `auth` 会话、`players` 昵称匹配、`jielong` 接龙解析（纯函数）、`dates`、`labels` 中文映射、角色 emoji、稀有度与鸽子判定、`queries` 读查询、`storage` 上传落盘、`script-json` 剧本解析、`rate-limit`、`form` FormData 工具、`hosts` 两站域名判定、`urls` 跨站链接 |
 | `src/db/` | `schema.ts`（数据模型权威定义）、`index.ts`（连接 + 迁移 + seed）、`seed.ts`、`achievements-data.ts`（自动生成，别手改） |
 | `scripts/` | `gen-achievements.ts`（TSV → 成就种子）、`backup.sh` / `restore.sh`（VPS 上跑） |
 | `drizzle/` | 迁移文件，**要提交进 git** |
@@ -74,7 +74,11 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
   改上传大小上限时，`next.config.ts` 的 `serverActions.bodySizeLimit` 和 nginx 的
   `client_max_body_size` 要一起改。
 - 每个管理类 Server Action 首行 `await requireAdmin()`（owner 专属的用 `requireOwner()`）。
-  `src/proxy.ts` 只负责把没 cookie 的 `/admin/*` 弹到登录页，不是权限校验。
+  `src/proxy.ts` 只负责按 Host 分流 + 把没 cookie 的 `/admin/*` 弹到登录页，不是权限校验。
+- **两个域名跑同一个应用**：`www.zurich-boca.party` 是社团主页（`src/app/www/`，proxy 给它加
+  `/www` 前缀，地址栏看不见），`play.zurich-boca.party` 是功能站（`src/app/(play)/`，路径原样）。
+  跨站链接走 `src/lib/urls.ts` 的 `wwwUrl()` / `playUrl()`，别硬编码域名；域名常量在
+  `src/lib/hosts.ts`。本地开发用 `www.localhost:3000` / `play.localhost:3000`。
 - 公开写操作（报名、填时间、宣告成就、记录游戏）首行 `await assertWriteRate(...)`。
 - 用户输入的昵称一律走 `findOrCreatePlayer()`：去空格、忽略大小写、匹配别名。
 - 「鸽」的判定统一走 `src/lib/labels.ts` 的 `isNoShow(row)`，它接一整行报名记录
@@ -92,6 +96,7 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 - 页面的 `params` / `searchParams` 是 Promise，要 `await`；`cookies()` / `headers()` 是 async。
 - 中间件文件是 `src/proxy.ts`，导出 `proxy` 函数（不是 `middleware.ts`）。中间件里**不要**
   import `@/lib/auth`，会把 better-sqlite3 带进去；cookie 名在那边是硬编码的常量。
+  它只能 import `@/lib/hosts` 这种纯字符串逻辑的文件。
 - 根 layout 里 `export const dynamic = "force-dynamic"`，全站按需渲染（都要读数据库）。
 - `next build` 会起多个 worker 同时打开 SQLite，所以 `src/db/index.ts` 里先设 `busy_timeout`
   再切 WAL，seed 用 `BEGIN IMMEDIATE` 事务串行化。

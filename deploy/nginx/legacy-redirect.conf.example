@@ -1,0 +1,25 @@
+# 旧域名整站 301 跳到正式域名的模板。
+#
+# 站点早期用过一个临时域名，群里散出去的旧链接还指着它，所以保留跳转。
+# 真实的旧域名和它的证书路径属于那台服务器自己的事，不进这个仓库 ——
+# 复制这个文件，把 OLD_DOMAIN 和证书路径换成实际值，放到
+# /etc/nginx/sites-available/ 下再软链启用即可。
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name OLD_DOMAIN;
+    return 301 https://play.zurich-boca.party$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name OLD_DOMAIN;
+
+    # 换成这个旧域名自己的证书
+    ssl_certificate     /path/to/OLD_DOMAIN/fullchain.pem;
+    ssl_certificate_key /path/to/OLD_DOMAIN/privkey.pem;
+
+    return 301 https://play.zurich-boca.party$request_uri;
+}

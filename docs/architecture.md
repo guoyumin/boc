@@ -35,10 +35,9 @@
 | 续期后 reload nginx 的 hook | `/etc/letsencrypt/renewal-hooks/deploy/` | 同上 |
 | 每日备份 | 宿主机 root crontab | 放进容器，或加一个只跑备份的 sidecar |
 
-**为什么现在不还**：现网这台 VPS 的 80/443 已经被既有 nginx 占着，
-上面还跑着 `example.com` 的 别的服务，硬塞一个 Caddy 进去反而要多一层转发，
-风险大于收益。所以现状维持，等真要换机器时再切到自包含版本。
-在那之前的新增功能，不要在这四项之外再添新的宿主机依赖。
+**为什么现在不还**：现网那台机器的 80/443 已经被既有 nginx 占着，上面还跑着别的服务，
+硬塞一个 Caddy 进去反而要多一层转发，风险大于收益。所以现状维持，
+等真要换机器时再切到自包含版本。在那之前的新增功能，不要在这四项之外再添新的宿主机依赖。
 
 ---
 
@@ -99,7 +98,7 @@
 | 图片处理 | sharp | 生成缩略图、去除 EXIF |
 | 测试 | Vitest（单元）+ Playwright（少量端到端） | |
 | 包管理 | pnpm | |
-| 反向代理 | 宿主机现有 nginx + Cloudflare Origin 证书 | 不新增 Caddy |
+| 反向代理 | 宿主机 nginx + Let's Encrypt 证书 | 长期要收进 compose，见第 0 节 |
 | 容器 | Docker + Docker Compose | |
 | CI/CD | 原型：VPS 上 git pull + compose build；之后 GitHub Actions → GHCR → SSH | |
 | 备份 | 每日 cron：`sqlite3 .backup` + `tar` uploads → rclone 到对象存储 | 备选 Litestream |
@@ -115,7 +114,7 @@ flowchart LR
     end
 
     subgraph VPS["VPS (Docker Compose)"]
-        Nginx[宿主机 nginx<br/>:443 Let's Encrypt 证书<br/>play.zurich-boca.party]
+        Nginx[宿主机 nginx<br/>:443 Let's Encrypt 证书<br/>www / play.zurich-boca.party]
         App[Next.js app<br/>:3000<br/>页面 + Server Actions + 文件路由]
         Vol[(卷 /data<br/>boc.db<br/>uploads/)]
         Cron[backup cron<br/>每日 03:00]
@@ -135,10 +134,27 @@ flowchart LR
 
 请求流程：
 
-1. nginx 收到 HTTPS 请求，转发给 127.0.0.1:3100 的应用容器。
-2. 公开页面直接渲染；`/admin/*` 由中间件检查管理员会话。
+1. nginx 收到 HTTPS 请求，转发给 127.0.0.1:3100 的应用容器，`Host` 头原样透传。
+2. `src/proxy.ts` 按 `Host` 分流（见 3.1）；公开页面直接渲染，`/admin/*` 由中间件检查管理员会话。
 3. 页面在服务端渲染；写操作走 Server Actions，每个 action 内部再次校验权限。
 4. 文件访问走 `/files/[id]` 路由：从数据库查文件元数据 → 读磁盘流式返回。
+
+### 3.1 两个域名，一个应用
+
+| 域名 | 定位 | 内部路径 |
+|---|---|---|
+| `www.zurich-boca.party` | 社团主页：介绍、新人指引、成就墙 | `src/app/www/*`（rewrite 加前缀，地址栏不可见） |
+| `play.zurich-boca.party` | 功能站：报名、投票、个人中心、后台 | `src/app/(play)/*`（路径原样） |
+
+同一个容器、同一个 SQLite，`src/proxy.ts` 读 `Host` 头决定 rewrite 到哪套页面：
+
+- 主页站上出现功能站路径（`/admin`、`/me`、`/login`、`/events`、`/polls` …）→ 301 到 play 同路径
+- 功能站上出现 `/www/*` → 301 到主页站
+- 域名常量与判定在 `src/lib/hosts.ts`（proxy 也 import 它，所以那个文件里不能有 native 依赖）
+- 跨站链接一律用 `src/lib/urls.ts` 的 `wwwUrl()` / `playUrl()`，不硬编码域名
+- 登录会话 cookie 只属于 play 站，**不放宽到 `.zurich-boca.party`**；主页站是匿名只读
+
+本地开发：`www.localhost:3000` 是主页站，`play.localhost:3000`（以及裸 `localhost:3000`）是功能站。
 
 ---
 
@@ -287,11 +303,13 @@ boc/
 ├── docs/                      # 需求与架构
 ├── src/
 │   ├── app/                   # Next.js App Router
-│   │   ├── (auth)/login, register
-│   │   ├── (main)/            # 需登录的页面：首页、events、achievements、me、players
-│   │   ├── admin/             # 管理后台：users、requests、players、achievements、settings
-│   │   ├── files/[id]/route.ts   # 鉴权后返回文件
-│   │   └── layout.tsx
+│   │   ├── layout.tsx         # 两站共用：html/body + globals.css
+│   │   ├── (play)/            # 功能站 play.*：首页、events、polls、achievements、me、players、admin
+│   │   │   └── layout.tsx     # 顶栏 + 底部 tab bar
+│   │   ├── www/               # 主页站 www.*：介绍、新人指引（proxy rewrite 到这个前缀）
+│   │   │   └── layout.tsx     # 主页站的顶栏 + 页脚
+│   │   ├── api/health/route.ts
+│   │   └── files/[id]/route.ts   # 鉴权后返回文件
 │   ├── components/            # UI 组件（不用组件库，Tailwind + globals.css 里的 .btn/.card/...）
 │   ├── db/
 │   │   ├── schema.ts          # Drizzle schema
@@ -302,7 +320,9 @@ boc/
 │   │   ├── storage.ts         # 文件保存 / 缩略图 / 删除
 │   │   ├── script-json.ts     # 剧本 JSON 校验与解析
 │   │   ├── jielong.ts         # 接龙文本解析（EVT-07）
-│   │   └── labels.ts          # 中文映射、角色 emoji、星级工具
+│   │   ├── hosts.ts           # 两站域名常量与分流判定（proxy 也 import）
+│   │   ├── urls.ts            # wwwUrl() / playUrl() 跨站链接
+│   │   └── labels.ts          # 中文映射、角色 emoji、稀有度工具
 │   └── actions/               # Server Actions，按领域分文件
 ├── scripts/
 │   └── gen-achievements.ts    # docs/achievements.tsv → src/db/achievements-data.ts
@@ -360,13 +380,13 @@ boc/
 
 ## 8. 部署
 
-VPS 现状（2026-09-05 勘查）：Ubuntu 24.04，Docker 29 + Compose 2.37，宿主机 nginx 占用 80/443，`example.com` 各子站经 Cloudflare 代理并使用 Cloudflare Origin CA 证书（`/etc/ssl/cloudflare/example.com.pem`）。因此**不用 Caddy**，直接复用 nginx。
+对服务器的要求只有一条：装了 Docker 和 Compose。下面这套是现网的做法——宿主机上已经有 nginx 在占用 80/443，所以复用它做反代，而不是再起一个 Caddy。如果是一台干净的机器，直接用 Caddy 会更省事（见第 0 节）。
 
 ### 8.1 步骤
 
-1. Cloudflare DNS：添加 `boc` A 记录 → VPS IP，**开启代理（橙云）**，否则 Origin 证书不被信任。
+1. Cloudflare DNS：`play`、`www` 和根域三条记录 → VPS IP，**开启代理（橙云）**。
 2. 应用目录 `/opt/boc`：`docker-compose.yml`、`.env`、`data/`。
-3. nginx site `deploy/nginx/play.zurich-boca.party.conf`：80 放行 ACME 校验、其余 301 到 https；443 用 Let's Encrypt 证书，`client_max_body_size 32m`，`proxy_pass http://127.0.0.1:3100`。
+3. nginx site `deploy/nginx/play.zurich-boca.party.conf` 和 `www.zurich-boca.party.conf`：80 放行 ACME 校验、其余 301 到 https；443 用 Let's Encrypt 证书，`client_max_body_size 32m`，两个站都 `proxy_pass http://127.0.0.1:3100` 且透传 `Host`。
 4. `docker compose up -d --build`（原型阶段在 VPS 上直接构建；之后改为 GitHub Actions 构建推 GHCR）。
 
 ### 8.2 docker-compose.yml
@@ -391,6 +411,7 @@ services:
 | `UPLOAD_DIR` | `/data/uploads` |
 | `OWNER_USERNAME` / `OWNER_PASSWORD` | 首次启动创建 owner |
 | `APP_URL` | `https://play.zurich-boca.party` |
+| `WWW_HOST` / `PLAY_HOST` | 两站域名，默认 `www.` / `play.zurich-boca.party` |
 | `TZ` | `Europe/Zurich` |
 
 ### 8.4 更新与回滚

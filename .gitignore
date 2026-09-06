@@ -30,3 +30,6 @@ next-env.d.ts
 
 # typescript
 *.tsbuildinfo
+
+# 本地开发工具生成
+.claude/

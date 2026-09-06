@@ -1,23 +1,39 @@
-# 部署（VPS + Docker Compose + 宿主机 nginx）
+# 部署（Docker Compose + 宿主机 nginx）
 
-目标：`https://play.zurich-boca.party`，经 Cloudflare 代理，复用 VPS 上已有的 nginx，证书用 Let's Encrypt。
+> 下面是一份参考做法，不是唯一解。应用本身只需要一个能跑 Docker 的机器；
+> 反代和证书用什么都行（nginx、Caddy、Traefik），只要把 HTTPS 流量转到
+> `127.0.0.1:3100` 并带上正确的 `Host` 头即可。仓库的长期目标是把这一层也收进
+> compose，见 `docs/architecture.md` 第 0 节。
+
+目标：两个域名，**同一个容器**：
+
+| 域名 | 内容 |
+|---|---|
+| `https://www.zurich-boca.party` | 社团主页（介绍、新人指引、成就墙） |
+| `https://play.zurich-boca.party` | 功能站（活动报名、时间投票、剧本投票、个人中心、后台） |
+
+应用内部按 `Host` 头分流（`src/proxy.ts`），所以 nginx 上只是两个 server 块指向同一个
+`127.0.0.1:3100`。经 Cloudflare 代理，用宿主机的 nginx 做反代，证书用 Let's Encrypt。
 应用容器只监听 `127.0.0.1:3100`，不直接对外。
 
 ## 一、首次部署
 
 ### 1. Cloudflare DNS
 
-在 `example.com` 里加一条记录：
-
-`zurich-boca.party` 这个 zone 里加一条记录：
+在 `zurich-boca.party` 这个 zone 里加三条记录：
 
 | 类型 | 名称 | 内容 | 代理状态 |
 |---|---|---|---|
-| CNAME（或 A） | `play` | VPS（`203.0.113.10`） | 已代理（橙云） |
+| CNAME（或 A） | `play` | 服务器 IP | 已代理（橙云） |
+| CNAME（或 A） | `www` | 服务器 IP | 已代理（橙云） |
+| CNAME（或 A） | `@`（根域） | 服务器 IP | 已代理（橙云） |
+
+根域只做 301 到 `www`，规范域名是 `www.zurich-boca.party`。
 
 SSL/TLS 模式选 **Full (strict)**。源站是 Let's Encrypt 的真证书，strict 能过。
 
-旧域名 `boc.example.com` 保留成 301 跳转，不要删——微信群里散出去的旧链接还指着它。
+站点早期用过一个临时域名，保留成整站 301 跳转，不要删——群里散出去的旧链接还指着它。
+配置模板见 `nginx/legacy-redirect.conf.example`（真实的旧域名不进仓库）。
 
 ### 2. 拉代码
 
@@ -49,18 +65,38 @@ EOF
 sudo ln -sfn /etc/nginx/sites-available/play.zurich-boca.party /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 
+# 主页站同样先放一个 HTTP 临时站点
+sudo tee /etc/nginx/sites-available/www.zurich-boca.party >/dev/null <<'EOF'
+server {
+    listen 80;
+    server_name www.zurich-boca.party zurich-boca.party;
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+    location / { return 200 'bootstrap'; add_header Content-Type text/plain; }
+}
+EOF
+sudo ln -sfn /etc/nginx/sites-available/www.zurich-boca.party /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
 # 签证书（webroot 模式，certbot 会自己装好续期定时器）
 sudo certbot certonly --webroot -w /var/www/html -d play.zurich-boca.party \
   --non-interactive --agree-tos --register-unsafely-without-email --no-eff-email
 
+# 主页站一张证书带上 www 和根域
+sudo certbot certonly --webroot -w /var/www/html \
+  -d www.zurich-boca.party -d zurich-boca.party \
+  --non-interactive --agree-tos --register-unsafely-without-email --no-eff-email
+
 # 换成正式配置（带 443）
 sudo cp /opt/boc/deploy/nginx/play.zurich-boca.party.conf /etc/nginx/sites-available/play.zurich-boca.party
-sudo cp /opt/boc/deploy/nginx/boc.example.com.conf /etc/nginx/sites-available/boc.example.com
+sudo cp /opt/boc/deploy/nginx/www.zurich-boca.party.conf /etc/nginx/sites-available/www.zurich-boca.party
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-⚠️ **别用 `certbot --nginx`**。这台机器上还跑着 `example.com` 的 别的服务，
-`--nginx` 插件会改写既有配置，有波及它的风险。只用 `certonly --webroot`。
+⚠️ 两个 server 块里的 `proxy_set_header Host $host;` 不能改成写死的域名 ——
+应用就是靠这个头判断该渲染主页站还是功能站的。
+
+⚠️ **别用 `certbot --nginx`**。这个插件会改写同一台机器上其它站点的 nginx 配置；
+只要这台机器不是只跑本项目，就有波及别的服务的风险。只用 `certonly --webroot`。
 
 证书在 `/etc/letsencrypt/live/play.zurich-boca.party/`，90 天有效，
 certbot 的 systemd timer 会自动续。续期靠 80 端口的 `/.well-known/acme-challenge/`，
@@ -87,6 +123,7 @@ docker compose logs -f app        # 第一次会打印「已创建初始管理�
 ```
 
 打开 `https://play.zurich-boca.party`，用 `/login` 登录初始管理员，先去 `/me/password` 改一次密码。
+再打开 `https://www.zurich-boca.party` 确认主页站渲染的是介绍页而不是功能站首页。
 
 ## 二、更新
 
