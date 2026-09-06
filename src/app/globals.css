@@ -211,6 +211,8 @@ body {
   }
   .ach-frame {
     @apply mt-3 flex size-24 items-center justify-center rounded-xl;
+    /* 遮罩型图标（通用成就的门环纹样）靠 currentColor 上色 */
+    color: var(--ach-gold);
     border: 1px solid var(--ach-frame);
     background: radial-gradient(70% 70% at 50% 45%, var(--ach-glow), transparent 70%);
   }

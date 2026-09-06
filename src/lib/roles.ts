@@ -7,7 +7,7 @@
  * 痢蛭 = Lleech（有宿主）、精神病患者 = Psychopath（白天公开杀人）。
  */
 export const ROLE_SLUG: Record<string, string> = {
-  通用: "imp", // 没有具体角色的成就用恶魔头像
+  通用: "generic", // 不属于某个角色的成就用那个带角的门环纹样
   厨师: "chef",
   贵族: "noble",
   共情者: "empath",
@@ -32,9 +32,20 @@ export const ROLE_SLUG: Record<string, string> = {
   精神病患者: "psychopath",
 };
 
-/** 没配图标的角色回落到恶魔头像，别让页面开天窗 */
+/** 没配图标的角色回落到门环纹样，别让页面开天窗 */
 export function roleSlug(role: string): string {
-  return ROLE_SLUG[role] ?? "imp";
+  return ROLE_SLUG[role] ?? "generic";
+}
+
+/**
+ * 这些图标是单色线稿，按遮罩渲染（颜色跟 currentColor 走），
+ * 这样在成就卡里是金色、在导航里是正文色，不用为每种底色各存一张图。
+ * 官方角色图标是彩色美术，不在此列。
+ */
+const MASK_SLUGS = new Set(["generic"]);
+
+export function isMaskIcon(role: string): boolean {
+  return MASK_SLUGS.has(roleSlug(role));
 }
 
 export function roleIconSrc(role: string): string {
