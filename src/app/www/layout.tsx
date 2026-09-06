@@ -52,6 +52,10 @@ export default function WwwLayout({ children }: { children: React.ReactNode }) {
               play.zurich-boca.party
             </a>
           </p>
+          <p className="mt-1">
+            微信 <span className="select-all text-ink-2">CHDC1047</span>，
+            申请好友请备注「血染新人」
+          </p>
           <p className="mt-3 text-xs text-faint">
             《血染钟楼》是 The Pandemonium Institute 的作品，本站与其无隶属关系。
           </p>
