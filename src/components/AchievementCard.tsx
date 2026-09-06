@@ -3,15 +3,7 @@ import RarityBadge from "./RarityBadge";
 import RoleIcon from "./RoleIcon";
 import { formatDay } from "@/lib/dates";
 import type { Unlocker } from "@/lib/queries";
-
-/** 卡片皮肤。加皮肤只要在 globals.css 里加一个 [data-skin="xxx"] 块。 */
-export const SKINS = ["gothic", "ice"] as const;
-export type Skin = (typeof SKINS)[number];
-export const DEFAULT_SKIN: Skin = "gothic";
-
-export function asSkin(v: string | null | undefined): Skin {
-  return (SKINS as readonly string[]).includes(String(v)) ? (v as Skin) : DEFAULT_SKIN;
-}
+import { DEFAULT_SKIN, type Skin } from "@/lib/skins";
 
 type Ach = {
   id: number;

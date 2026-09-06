@@ -1,10 +1,11 @@
 import Link from "next/link";
-import AchievementCard, { SKINS, asSkin } from "@/components/AchievementCard";
+import AchievementCard from "@/components/AchievementCard";
 import Flash from "@/components/Flash";
-import { getAdmin } from "@/lib/auth";
+import { getUser, isAdminRole } from "@/lib/auth";
 import { RARITIES, type Rarity } from "@/db/schema";
 import NavIcon from "@/components/NavIcon";
 import RoleIcon from "@/components/RoleIcon";
+import { SKINS, SKIN_LABEL, asSkin, type Skin } from "@/lib/skins";
 import { RARITY_LABEL, asRarity } from "@/lib/labels";
 import {
   confirmedUnlockMap,
@@ -20,9 +21,6 @@ import {
 function anchorId(i: number): string {
   return `role-${i}`;
 }
-
-/** 皮肤的中文名。加皮肤时这里也要加一条。 */
-const SKIN_LABEL: Record<string, string> = { gothic: "暗夜", ice: "霜蓝" };
 
 const SORTS = [
   { key: "role", label: "按角色" },
@@ -47,7 +45,7 @@ function Group({
   title: React.ReactNode;
   items: Achievement[];
   unlocks: Map<number, Unlocker[]>;
-  skin: ReturnType<typeof asSkin>;
+  skin: Skin;
   id?: string;
 }) {
   if (items.length === 0) return null;
@@ -77,16 +75,18 @@ export default async function AchievementsPage({
 }) {
   const sp = await searchParams;
   const sort = asSort(sp.sort);
-  const skin = asSkin(sp.skin);
-  const admin = await getAdmin();
+  const me = await getUser();
+  // URL 上的 ?skin= 优先（方便预览和分享），其次是账号里存的选择（issue #12）
+  const skin = asSkin(sp.skin ?? me?.cardSkin);
+  const admin = me !== null && isAdminRole(me.role);
   const list = listAchievements();
   const unlocks = confirmedUnlockMap();
 
   const isUnlocked = (a: Achievement) => (unlocks.get(a.id) ?? []).length > 0;
   const unlockedCount = list.filter(isUnlocked).length;
   /** 换排序时保留皮肤，换皮肤时保留排序 */
-  const sortHref = (k: Sort) => (skin === "gothic" ? `?sort=${k}` : `?sort=${k}&skin=${skin}`);
-  const skinHref = (k: string) => (k === "gothic" ? `?sort=${sort}` : `?sort=${sort}&skin=${k}`);
+  const sortHref = (k: Sort) => `?sort=${k}&skin=${skin}`;
+  const skinHref = (k: Skin) => `?sort=${sort}&skin=${k}`;
 
   return (
     <div className="space-y-4">

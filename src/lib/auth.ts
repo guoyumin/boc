@@ -20,6 +20,8 @@ export type CurrentUser = {
   playerId: number | null;
   playerName: string | null;
   adminRequest: string | null;
+  /** 成就卡的卡面皮肤，见 src/lib/skins.ts */
+  cardSkin: string;
 };
 
 export function isAdminRole(role: string): boolean {
@@ -69,6 +71,7 @@ export const getUser = cache(async (): Promise<CurrentUser | null> => {
       playerId: users.playerId,
       playerName: players.name,
       adminRequest: users.adminRequest,
+      cardSkin: users.cardSkin,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))

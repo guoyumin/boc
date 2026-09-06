@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `card_skin` text DEFAULT 'gothic' NOT NULL;

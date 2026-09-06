@@ -16,6 +16,7 @@ import {
   verifyPassword,
 } from "@/lib/auth";
 import { JOIN_HINT } from "@/lib/contact";
+import { SKIN_LABEL, asSkin } from "@/lib/skins";
 import { errMsg, many, num, optStr, str, withMsg } from "@/lib/form";
 import { assertLoginRate, assertWriteRate } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
@@ -165,6 +166,19 @@ export async function updateMyProfile(fd: FormData): Promise<void> {
   revalidatePath("/me");
   revalidatePath(`/players/${me.playerId}`);
   redirect(withMsg("/me", "已保存", "ok"));
+}
+
+/** 存下自己选的成就卡卡面（issue #12）。没登录就没得选，游客一律用默认皮肤。 */
+export async function saveCardSkin(fd: FormData): Promise<void> {
+  const me = await requireUser();
+  const skin = asSkin(str(fd, "skin"));
+  db.update(users)
+    .set({ cardSkin: skin, updatedAt: new Date().toISOString() })
+    .where(eq(users.id, me.id))
+    .run();
+  revalidatePath("/me");
+  revalidatePath("/achievements");
+  redirect(withMsg("/me", `卡面换成「${SKIN_LABEL[skin]}」了`, "ok"));
 }
 
 /** ADM-03：已登录的普通用户申请管理员，owner 审批 */
