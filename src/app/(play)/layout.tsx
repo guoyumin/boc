@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import BrandMark from "@/components/BrandMark";
 import BottomNav from "@/components/BottomNav";
 import SideNav from "@/components/SideNav";
 import { getUser, isAdminRole } from "@/lib/auth";
@@ -27,7 +28,7 @@ export default async function PlayLayout({ children }: { children: React.ReactNo
         <header className="sticky top-0 z-20 border-b border-line bg-surface/85 backdrop-blur lg:hidden">
           <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-2.5">
             <Link href="/" className="display flex items-center gap-1.5 text-base">
-              <span className="text-brand-bright">🩸</span> 苏黎世血染钟楼
+              <BrandMark className="size-5 text-brand" /> 苏黎世血染钟楼
             </Link>
             {displayName ? (
               <Link href="/me" className="badge badge-brand">

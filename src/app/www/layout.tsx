@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import BrandMark from "@/components/BrandMark";
 import { WECHAT_ID, WECHAT_NOTE } from "@/lib/contact";
 import { PLAY_LINKS } from "@/lib/urls";
 
@@ -23,7 +24,7 @@ export default function WwwLayout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-20 border-b border-line bg-bg/80 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-5 px-4 py-3 sm:px-6">
           <Link href="/" className="flex shrink-0 items-center gap-2">
-            <span className="text-lg text-brand-bright">🩸</span>
+            <BrandMark className="size-6 text-brand" />
             <span className="leading-tight">
               <span className="display block text-base whitespace-nowrap">苏黎世血染钟楼</span>
               <span className="eyebrow hidden sm:block">blood on the clocktower</span>

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import BrandMark from "./BrandMark";
 import NavIcon from "./NavIcon";
 import { ADMIN_ITEM, NAV_ITEMS, isActive } from "./nav-items";
 
@@ -24,7 +25,7 @@ export default function SideNav({
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-line bg-surface lg:flex">
       <Link href="/" className="flex items-center gap-2 px-5 py-5">
-        <span className="text-xl text-brand-bright">🩸</span>
+        <BrandMark className="size-6 text-brand" />
         <span className="leading-tight">
           <span className="display block text-base">苏黎世血染钟楼</span>
           <span className="eyebrow">the clocktower</span>
