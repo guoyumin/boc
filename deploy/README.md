@@ -66,6 +66,18 @@ sudo nginx -t && sudo systemctl reload nginx
 certbot 的 systemd timer 会自动续。续期靠 80 端口的 `/.well-known/acme-challenge/`，
 所以正式配置里那段 location 必须留在 301 跳转之前。
 
+续期成功后还得让 nginx 重新读证书，装一个 deploy hook：
+
+```bash
+sudo mkdir -p /etc/letsencrypt/renewal-hooks/deploy
+sudo cp /opt/boc/deploy/letsencrypt-reload-nginx.sh \
+        /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+sudo chmod +x /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+```
+
+不装的话 nginx 会一直捧着旧证书直到有人手动 reload，那时候证书早过期了。
+验证整条链路：`sudo certbot renew --dry-run`。
+
 ### 4. 起容器
 
 ```bash
