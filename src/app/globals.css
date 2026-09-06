@@ -148,3 +148,112 @@ body {
     @apply font-serif text-2xl font-bold text-ink;
   }
 }
+
+/* ==========================================================================
+ * 成就卡（issue #2）
+ *
+ * 竖版收藏卡：顶部横幅 → 角色 → 中央图（emoji + 钟盘水印）→ 名称 → 分隔星 →
+ * 达成条件 → 底部首解者。
+ *
+ * 皮肤：卡片根节点上的 data-skin 决定这一整套变量，卡片自己不写死颜色。
+ * 现在有 gothic（默认，跟全站一致）和 ice（参照用户给的那张冰蓝卡）。
+ * 加皮肤 = 在这里加一个 [data-skin="xxx"] 块，组件不用动。
+ * 每人选自己的皮肤要持久化到账号上，那是后续 issue，现在先支持 ?skin= 预览。
+ *
+ * data-rarity 只挑一个强调色出来，四档共用同一套结构。
+ * ========================================================================== */
+[data-skin] {
+  --ach-bg: var(--color-surface);
+  --ach-bg-2: var(--color-surface-2);
+  --ach-frame: var(--color-line-strong);
+  --ach-frame-soft: var(--color-line);
+  --ach-title: var(--color-ink);
+  --ach-text: var(--color-ink-2);
+  --ach-dim: var(--color-muted);
+  --ach-glow: color-mix(in srgb, var(--ach-accent) 22%, transparent);
+  --ach-accent: var(--color-brand-bright);
+}
+
+[data-skin="gothic"][data-rarity="common"] { --ach-accent: #9a918c; }
+[data-skin="gothic"][data-rarity="rare"] { --ach-accent: var(--color-rare); }
+[data-skin="gothic"][data-rarity="epic"] { --ach-accent: var(--color-epic); }
+[data-skin="gothic"][data-rarity="legendary"] { --ach-accent: var(--color-legend); }
+
+/* 冰蓝皮肤：浅底深字，和站点深色形成对比，靠卡片自身的边框收住 */
+[data-skin="ice"] {
+  --ach-bg: #eaf3fb;
+  --ach-bg-2: #dbe9f7;
+  --ach-frame: #9dbcd8;
+  --ach-frame-soft: #bcd4e8;
+  --ach-title: #16304f;
+  --ach-text: #2c4a6b;
+  --ach-dim: #5b7695;
+  --ach-accent: #2f6fb5;
+}
+[data-skin="ice"][data-rarity="common"] { --ach-accent: #5b7695; }
+[data-skin="ice"][data-rarity="rare"] { --ach-accent: #2f6fb5; }
+[data-skin="ice"][data-rarity="epic"] { --ach-accent: #6b4fb5; }
+[data-skin="ice"][data-rarity="legendary"] { --ach-accent: #b58a2f; }
+
+@layer components {
+  .ach-card {
+    @apply relative flex h-full flex-col overflow-hidden rounded-xl p-3 text-center;
+    background:
+      radial-gradient(120% 70% at 50% 0%, var(--ach-bg-2), var(--ach-bg) 70%);
+    border: 1px solid var(--ach-frame);
+    box-shadow:
+      inset 0 0 0 3px color-mix(in srgb, var(--ach-bg-2) 60%, transparent),
+      inset 0 0 24px var(--ach-glow);
+  }
+  /* 四角的装饰角标 */
+  .ach-corner {
+    @apply pointer-events-none absolute size-3.5 opacity-70;
+    border: 1px solid var(--ach-accent);
+  }
+  .ach-banner {
+    @apply mx-auto rounded-full px-2.5 py-0.5 text-[10px] tracking-[0.18em] whitespace-nowrap;
+    color: var(--ach-dim);
+    border: 1px solid var(--ach-frame-soft);
+  }
+  .ach-role {
+    @apply mt-2 font-serif text-sm font-semibold;
+    color: var(--ach-accent);
+  }
+  .ach-art {
+    @apply relative mx-auto my-2 flex aspect-square w-full max-w-[8.5rem] items-center justify-center;
+  }
+  .ach-clock {
+    @apply absolute inset-0 size-full opacity-25;
+    color: var(--ach-accent);
+  }
+  .ach-icon {
+    @apply relative text-5xl leading-none;
+    filter: drop-shadow(0 0 14px var(--ach-glow));
+  }
+  .ach-name {
+    @apply font-serif text-lg leading-tight font-bold text-balance;
+    color: var(--ach-title);
+  }
+  .ach-star {
+    @apply mx-auto my-1.5 flex items-center gap-2 text-[10px] tracking-widest whitespace-nowrap;
+    color: var(--ach-accent);
+  }
+  .ach-star::before,
+  .ach-star::after {
+    @apply block h-px w-8 content-[''];
+    background: linear-gradient(to right, transparent, var(--ach-frame), transparent);
+  }
+  .ach-desc {
+    @apply mt-1 text-xs leading-relaxed;
+    color: var(--ach-text);
+  }
+  .ach-foot {
+    @apply mt-auto pt-3 text-[11px];
+    color: var(--ach-dim);
+  }
+  /* 未解锁：紧凑格子，只留图标和名字 */
+  .ach-tile {
+    @apply flex h-full flex-col items-center justify-start gap-1 rounded-lg border border-line
+      bg-surface-2/60 px-2 py-3 text-center;
+  }
+}
