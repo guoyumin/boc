@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { WECHAT_ID, WECHAT_NOTE } from "@/lib/contact";
 import { PLAY_LINKS } from "@/lib/urls";
 
 // 主页站（www.zurich-boca.party）的外壳。功能站的顶栏和底部 tab bar 不在这里出现。
@@ -53,8 +54,8 @@ export default function WwwLayout({ children }: { children: React.ReactNode }) {
             </a>
           </p>
           <p className="mt-1">
-            微信 <span className="select-all text-ink-2">CHDC1047</span>，
-            申请好友请备注「血染新人」
+            想入群获取详细活动信息，加微信{" "}
+            <span className="select-all text-ink-2">{WECHAT_ID}</span>，备注「{WECHAT_NOTE}」
           </p>
           <p className="mt-3 text-xs text-faint">
             《血染钟楼》是 The Pandemonium Institute 的作品，本站与其无隶属关系。
