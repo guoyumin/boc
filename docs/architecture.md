@@ -81,7 +81,7 @@ flowchart LR
     end
 
     subgraph VPS["VPS (Docker Compose)"]
-        Nginx[宿主机 nginx<br/>:443 Cloudflare Origin 证书<br/>boc.example.com]
+        Nginx[宿主机 nginx<br/>:443 Let's Encrypt 证书<br/>play.zurich-boca.party]
         App[Next.js app<br/>:3000<br/>页面 + Server Actions + 文件路由]
         Vol[(卷 /data<br/>boc.db<br/>uploads/)]
         Cron[backup cron<br/>每日 03:00]
@@ -332,7 +332,7 @@ VPS 现状（2026-09-05 勘查）：Ubuntu 24.04，Docker 29 + Compose 2.37，�
 
 1. Cloudflare DNS：添加 `boc` A 记录 → VPS IP，**开启代理（橙云）**，否则 Origin 证书不被信任。
 2. 应用目录 `/opt/boc`：`docker-compose.yml`、`.env`、`data/`。
-3. nginx site `deploy/nginx/boc.example.com.conf`：80 → 301 https；443 用 Cloudflare 证书，`client_max_body_size 12m`，`proxy_pass http://127.0.0.1:3100`。
+3. nginx site `deploy/nginx/play.zurich-boca.party.conf`：80 放行 ACME 校验、其余 301 到 https；443 用 Let's Encrypt 证书，`client_max_body_size 32m`，`proxy_pass http://127.0.0.1:3100`。
 4. `docker compose up -d --build`（原型阶段在 VPS 上直接构建；之后改为 GitHub Actions 构建推 GHCR）。
 
 ### 8.2 docker-compose.yml
@@ -356,7 +356,7 @@ services:
 | `DATABASE_PATH` | `/data/boc.db` |
 | `UPLOAD_DIR` | `/data/uploads` |
 | `OWNER_USERNAME` / `OWNER_PASSWORD` | 首次启动创建 owner |
-| `APP_URL` | `https://boc.example.com` |
+| `APP_URL` | `https://play.zurich-boca.party` |
 | `TZ` | `Europe/Zurich` |
 
 ### 8.4 更新与回滚

@@ -2,7 +2,7 @@
 
 > 一个给苏黎世《血染钟楼》（Blood on the Clocktower）桌游群用的小型管理网站：记录每周活动的出席情况、保存板子图片与剧本 JSON、维护成就墙。
 
-站点计划部署在 `https://boc.example.com`。
+站点部署在 `https://play.zurich-boca.party`。旧域名 `boc.example.com` 会 301 跳到这里。
 
 ## 文档
 

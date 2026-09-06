@@ -235,7 +235,7 @@
 
 | 类别 | 要求 |
 |---|---|
-| 部署 | 用户的 VPS，域名 `boc.example.com`（经 Cloudflare 代理），复用现有 nginx 与 Cloudflare Origin 证书。 |
+| 部署 | 用户的 VPS，域名 `play.zurich-boca.party`（经 Cloudflare 代理），复用现有 nginx，证书用 Let's Encrypt。旧域名 `boc.example.com` 整站 301 过来。 |
 | 数据所有权 | 数据库与文件保存在 VPS 本地。 |
 | 备份 | 每日备份数据库与上传目录到 VPS 之外，保留 30 天。 |
 | 性能 | 首屏 < 2 s（4G）。 |
@@ -270,7 +270,7 @@ Admin（独立于 Player）                      仅管理员有账号
 - 技术栈 Next.js（见架构文档）。
 - 成就宣告需管理员确认后才显示。
 - 说书人、玩家、角色、剧本属于"局"，不属于"活动"。
-- 域名实际为 `boc.example.com`（VPS 上现有站点均在 `example.com` 下）。
+- 正式域名 `play.zurich-boca.party`（2026-09-06 启用）。原先临时用的 `boc.example.com` 保留为 301 跳转，微信群里散出去的旧链接还能用。
 
 ## 9. 待澄清
 

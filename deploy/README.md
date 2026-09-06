@@ -1,6 +1,6 @@
 # 部署（VPS + Docker Compose + 宿主机 nginx）
 
-目标：`https://boc.example.com`，经 Cloudflare 代理，复用 VPS 上已有的 nginx 和 Cloudflare Origin 证书。
+目标：`https://play.zurich-boca.party`，经 Cloudflare 代理，复用 VPS 上已有的 nginx，证书用 Let's Encrypt。
 应用容器只监听 `127.0.0.1:3100`，不直接对外。
 
 ## 一、首次部署
@@ -9,11 +9,15 @@
 
 在 `example.com` 里加一条记录：
 
+`zurich-boca.party` 这个 zone 里加一条记录：
+
 | 类型 | 名称 | 内容 | 代理状态 |
 |---|---|---|---|
-| A | `boc` | VPS 的 IP | **已代理（橙云）** |
+| CNAME（或 A） | `play` | VPS（`203.0.113.10`） | 已代理（橙云） |
 
-必须开橙云，否则 Cloudflare Origin 证书不被浏览器信任。
+SSL/TLS 模式选 **Full (strict)**。源站是 Let's Encrypt 的真证书，strict 能过。
+
+旧域名 `boc.example.com` 保留成 301 跳转，不要删——微信群里散出去的旧链接还指着它。
 
 ### 2. 拉代码
 
@@ -33,12 +37,34 @@ sudo chown -R 1000:1000 data   # 容器内以 node(uid 1000) 运行，否则报 
 ### 3. nginx
 
 ```bash
-sudo cp /opt/boc/deploy/nginx/boc.example.com.conf /etc/nginx/sites-available/
-sudo ln -s /etc/nginx/sites-available/boc.example.com.conf /etc/nginx/sites-enabled/
+# 先放一个只有 HTTP 的临时站点，好让 ACME 校验能落地
+sudo tee /etc/nginx/sites-available/play.zurich-boca.party >/dev/null <<'EOF'
+server {
+    listen 80;
+    server_name play.zurich-boca.party;
+    location /.well-known/acme-challenge/ { root /var/www/html; }
+    location / { return 200 'bootstrap'; add_header Content-Type text/plain; }
+}
+EOF
+sudo ln -sfn /etc/nginx/sites-available/play.zurich-boca.party /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
+# 签证书（webroot 模式，certbot 会自己装好续期定时器）
+sudo certbot certonly --webroot -w /var/www/html -d play.zurich-boca.party \
+  --non-interactive --agree-tos --register-unsafely-without-email --no-eff-email
+
+# 换成正式配置（带 443）
+sudo cp /opt/boc/deploy/nginx/play.zurich-boca.party.conf /etc/nginx/sites-available/play.zurich-boca.party
+sudo cp /opt/boc/deploy/nginx/boc.example.com.conf /etc/nginx/sites-available/boc.example.com
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-证书路径按现有站点：`/etc/ssl/cloudflare/example.com.pem` 和 `.key`。
+⚠️ **别用 `certbot --nginx`**。这台机器上还跑着 `example.com` 的 别的服务，
+`--nginx` 插件会改写既有配置，有波及它的风险。只用 `certonly --webroot`。
+
+证书在 `/etc/letsencrypt/live/play.zurich-boca.party/`，90 天有效，
+certbot 的 systemd timer 会自动续。续期靠 80 端口的 `/.well-known/acme-challenge/`，
+所以正式配置里那段 location 必须留在 301 跳转之前。
 
 ### 4. 起容器
 
@@ -48,7 +74,7 @@ docker compose up -d --build
 docker compose logs -f app        # 第一次会打印「已创建初始管理员：xxx」
 ```
 
-打开 `https://boc.example.com`，用 `/admin/login` 登录初始管理员，先去 `/admin/password` 改一次密码。
+打开 `https://play.zurich-boca.party`，用 `/login` 登录初始管理员，先去 `/me/password` 改一次密码。
 
 ## 二、更新
 
