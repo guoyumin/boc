@@ -12,6 +12,9 @@ import {
   pollResponses,
   players,
   polls,
+  scriptPollOptions,
+  scriptPollVotes,
+  scriptPolls,
   users,
   type PollSlot,
 } from "@/db/schema";
@@ -599,4 +602,71 @@ export function listUsers(): UserRow[] {
 /** 待审批的管理员申请 */
 export function pendingAdminRequests(): UserRow[] {
   return listUsers().filter((u) => u.adminRequest && u.role === "member");
+}
+
+// ---------- 剧本投票（issue #4）----------
+
+export type ScriptPollOptionView = {
+  id: number;
+  name: string;
+  note: string | null;
+  votes: number;
+  voters: string[];
+};
+
+export type ScriptPollView = {
+  poll: typeof scriptPolls.$inferSelect;
+  options: ScriptPollOptionView[];
+  /** 投过票的人数（不是票数，一个人可以投多个） */
+  voterCount: number;
+  best: number;
+  event: EventRow | null;
+};
+
+export function getScriptPollView(id: number): ScriptPollView | null {
+  const poll = db.select().from(scriptPolls).where(eq(scriptPolls.id, id)).get();
+  if (!poll) return null;
+  const options = db
+    .select()
+    .from(scriptPollOptions)
+    .where(eq(scriptPollOptions.pollId, id))
+    .orderBy(scriptPollOptions.sortOrder, scriptPollOptions.id)
+    .all();
+  const votes = db
+    .select({ optionId: scriptPollVotes.optionId, playerId: players.id, name: players.name })
+    .from(scriptPollVotes)
+    .innerJoin(players, eq(players.id, scriptPollVotes.playerId))
+    .where(eq(scriptPollVotes.pollId, id))
+    .all();
+
+  const view: ScriptPollOptionView[] = options.map((o) => {
+    const mine = votes.filter((v) => v.optionId === o.id);
+    return { id: o.id, name: o.name, note: o.note, votes: mine.length, voters: mine.map((v) => v.name) };
+  });
+  const voterCount = new Set(votes.map((v) => v.playerId)).size;
+  const best = Math.max(0, ...view.map((o) => o.votes));
+  const event = poll.eventId
+    ? (db.select().from(events).where(eq(events.id, poll.eventId)).get() ?? null)
+    : null;
+  return { poll, options: view, voterCount, best, event };
+}
+
+/** 某个活动下的剧本投票，活动页上挂个入口 */
+export function scriptPollsForEvent(eventId: number) {
+  return db
+    .select()
+    .from(scriptPolls)
+    .where(eq(scriptPolls.eventId, eventId))
+    .orderBy(desc(scriptPolls.id))
+    .all();
+}
+
+/** 某人在这场投票里选了哪些，用来回显 */
+export function scriptVotesOf(pollId: number, playerId: number): number[] {
+  return db
+    .select({ optionId: scriptPollVotes.optionId })
+    .from(scriptPollVotes)
+    .where(and(eq(scriptPollVotes.pollId, pollId), eq(scriptPollVotes.playerId, playerId)))
+    .all()
+    .map((r) => r.optionId);
 }

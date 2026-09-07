@@ -1,5 +1,6 @@
 import Link from "next/link";
 import GrimoireLink from "@/components/GrimoireLink";
+import NavIcon from "@/components/NavIcon";
 import { notFound } from "next/navigation";
 import AttendanceButtons from "@/components/AttendanceButtons";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
@@ -12,6 +13,7 @@ import { deleteEvent, updateEvent } from "@/actions/events";
 import { createGame } from "@/actions/games";
 import { deleteEventFile, uploadEventFiles } from "@/actions/files";
 import { addAttendee, cancelSignup, removeSignup, selfSignup } from "@/actions/signups";
+import { createScriptPoll } from "@/actions/script-polls";
 import { getAdmin } from "@/lib/auth";
 import { formatDate, formatMd } from "@/lib/dates";
 import { buildJielong } from "@/lib/jielong";
@@ -30,14 +32,7 @@ import {
   isWaived,
   isWalkIn,
 } from "@/lib/labels";
-import {
-  claimsForEvent,
-  getEvent,
-  getEventFiles,
-  getGames,
-  getSignups,
-  recentScripts,
-} from "@/lib/queries";
+import { claimsForEvent, getEvent, getEventFiles, getGames, getSignups, recentScripts, scriptPollsForEvent } from "@/lib/queries";
 import { readFileText } from "@/lib/storage";
 import type { Session } from "@/db/schema";
 
@@ -61,6 +56,7 @@ export default async function EventDetailPage({
   const scripts = recentScripts();
 
   const files = getEventFiles(eventId);
+  const scriptPolls = scriptPollsForEvent(eventId);
   const images = files.filter((f) => f.kind === "board_image");
   const jsons = files.filter((f) => f.kind === "script_json");
   // 「复制 JSON」是客户端组件，内容要服务端读出来传过去。JSON 上限 1 MB，可以接受。
@@ -289,6 +285,64 @@ export default async function EventDetailPage({
           </details>
         )}
       </section>
+
+      {/* 剧本投票（issue #4）：定日期用时间投票，定玩什么本用这个 */}
+      {(scriptPolls.length > 0 || admin) && (
+        <section className="card">
+          <div className="card-title">
+            <span className="inline-flex items-center gap-2">
+              <NavIcon name="book" className="size-[18px]" />
+              剧本投票
+            </span>
+          </div>
+          {scriptPolls.length === 0 ? (
+            <p className="muted">这场还没有剧本投票。</p>
+          ) : (
+            <ul className="space-y-2">
+              {scriptPolls.map((sp2) => (
+                <li key={sp2.id}>
+                  <Link href={`/script-polls/${sp2.id}`} className="flex items-center justify-between gap-2 rounded-lg border border-line p-2 text-sm">
+                    <span className="font-medium text-ink">{sp2.title}</span>
+                    <span className="badge badge-plain shrink-0">
+                      {sp2.status === "open" ? "投票中" : sp2.status === "locked" ? "已锁定" : "已定下"}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {admin && (
+            <details className="mt-3 rounded-lg border border-line p-3">
+              <summary className="cursor-pointer text-sm font-medium text-brand-bright">
+                ＋ 发起剧本投票
+              </summary>
+              <form action={createScriptPoll} className="mt-3 space-y-3">
+                <input type="hidden" name="eventId" value={event.id} />
+                <div>
+                  <label className="label">标题</label>
+                  <input className="input" name="title" maxLength={40} defaultValue="这场玩哪个本？" />
+                </div>
+                <div>
+                  <label className="label">候选剧本（一行一个，可以写「名字 · 说明」）</label>
+                  <textarea
+                    className="input h-28"
+                    name="options"
+                    required
+                    placeholder={"暗流涌动 · 新手友好\n黯月初升\n梦殒春宵"}
+                  />
+                </div>
+                <div>
+                  <label className="label">说明（可选）</label>
+                  <input className="input" name="note" maxLength={100} placeholder="投票到周四晚上截止" />
+                </div>
+                <button type="submit" className="btn btn-primary btn-block">
+                  发起投票
+                </button>
+              </form>
+            </details>
+          )}
+        </section>
+      )}
 
       {/* 游戏记录 */}
       <section className="card">
