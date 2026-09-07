@@ -12,7 +12,7 @@ import {
   saveScriptOption,
   setScriptPollStatus,
 } from "@/actions/script-polls";
-import { getAdmin } from "@/lib/auth";
+import { getAdmin, getUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { getScriptPollView } from "@/lib/queries";
 import { playUrl } from "@/lib/urls";
@@ -41,6 +41,7 @@ export default async function ScriptPollPage({
   const view = getScriptPollView(Number(id));
   if (!view) notFound();
   const admin = await getAdmin();
+  const myName = (await getUser())?.playerName ?? "";
   const { poll, options, voterCount, best, event } = view;
   const decided = options.find((o) => o.id === poll.decidedOptionId);
   const missingImages = options.filter((o) => !o.imageFileId).length;
@@ -229,6 +230,7 @@ export default async function ScriptPollPage({
           <ScriptVoteForm
             pollId={poll.id}
             options={options.map((o) => ({ id: o.id, name: o.name, imageFileId: o.imageFileId }))}
+            defaultNickname={myName}
           />
         </section>
       ) : (

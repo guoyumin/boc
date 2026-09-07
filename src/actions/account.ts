@@ -24,6 +24,26 @@ import { checkNickname, cleanName, normalizeName } from "@/lib/names";
 import { findPlayer, parseAliases } from "@/lib/players";
 
 const USERNAME_RE = /^[A-Za-z0-9_.-]{3,32}$/;
+
+/**
+ * 按用户名找账号，**忽略大小写**——用户名不该区分大小写（密码才该）。
+ *
+ * 历史上注册过只差大小写的两个账号（jolin / Jolin），所以：
+ * 先精确匹配；没有精确命中时才放宽到忽略大小写，且只有唯一一条才认，
+ * 有歧义就当没找到，免得登进别人的账号。
+ */
+function findUserByUsername(raw: string) {
+  const name = raw.trim();
+  if (!name) return null;
+  const exact = db.select().from(users).where(eq(users.username, name)).get();
+  if (exact) return exact;
+  const loose = db
+    .select()
+    .from(users)
+    .where(sql`lower(${users.username}) = ${name.toLowerCase()}`)
+    .all();
+  return loose.length === 1 ? loose[0]! : null;
+}
 const MAX_ALIASES = 5;
 
 export async function loginAction(fd: FormData): Promise<void> {
@@ -33,7 +53,7 @@ export async function loginAction(fd: FormData): Promise<void> {
     const username = str(fd, "username");
     const password = str(fd, "password");
     await assertLoginRate(username);
-    const u = db.select().from(users).where(eq(users.username, username)).get();
+    const u = findUserByUsername(username);
     if (!u || !(await verifyPassword(password, u.passwordHash))) throw new Error("用户名或密码不对");
     if (u.status === "pending") throw new Error("账号还在等站长审批");
     if (u.status !== "active") throw new Error("账号已停用");
@@ -59,8 +79,16 @@ export async function registerAction(fd: FormData): Promise<void> {
     const password = str(fd, "password");
     if (password.length < 8) throw new Error("密码至少 8 位");
     if (password !== str(fd, "password2")) throw new Error("两次输入的密码不一样");
-    if (db.select().from(users).where(eq(users.username, username)).get()) {
-      throw new Error("这个用户名已经有人用了");
+    // 大小写不同也算重名，否则登录时就分不清是谁了
+    if (findUserByUsername(username)) throw new Error("这个用户名已经有人用了");
+    if (
+      db
+        .select()
+        .from(users)
+        .where(sql`lower(${users.username}) = ${username.toLowerCase()}`)
+        .get()
+    ) {
+      throw new Error("已经有个只差大小写的同名账号，换一个");
     }
 
     const check = checkNickname(str(fd, "nickname"));

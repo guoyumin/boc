@@ -7,9 +7,11 @@ import { submitScriptVote, withdrawScriptVote } from "@/actions/script-polls";
 export default function ScriptVoteForm({
   pollId,
   options,
+  defaultNickname = "",
 }: {
   pollId: number;
   options: { id: number; name: string; imageFileId: number | null }[];
+  defaultNickname?: string;
 }) {
   return (
     <>
@@ -17,7 +19,7 @@ export default function ScriptVoteForm({
         <input type="hidden" name="pollId" value={pollId} />
         <div>
           <label className="label">你的昵称</label>
-          <NicknameInput />
+          <NicknameInput defaultValue={defaultNickname} />
         </div>
         <div>
           <span className="label">想玩哪个板子（可多选）</span>
@@ -51,7 +53,7 @@ export default function ScriptVoteForm({
         <summary className="cursor-pointer text-sm text-muted">不想投了？撤掉我的票</summary>
         <form action={withdrawScriptVote} className="mt-3 space-y-2">
           <input type="hidden" name="pollId" value={pollId} />
-          <input className="input" name="nickname" maxLength={20} required placeholder="你投票用的昵称" />
+          <NicknameInput defaultValue={defaultNickname} placeholder="你投票用的昵称" />
           <button type="submit" className="btn btn-block">
             撤掉我的票
           </button>

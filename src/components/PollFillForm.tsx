@@ -3,13 +3,21 @@ import { submitPollResponse, withdrawPollResponse } from "@/actions/polls";
 import { SLOT_LABEL } from "@/lib/labels";
 import type { PollSlot } from "@/db/schema";
 
-export default function PollFillForm({ pollId, slots }: { pollId: number; slots: PollSlot[] }) {
+export default function PollFillForm({
+  pollId,
+  slots,
+  defaultNickname = "",
+}: {
+  pollId: number;
+  slots: PollSlot[];
+  defaultNickname?: string;
+}) {
   return (
     <form action={submitPollResponse} className="space-y-3">
       <input type="hidden" name="pollId" value={pollId} />
       <div>
         <label className="label">你的昵称</label>
-        <NicknameInput />
+        <NicknameInput defaultValue={defaultNickname} />
       </div>
       <div>
         <span className="label">哪些时段有空（可多选）</span>
@@ -41,19 +49,19 @@ export default function PollFillForm({ pollId, slots }: { pollId: number; slots:
  * 「我这次没空」：撤掉自己已填的记录。
  * 单独一个表单，因为它不需要勾时段，只要昵称。
  */
-export function PollWithdrawForm({ pollId }: { pollId: number }) {
+export function PollWithdrawForm({
+  pollId,
+  defaultNickname = "",
+}: {
+  pollId: number;
+  defaultNickname?: string;
+}) {
   return (
     <details className="mt-3 rounded-lg border border-line p-3">
       <summary className="cursor-pointer text-sm text-muted">这次都没空？撤掉我的记录</summary>
       <form action={withdrawPollResponse} className="mt-3 space-y-2">
         <input type="hidden" name="pollId" value={pollId} />
-        <input
-          className="input"
-          name="nickname"
-          maxLength={20}
-          required
-          placeholder="你填时用的昵称"
-        />
+        <NicknameInput defaultValue={defaultNickname} placeholder="你填时用的昵称" />
         <button type="submit" className="btn btn-block">
           我这次没空
         </button>
