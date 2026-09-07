@@ -24,6 +24,12 @@ export type DetectedKind =
   | { kind: "board_image"; mime: string; ext: "jpg" | "png" | "webp" }
   | { kind: "script_json"; mime: "application/json"; ext: "json" };
 
+/** 只保留文件名部分，去掉路径分隔符——原始名只用于展示与下载。 */
+export function safeName(raw: string): string {
+  const base = raw.split(/[\\/]/).pop() ?? "";
+  return base.replace(/[\r\n\t]/g, " ").trim().slice(0, 120) || "未命名文件";
+}
+
 export function uploadRoot(): string {
   return path.resolve(/* turbopackIgnore: true */ process.env.UPLOAD_DIR ?? "./data/uploads");
 }

@@ -4,8 +4,9 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { scriptPollOptions, scriptPollVotes, scriptPolls } from "@/db/schema";
+import { eventFiles, scriptPollOptions, scriptPollVotes, scriptPolls } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
+import { MAX_IMAGE_BYTES, detectKind, safeName, saveImage } from "@/lib/storage";
 import { errMsg, many, num, optNum, optStr, str, withMsg } from "@/lib/form";
 import { findOrCreatePlayer } from "@/lib/players";
 import { assertWriteRate } from "@/lib/rate-limit";
@@ -169,3 +170,80 @@ export async function deleteScriptPoll(fd: FormData): Promise<void> {
   redirect(withMsg(back, "剧本投票已删除", "ok"));
 }
 
+/**
+ * 新增 / 编辑一个候选剧本：名字、描述、一张图（issue 追加需求）。
+ *
+ * 图片走和板子图同一条管线（magic bytes 判类型、sharp 去 EXIF、生成缩略图），
+ * 落在 event_files 里但用 script_option 这个 kind，所以不会混进活动页的文件列表。
+ * 因此上传图片要求这场投票挂在活动下——磁盘路径是按活动 id 分目录的。
+ */
+export async function saveScriptOption(fd: FormData): Promise<void> {
+  const pollId = num(fd, "pollId");
+  const back = `/script-polls/${pollId}`;
+  try {
+    const admin = await requireAdmin();
+    const poll = db.select().from(scriptPolls).where(eq(scriptPolls.id, pollId)).get();
+    if (!poll) throw new Error("剧本投票不存在");
+    const optionId = optNum(fd, "optionId");
+    const name = str(fd, "name");
+    if (!name) throw new Error("给这个本起个名字");
+    const note = optStr(fd, "note");
+
+    let fileId: number | null = null;
+    const file = fd.get("image");
+    if (file instanceof File && file.size > 0) {
+      if (!poll.eventId) throw new Error("这场投票没挂在活动下，传不了图");
+      const buf = Buffer.from(await file.arrayBuffer());
+      const detected = detectKind(buf, safeName(file.name));
+      if (detected.kind !== "board_image") throw new Error("只收图片（jpg / png / webp）");
+      if (buf.length > MAX_IMAGE_BYTES) throw new Error("图片超过 10 MB 上限");
+      const saved = await saveImage(poll.eventId, buf, detected.ext);
+      db.insert(eventFiles)
+        .values({
+          eventId: poll.eventId,
+          kind: "script_option",
+          originalName: safeName(file.name),
+          storagePath: saved.storagePath,
+          thumbPath: saved.thumbPath,
+          mime: saved.mime,
+          size: saved.size,
+          uploadedBy: admin.id,
+        })
+        .run();
+      fileId = db.select({ id: eventFiles.id }).from(eventFiles).all().at(-1)!.id;
+    }
+
+    if (optionId) {
+      db.update(scriptPollOptions)
+        .set({ name, note, ...(fileId ? { fileId } : {}) })
+        .where(and(eq(scriptPollOptions.id, optionId), eq(scriptPollOptions.pollId, pollId)))
+        .run();
+    } else {
+      const last = db
+        .select({ sortOrder: scriptPollOptions.sortOrder })
+        .from(scriptPollOptions)
+        .where(eq(scriptPollOptions.pollId, pollId))
+        .all()
+        .reduce((m, o) => Math.max(m, o.sortOrder), 0);
+      db.insert(scriptPollOptions).values({ pollId, name, note, fileId, sortOrder: last + 1 }).run();
+    }
+    logAudit(admin.id, optionId ? "script_option.update" : "script_option.create", "script_poll", pollId, name);
+  } catch (e) {
+    redirect(withMsg(back, errMsg(e)));
+  }
+  revalidatePath(back);
+  redirect(withMsg(back, "已保存", "ok"));
+}
+
+export async function deleteScriptOption(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const pollId = num(fd, "pollId");
+  const optionId = num(fd, "optionId");
+  const back = `/script-polls/${pollId}`;
+  db.delete(scriptPollOptions)
+    .where(and(eq(scriptPollOptions.id, optionId), eq(scriptPollOptions.pollId, pollId)))
+    .run();
+  logAudit(admin.id, "script_option.delete", "script_poll", pollId);
+  revalidatePath(back);
+  redirect(withMsg(back, "候选已删除", "ok"));
+}

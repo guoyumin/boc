@@ -9,25 +9,12 @@ import { requireAdmin } from "@/lib/auth";
 import { errMsg, num, optNum, str, withMsg } from "@/lib/form";
 import { logAudit } from "@/lib/audit";
 import { parseScriptJson } from "@/lib/script-json";
-import {
-  MAX_IMAGE_BYTES,
-  MAX_JSON_BYTES,
-  detectKind,
-  removeFiles,
-  saveImage,
-  saveJson,
-} from "@/lib/storage";
+import { MAX_IMAGE_BYTES, MAX_JSON_BYTES, detectKind, removeFiles, safeName, saveImage, saveJson } from "@/lib/storage";
 
 const SESSIONS = ["afternoon", "evening"];
 
 function mb(n: number): string {
   return `${Math.round((n / 1024 / 1024) * 10) / 10} MB`;
-}
-
-/** 只保留文件名部分，去掉路径分隔符——原始名只用于展示与下载。 */
-function safeName(raw: string): string {
-  const base = raw.split(/[\\/]/).pop() ?? "";
-  return base.replace(/[\r\n\t]/g, " ").trim().slice(0, 120) || "未命名文件";
 }
 
 /**
