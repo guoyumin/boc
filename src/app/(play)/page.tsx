@@ -60,7 +60,7 @@ export default async function HomePage() {
           </div>
           <details className="rounded-lg border border-line p-3">
             <summary className="cursor-pointer text-sm font-medium text-brand-bright">
-              填我的时间（{pollView.responses.length} 人已填）
+              填我的时间（{pollView.filledCount} 人已填）
             </summary>
             <div className="mt-3">
               <PollFillForm pollId={pollView.poll.id} slots={pollView.slots} />

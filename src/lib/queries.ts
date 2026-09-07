@@ -71,6 +71,8 @@ export type PollResponseView = {
   name: string;
   slots: PollSlot[];
   note: string | null;
+  /** 本人撤回过：记录留着显示，但不算票 */
+  withdrawn: boolean;
 };
 
 export type PollView = {
@@ -80,6 +82,8 @@ export type PollView = {
   counts: Record<string, number>;
   best: number;
   event: EventRow | null;
+  /** 有效填写的人数，不含撤回的 */
+  filledCount: number;
 };
 
 export function getPollView(id: number): PollView | null {
@@ -93,6 +97,7 @@ export function getPollView(id: number): PollView | null {
       name: players.name,
       slots: pollResponses.slots,
       note: pollResponses.note,
+      status: pollResponses.status,
       createdAt: pollResponses.createdAt,
     })
     .from(pollResponses)
@@ -105,17 +110,20 @@ export function getPollView(id: number): PollView | null {
     id: r.id,
     playerId: r.playerId,
     name: r.name,
-    slots: POLL_SLOTS.filter((s) => parseJsonArray(r.slots).includes(s)),
+    // 撤回的记录不留时段，页面上只显示一个「已取消」
+    slots: r.status === "withdrawn" ? [] : POLL_SLOTS.filter((s) => parseJsonArray(r.slots).includes(s)),
     note: r.note,
+    withdrawn: r.status === "withdrawn",
   }));
 
   const counts: Record<string, number> = {};
   for (const s of slots) counts[s] = responses.filter((r) => r.slots.includes(s)).length;
+  const filledCount = responses.filter((r) => !r.withdrawn).length;
   const best = Math.max(0, ...slots.map((s) => counts[s] ?? 0));
   const event = poll.eventId
     ? (db.select().from(events).where(eq(events.id, poll.eventId)).get() ?? null)
     : null;
-  return { poll, slots, responses, counts, best, event };
+  return { poll, slots, responses, counts, best, event, filledCount };
 }
 
 export type EventListRow = EventRow & {

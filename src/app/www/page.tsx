@@ -180,7 +180,7 @@ export default async function Home() {
                     </span>
                   ))}
                 </div>
-                <p className="mt-2 text-sm text-ink-2">{pollView.responses.length} 人已填</p>
+                <p className="mt-2 text-sm text-ink-2">{pollView.filledCount} 人已填</p>
                 <span className="btn btn-primary btn-block mt-3">填我的时间</span>
               </>
             ) : (
