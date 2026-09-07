@@ -9,7 +9,7 @@ export default function ScriptVoteForm({
   options,
 }: {
   pollId: number;
-  options: { id: number; name: string }[];
+  options: { id: number; name: string; fileId: number | null }[];
 }) {
   return (
     <>
@@ -25,10 +25,18 @@ export default function ScriptVoteForm({
             {options.map((o) => (
               <label
                 key={o.id}
-                className="flex items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
+                className="flex items-center gap-2.5 rounded-lg border border-line-strong bg-surface p-2 text-sm"
               >
                 <input type="checkbox" name="options" value={o.id} className="h-4 w-4 accent-[#b3352f]" />
-                {o.name}
+                {o.fileId && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/files/${o.fileId}?thumb=1`}
+                    alt=""
+                    className="size-10 shrink-0 rounded object-cover"
+                  />
+                )}
+                <span className="min-w-0 truncate">{o.name}</span>
               </label>
             ))}
           </div>

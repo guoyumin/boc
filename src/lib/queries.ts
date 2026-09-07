@@ -610,6 +610,8 @@ export type ScriptPollOptionView = {
   id: number;
   name: string;
   note: string | null;
+  /** 剧本图，指向 event_files 的一行；用 /files/{id} 取原图、加 ?thumb=1 取缩略图 */
+  fileId: number | null;
   votes: number;
   voters: string[];
 };
@@ -641,7 +643,14 @@ export function getScriptPollView(id: number): ScriptPollView | null {
 
   const view: ScriptPollOptionView[] = options.map((o) => {
     const mine = votes.filter((v) => v.optionId === o.id);
-    return { id: o.id, name: o.name, note: o.note, votes: mine.length, voters: mine.map((v) => v.name) };
+    return {
+      id: o.id,
+      name: o.name,
+      note: o.note,
+      fileId: o.fileId,
+      votes: mine.length,
+      voters: mine.map((v) => v.name),
+    };
   });
   const voterCount = new Set(votes.map((v) => v.playerId)).size;
   const best = Math.max(0, ...view.map((o) => o.votes));
