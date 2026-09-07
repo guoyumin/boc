@@ -136,8 +136,10 @@ export const scriptPollOptions = sqliteTable(
     pollId: integer("poll_id").notNull().references(() => scriptPolls.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     note: text("note"),
-    /** 关联到 event_files 里的剧本 JSON，没有就是手填的 */
+    /** 关联到 event_files 里的剧本 JSON（从已上传的剧本生成的候选才有） */
     fileId: integer("file_id"),
+    /** 候选的配图，也在 event_files 里，kind = script_option */
+    imageFileId: integer("image_file_id"),
     sortOrder: integer("sort_order").notNull().default(100),
     createdAt: text("created_at").notNull().default(now),
   },

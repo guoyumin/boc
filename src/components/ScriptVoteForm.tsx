@@ -9,7 +9,7 @@ export default function ScriptVoteForm({
   options,
 }: {
   pollId: number;
-  options: { id: number; name: string; fileId: number | null }[];
+  options: { id: number; name: string; imageFileId: number | null }[];
 }) {
   return (
     <>
@@ -28,10 +28,10 @@ export default function ScriptVoteForm({
                 className="flex items-center gap-2.5 rounded-lg border border-line-strong bg-surface p-2 text-sm"
               >
                 <input type="checkbox" name="options" value={o.id} className="h-4 w-4 accent-[#b3352f]" />
-                {o.fileId && (
+                {o.imageFileId && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`/files/${o.fileId}?thumb=1`}
+                    src={`/files/${o.imageFileId}?thumb=1`}
                     alt=""
                     className="size-10 shrink-0 rounded object-cover"
                   />

@@ -1,0 +1,1 @@
+ALTER TABLE `script_poll_options` ADD `image_file_id` integer;

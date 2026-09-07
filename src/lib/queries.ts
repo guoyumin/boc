@@ -610,8 +610,10 @@ export type ScriptPollOptionView = {
   id: number;
   name: string;
   note: string | null;
-  /** 剧本图，指向 event_files 的一行；用 /files/{id} 取原图、加 ?thumb=1 取缩略图 */
-  fileId: number | null;
+  /** 配图，指向 event_files 的一行；用 /files/{id} 取原图、加 ?thumb=1 取缩略图 */
+  imageFileId: number | null;
+  /** 从已上传的剧本 JSON 生成的候选，带着原文件，方便下载 */
+  scriptFileId: number | null;
   votes: number;
   voters: string[];
 };
@@ -647,7 +649,8 @@ export function getScriptPollView(id: number): ScriptPollView | null {
       id: o.id,
       name: o.name,
       note: o.note,
-      fileId: o.fileId,
+      imageFileId: o.imageFileId,
+      scriptFileId: o.fileId,
       votes: mine.length,
       voters: mine.map((v) => v.name),
     };
