@@ -104,6 +104,64 @@ export const pollResponses = sqliteTable(
   (t) => [uniqueIndex("poll_responses_unique").on(t.pollId, t.playerId), index("poll_responses_poll").on(t.pollId)],
 );
 
+/** 剧本投票的状态：open 投票中 / locked 锁定（不能再投）/ decided 已选定 */
+export const SCRIPT_POLL_STATUSES = ["open", "locked", "decided"] as const;
+export type ScriptPollStatus = (typeof SCRIPT_POLL_STATUSES)[number];
+
+/**
+ * 剧本投票（口语叫「板子投票」，站内文案统一用「剧本投票」）。
+ * 和 polls（时间投票）是两回事：那个定日期，这个定玩什么本。
+ */
+export const scriptPolls = sqliteTable(
+  "script_polls",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    /** 挂在哪场活动下；活动删了投票跟着删 */
+    eventId: integer("event_id").references(() => events.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    note: text("note"),
+    status: text("status").notNull().default("open"),
+    /** 最终选定的候选项 */
+    decidedOptionId: integer("decided_option_id"),
+    ...timestamps,
+  },
+  (t) => [index("script_polls_event").on(t.eventId)],
+);
+
+/** 候选剧本。可以从已上传的 script_json 里选，也可以手填名字 */
+export const scriptPollOptions = sqliteTable(
+  "script_poll_options",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    pollId: integer("poll_id").notNull().references(() => scriptPolls.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    note: text("note"),
+    /** 关联到 event_files 里的剧本 JSON，没有就是手填的 */
+    fileId: integer("file_id"),
+    sortOrder: integer("sort_order").notNull().default(100),
+    createdAt: text("created_at").notNull().default(now),
+  },
+  (t) => [index("script_poll_options_poll").on(t.pollId)],
+);
+
+/** 一票一行：多选就是多行。改票 = 把这个人在这场投票里的行删掉重写 */
+export const scriptPollVotes = sqliteTable(
+  "script_poll_votes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    pollId: integer("poll_id").notNull().references(() => scriptPolls.id, { onDelete: "cascade" }),
+    optionId: integer("option_id")
+      .notNull()
+      .references(() => scriptPollOptions.id, { onDelete: "cascade" }),
+    playerId: integer("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
+    createdAt: text("created_at").notNull().default(now),
+  },
+  (t) => [
+    uniqueIndex("script_poll_votes_unique").on(t.optionId, t.playerId),
+    index("script_poll_votes_poll").on(t.pollId),
+  ],
+);
+
 export const events = sqliteTable(
   "events",
   {

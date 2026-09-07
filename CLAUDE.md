@@ -86,6 +86,9 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 - 「鸽」的判定统一走 `src/lib/labels.ts` 的 `isNoShow(row)`，它接一整行报名记录
   （`signup` / `attended` / `status` / `noShowWaived`），不要在页面里自己拼条件。
   本人取消报名是 `status='cancelled'`，**记录保留、照样算鸽**，管理员可以 `no_show_waived=1` 免掉。
+- 「剧本投票」（`script_polls` / `script_poll_options` / `script_poll_votes`）定的是**玩哪个本**，
+  挂在活动下，入口在活动详情页；和「时间投票」是两回事，文案别混。多选、可改票
+  （同一昵称再投覆盖上一次）、结果全程公开、管理员可锁定并标记最终选定。
 - 「时间投票」是活动日期定下来之前的可用时段调查（旧文案叫「预填」，已废弃，别再用这个词）；
   日期定下来之后那一步才叫「报名」。
 - 写完数据 `revalidatePath()`，出错用 `redirect(withMsg(path, 消息))` 回到页面顶部的提示条
