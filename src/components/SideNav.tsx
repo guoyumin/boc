@@ -28,7 +28,7 @@ export default function SideNav({
         <BrandMark className="size-6 text-brand" />
         <span className="leading-tight">
           <span className="display block text-base">苏黎世血染钟楼</span>
-          <span className="eyebrow">the clocktower</span>
+          <span className="eyebrow">zurich boca</span>
         </span>
       </Link>
 
@@ -46,12 +46,7 @@ export default function SideNav({
               }`}
             >
               <NavIcon name={it.icon} className="size-[18px] shrink-0" />
-              <span className="leading-tight">
-                {it.label}
-                <span className="block text-[10px] tracking-[0.16em] text-faint uppercase">
-                  {it.sub}
-                </span>
-              </span>
+              <span>{it.label}</span>
             </Link>
           );
         })}

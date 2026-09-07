@@ -112,7 +112,11 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 - eslint 的 `react-hooks/set-state-in-effect` 会拦 effect 里直接 setState：读 localStorage
   用 `src/components/useNickname.ts` 里的 `useSyncExternalStore` 封装。
 - 不装 UI 组件库。样式是 Tailwind v4 + `src/app/globals.css` 里的 `.btn/.card/.input/.badge`。
-- **全站只有暗黑哥特一套深色主题**，不跟随系统浅色。颜色一律用 `globals.css` 的语义 token：
+- **功能站支持深浅色切换**（自动 / 深色 / 浅色，右上角 `ThemeToggle`，存 localStorage）；
+  **社团主页固定深色**（hero 是暗色夜景）。根 layout 按 Host 在 `<html>` 上打
+  `data-site="play|www"`，浅色的 CSS 变量只在 `data-site="play"` 下生效；
+  手动选择由 `src/lib/theme.ts` 的 `THEME_INIT` 在 hydration 前写 `data-theme`，
+  所以根 layout 的 `<html>` 上有 `suppressHydrationWarning`，别删。颜色一律用 `globals.css` 的语义 token：
   底 `bg-bg` / `bg-surface` / `bg-surface-2`，描边 `border-line` / `border-line-strong`，
   文字 `text-ink` / `text-ink-2` / `text-muted` / `text-faint`，血色 `text-brand-bright` /
   `bg-brand-soft` / `border-brand-line`，状态 `ok` / `warn` / `danger`，稀有度

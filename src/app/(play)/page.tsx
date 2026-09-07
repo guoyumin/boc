@@ -1,9 +1,8 @@
 import Link from "next/link";
-import GrimoireLink from "@/components/GrimoireLink";
 import NavIcon from "@/components/NavIcon";
-import PollFillForm from "@/components/PollFillForm";
-import { formatDate, formatMd } from "@/lib/dates";
 import RarityBadge from "@/components/RarityBadge";
+import { getUser } from "@/lib/auth";
+import { formatMd, weekdayCn } from "@/lib/dates";
 import {
   EVENT_STATUS_CLASS,
   EVENT_STATUS_LABEL,
@@ -20,115 +19,139 @@ import {
   recentUnlocks,
 } from "@/lib/queries";
 
+/** "2026-09-06" → "09.06"，大字号的日期用 */
+function bigDay(ymd: string): string {
+  const [, m, d] = ymd.split("-");
+  return `${m}.${d}`;
+}
+
 export default async function HomePage() {
+  const me = await getUser();
   const poll = getOpenPoll();
   const pollView = poll ? getPollView(poll.id) : null;
   const upcoming = nextEvent();
   const last = latestEvent();
-  const recent = last && last.id !== upcoming?.id ? last : null;
+  // 有下一场就展示下一场，没有就回顾最近一场
+  const event = upcoming ?? last;
+  const signups = event ? getSignups(event.id) : [];
   const unlocks = recentUnlocks(6);
 
-  const upcomingSignups = upcoming ? getSignups(upcoming.id) : [];
-  const lastSignups = recent ? getSignups(recent.id) : [];
+  const attended = signups.filter((s) => s.attended !== "none").length;
+  const noShow = signups.filter((s) => isNoShow(s)).length;
+  const signedUp = signups.filter((s) => s.signup !== "none").length;
+  const finished = event ? isFinished(event.date, event.status) : false;
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <GrimoireLink />
-      </div>
-      {pollView ? (
+      <header className="mb-2">
+        <h1 className="display text-3xl sm:text-4xl">小镇广场</h1>
+        <p className="muted mt-1">
+          {me ? `欢迎回来，${me.playerName ?? me.username}。` : "填个昵称就能报名，不用注册。"}
+        </p>
+      </header>
+
+      {/* 桌面上时间投票和活动并排，手机上依次往下排 */}
+      <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr]">
+        <section className="card">
+          {pollView ? (
+            <>
+              <div className="card-title">
+                <span className="inline-flex items-center gap-2">
+                  <NavIcon name="calendar" className="size-[18px]" />
+                  时间投票
+                </span>
+                <span className="badge bg-ok-soft text-ok border-ok/40">进行中</span>
+              </div>
+              <p className="display text-2xl">{pollView.poll.title}</p>
+              {pollView.poll.note && <p className="muted mt-1">{pollView.poll.note}</p>}
+
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {pollView.slots.map((s) => {
+                  const n = pollView.counts[s] ?? 0;
+                  const top = n === pollView.best && pollView.best > 0;
+                  return (
+                    <div
+                      key={s}
+                      className={`rounded-lg border px-2 py-3 text-center ${
+                        top ? "border-brand-line bg-brand-soft" : "border-line"
+                      }`}
+                    >
+                      <p className={`text-xs ${top ? "text-brand-bright" : "text-muted"}`}>
+                        {SLOT_SHORT[s]}
+                      </p>
+                      <p className="mt-1">
+                        <span className={`display text-xl ${top ? "text-brand-bright" : ""}`}>{n}</span>
+                        <span className="ml-0.5 text-xs text-faint">人</span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="muted mt-3">{pollView.filledCount} 人已填写</p>
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                <Link href={`/polls/${pollView.poll.id}#fill`} className="btn btn-primary">
+                  填写我的时间 →
+                </Link>
+                <Link href={`/polls/${pollView.poll.id}`} className="link text-sm">
+                  查看完整结果 ↗
+                </Link>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="card-title">
+                <span className="inline-flex items-center gap-2">
+                  <NavIcon name="calendar" className="size-[18px]" />
+                  时间投票
+                </span>
+              </div>
+              <p className="muted">现在没有进行中的时间投票，等管理员发起。</p>
+            </>
+          )}
+        </section>
+
         <section className="card">
           <div className="card-title">
             <span className="inline-flex items-center gap-2">
-              <NavIcon name="calendar" className="size-[18px]" />
-              {pollView.poll.title}
+              <NavIcon name="dice" className="size-[18px]" />
+              {upcoming ? "下一次活动" : "最近一次活动"}
             </span>
-            <span className="badge badge-brand">进行中</span>
-          </div>
-          {pollView.poll.note && <p className="muted mb-3">{pollView.poll.note}</p>}
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            {pollView.slots.map((s) => (
-              <span
-                key={s}
-                className={`badge ${
-                  pollView.counts[s] === pollView.best && pollView.best > 0 ? "badge-brand" : "badge-plain"
-                }`}
-              >
-                {SLOT_SHORT[s]} {pollView.counts[s] ?? 0}人
+            {event && (
+              <span className={`badge ${EVENT_STATUS_CLASS[event.status] ?? "badge-plain"}`}>
+                {EVENT_STATUS_LABEL[event.status]}
               </span>
-            ))}
+            )}
           </div>
-          <details className="rounded-lg border border-line p-3">
-            <summary className="cursor-pointer text-sm font-medium text-brand-bright">
-              填我的时间（{pollView.filledCount} 人已填）
-            </summary>
-            <div className="mt-3">
-              <PollFillForm pollId={pollView.poll.id} slots={pollView.slots} />
-            </div>
-          </details>
-          <Link href={`/polls/${pollView.poll.id}`} className="btn btn-block mt-3">
-            看完整结果表
-          </Link>
-        </section>
-      ) : (
-        <section className="card">
-          <div className="card-title">
-            <span className="inline-flex items-center gap-2">
-              <NavIcon name="calendar" className="size-[18px]" />
-              时间投票
-            </span>
-          </div>
-          <p className="muted">现在没有进行中的时间投票，等管理员发起。</p>
-        </section>
-      )}
+          {event ? (
+            <>
+              <p className="flex items-baseline gap-2">
+                <span className="display text-4xl">{bigDay(event.date)}</span>
+                <span className="text-muted">{weekdayCn(event.date)}</span>
+              </p>
+              <p className="mt-1 font-medium text-ink">{event.title}</p>
+              {event.location && <p className="muted mt-0.5">{event.location}</p>}
 
-      {upcoming && (
-        <section className="card">
-          <div className="card-title">
-            <span className="inline-flex items-center gap-2">
-              <NavIcon name="dice" className="size-[18px]" />
-              下一次活动
-            </span>
-            <span className={`badge ${EVENT_STATUS_CLASS[upcoming.status] ?? "badge-plain"}`}>
-              {EVENT_STATUS_LABEL[upcoming.status]}
-            </span>
-          </div>
-          <Link href={`/events/${upcoming.id}`} className="block">
-            <p className="text-lg font-semibold text-ink">{formatDate(upcoming.date)}</p>
-            <p className="muted mt-0.5">
-              {[upcoming.location, upcoming.startTime].filter(Boolean).join(" · ") || upcoming.title}
-            </p>
-            <p className="mt-2 text-sm text-ink-2">
-              已报名 {upcomingSignups.filter((s) => s.signup !== "none").length} 人
-            </p>
-          </Link>
-          <Link href={`/events/${upcoming.id}`} className="btn btn-primary btn-block mt-3">
-            去报名
-          </Link>
-        </section>
-      )}
+              <div className="mt-4 grid grid-cols-2 divide-x divide-line border-t border-line pt-3">
+                <div className="text-center">
+                  <p className="display text-2xl">{finished ? attended : signedUp}</p>
+                  <p className="text-xs text-muted">{finished ? "到场人数" : "已报名"}</p>
+                </div>
+                <div className="text-center">
+                  <p className="display text-2xl">{finished ? noShow : signups.length - signedUp}</p>
+                  <p className="text-xs text-muted">{finished ? "鸽" : "未定"}</p>
+                </div>
+              </div>
 
-      {recent && (
-        <section className="card">
-          <div className="card-title">
-            <span className="inline-flex items-center gap-2">
-              <NavIcon name="dice" className="size-[18px]" />
-              最近一次活动
-            </span>
-            <span className={`badge ${EVENT_STATUS_CLASS[recent.status] ?? "badge-plain"}`}>
-              {EVENT_STATUS_LABEL[recent.status]}
-            </span>
-          </div>
-          <Link href={`/events/${recent.id}`} className="block">
-            <p className="font-semibold text-ink">{formatMd(recent.date)} · {recent.title}</p>
-            <p className="muted mt-1">
-              到场 {lastSignups.filter((s) => s.attended !== "none").length} 人
-              {isFinished(recent.date, recent.status) &&
-                ` · 鸽 ${lastSignups.filter((s) => isNoShow(s)).length} 人`}
-            </p>
-          </Link>
+              <Link href={`/events/${event.id}`} className="link mt-3 inline-block text-sm">
+                {finished ? "查看活动详情" : "去报名"} ↗
+              </Link>
+            </>
+          ) : (
+            <p className="muted">还没有排下一场。</p>
+          )}
         </section>
-      )}
+      </div>
 
       <section className="card">
         <div className="card-title">
@@ -143,22 +166,32 @@ export default async function HomePage() {
         {unlocks.length === 0 ? (
           <p className="muted">还没有确认的成就。</p>
         ) : (
-          <ul className="space-y-2">
+          <ul>
             {unlocks.map((u) => (
-              <li key={u.claimId} className="flex items-center gap-2 text-sm">
-                <Link href={`/players/${u.playerId}`} className="font-medium text-ink">
-                  {u.playerName}
+              <li key={u.claimId} className="border-b border-line/60 last:border-0">
+                <Link
+                  href={`/achievements/${u.achievementId}`}
+                  className="flex items-center gap-3 py-2.5 text-sm"
+                >
+                  <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-xs text-muted">
+                    {u.playerName.slice(0, 1)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-medium text-ink">{u.playerName}</span>
+                  <span className="min-w-0 flex-1 truncate text-ink-2">{u.achievementName}</span>
+                  <RarityBadge rarity={u.rarity} />
+                  <span className="shrink-0 text-faint">›</span>
                 </Link>
-                <span className="text-muted">解锁了</span>
-                <Link href={`/achievements/${u.achievementId}`} className="text-brand-bright">
-                  {u.achievementName}
-                </Link>
-                <RarityBadge rarity={u.rarity} />
               </li>
             ))}
           </ul>
         )}
       </section>
+
+      {last && upcoming && last.id !== upcoming.id && (
+        <Link href={`/events/${last.id}`} className="muted block text-center">
+          上一场：{formatMd(last.date)} {last.title} →
+        </Link>
+      )}
     </div>
   );
 }
