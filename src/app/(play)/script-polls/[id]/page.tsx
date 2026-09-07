@@ -96,7 +96,7 @@ export default async function ScriptPollPage({
           )}
         </div>
         {options.length === 0 ? (
-          <p className="muted">还没有候选剧本。</p>
+          <p className="muted">还没有候选板子。</p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {options.map((o) => {
@@ -108,7 +108,7 @@ export default async function ScriptPollPage({
                     top ? "border-brand-line" : "border-line"
                   }`}
                 >
-                  {/* 剧本图：没传图的先留一块占位，别让卡片高矮不齐 */}
+                  {/* 板子图片：没传图的先留一块占位，别让卡片高矮不齐 */}
                   {o.imageFileId ? (
                     <a href={`/files/${o.imageFileId}`} target="_blank" rel="noreferrer" className="block">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -133,7 +133,7 @@ export default async function ScriptPollPage({
                     {o.note && <p className="muted mt-1">{o.note}</p>}
                     {o.scriptFileId && (
                       <a href={`/files/${o.scriptFileId}`} download className="link mt-1 inline-block text-xs">
-                        剧本文件
+                        剧本 JSON
                       </a>
                     )}
                     {/* 结果全程公开，谁投的也列出来 */}
@@ -164,7 +164,7 @@ export default async function ScriptPollPage({
                               name="note"
                               maxLength={300}
                               defaultValue={o.note ?? ""}
-                              placeholder="剧本描述：什么角色、什么节奏、适合谁"
+                              placeholder="板子描述：什么角色、什么节奏、适合谁"
                             />
                             <input className="input" type="file" name="image" accept="image/*" />
                             <div className="flex gap-2">
@@ -195,11 +195,11 @@ export default async function ScriptPollPage({
 
         {admin && (
           <details className="mt-3 rounded-lg border border-line p-3" open={options.length === 0}>
-            <summary className="btn btn-sm list-none">＋ 加一个候选剧本</summary>
+            <summary className="btn btn-sm list-none">＋ 加一个候选板子</summary>
             <form action={saveScriptOption} className="mt-3 space-y-2">
               <input type="hidden" name="pollId" value={poll.id} />
               <div>
-                <label className="label">剧本名</label>
+                <label className="label">板子名</label>
                 <input className="input" name="name" maxLength={60} required />
               </div>
               <div>
@@ -212,7 +212,7 @@ export default async function ScriptPollPage({
                 />
               </div>
               <div>
-                <label className="label">剧本图（jpg / png / webp，10 MB 以内）</label>
+                <label className="label">板子图片（jpg / png / webp，10 MB 以内）</label>
                 <input className="input" type="file" name="image" accept="image/*" />
               </div>
               <button type="submit" className="btn btn-primary btn-block">

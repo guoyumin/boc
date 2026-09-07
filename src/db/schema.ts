@@ -104,13 +104,16 @@ export const pollResponses = sqliteTable(
   (t) => [uniqueIndex("poll_responses_unique").on(t.pollId, t.playerId), index("poll_responses_poll").on(t.pollId)],
 );
 
-/** 剧本投票的状态：open 投票中 / locked 锁定（不能再投）/ decided 已选定 */
+/** 板子投票的状态：open 投票中 / locked 锁定（不能再投）/ decided 已选定 */
 export const SCRIPT_POLL_STATUSES = ["open", "locked", "decided"] as const;
 export type ScriptPollStatus = (typeof SCRIPT_POLL_STATUSES)[number];
 
 /**
- * 剧本投票（口语叫「板子投票」，站内文案统一用「剧本投票」）。
- * 和 polls（时间投票）是两回事：那个定日期，这个定玩什么本。
+ * 板子投票。英文里 BOTC 的 script 就是「板子」，所以表名用 script_polls；
+ * 中文一律叫「板子投票」——「剧本」在这个群里指说书人每局从板子里挑的角色单，
+ * 是另一回事，别混。
+ *
+ * 和 polls（时间投票）也是两回事：那个定日期，这个定玩哪个板子。
  */
 export const scriptPolls = sqliteTable(
   "script_polls",
@@ -128,7 +131,7 @@ export const scriptPolls = sqliteTable(
   (t) => [index("script_polls_event").on(t.eventId)],
 );
 
-/** 候选剧本。可以从已上传的 script_json 里选，也可以手填名字 */
+/** 候选板子。可以从已上传的剧本 JSON 里选，也可以手填名字 */
 export const scriptPollOptions = sqliteTable(
   "script_poll_options",
   {
@@ -136,7 +139,7 @@ export const scriptPollOptions = sqliteTable(
     pollId: integer("poll_id").notNull().references(() => scriptPolls.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     note: text("note"),
-    /** 关联到 event_files 里的剧本 JSON（从已上传的剧本生成的候选才有） */
+    /** 关联到 event_files 里的剧本 JSON（从已上传的文件生成的候选才有） */
     fileId: integer("file_id"),
     /** 候选的配图，也在 event_files 里，kind = script_option */
     imageFileId: integer("image_file_id"),

@@ -604,7 +604,7 @@ export function pendingAdminRequests(): UserRow[] {
   return listUsers().filter((u) => u.adminRequest && u.role === "member");
 }
 
-// ---------- 剧本投票（issue #4）----------
+// ---------- 板子投票（issue #4）----------
 
 export type ScriptPollOptionView = {
   id: number;
@@ -663,7 +663,7 @@ export function getScriptPollView(id: number): ScriptPollView | null {
   return { poll, options: view, voterCount, best, event };
 }
 
-/** 某个活动下的剧本投票，活动页上挂个入口 */
+/** 某个活动下的板子投票，活动页上挂个入口 */
 export function scriptPollsForEvent(eventId: number) {
   return db
     .select()
