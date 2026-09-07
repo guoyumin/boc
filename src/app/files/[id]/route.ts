@@ -29,7 +29,7 @@ export async function GET(
   const stat = await fileStat(storagePath);
   if (!stat) return new Response("文件已丢失", { status: 404 });
 
-  // 按 mime 判断，别绑死在 kind 上——剧本投票的候选图是另一种 kind
+  // 按 mime 判断，别绑死在 kind 上——板子投票的候选图是另一种 kind
   const isImage = row.mime.startsWith("image/");
   const mime = useThumb ? "image/jpeg" : isImage ? row.mime : "application/json; charset=utf-8";
   // 图片内联展示；JSON 当附件下载，带上原始文件名

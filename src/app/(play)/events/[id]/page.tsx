@@ -286,17 +286,17 @@ export default async function EventDetailPage({
         )}
       </section>
 
-      {/* 剧本投票（issue #4）：定日期用时间投票，定玩什么本用这个 */}
+      {/* 板子投票（issue #4）：定日期用时间投票，定玩哪个板子用这个 */}
       {(scriptPolls.length > 0 || admin) && (
         <section className="card">
           <div className="card-title">
             <span className="inline-flex items-center gap-2">
               <NavIcon name="book" className="size-[18px]" />
-              剧本投票
+              板子投票
             </span>
           </div>
           {scriptPolls.length === 0 ? (
-            <p className="muted">这场还没有剧本投票。</p>
+            <p className="muted">这场还没有板子投票。</p>
           ) : (
             <ul className="space-y-2">
               {scriptPolls.map((sp2) => (
@@ -313,7 +313,7 @@ export default async function EventDetailPage({
           )}
           {admin && (
             <details className="mt-3 rounded-lg border border-line p-3">
-              <summary className="btn btn-sm btn-primary list-none">＋ 发起剧本投票</summary>
+              <summary className="btn btn-sm btn-primary list-none">＋ 发起板子投票</summary>
               <form action={createScriptPoll} className="mt-3 space-y-3">
                 <input type="hidden" name="eventId" value={event.id} />
                 <div>
@@ -322,7 +322,7 @@ export default async function EventDetailPage({
                 </div>
                 {jsons.length > 0 && (
                   <div>
-                    <span className="label">从已上传的剧本里选</span>
+                    <span className="label">从已上传的剧本 JSON 里选</span>
                     <div className="grid gap-2 sm:grid-cols-2">
                       {jsons.map((j) => (
                         <label
@@ -342,7 +342,7 @@ export default async function EventDetailPage({
                   </div>
                 )}
                 <div>
-                  <label className="label">再手填一些（一行一个，可以写「名字 · 说明」）</label>
+                  <label className="label">再手填一些板子（一行一个，可以写「名字 · 说明」）</label>
                   <textarea
                     className="input h-24"
                     name="options"
@@ -356,7 +356,7 @@ export default async function EventDetailPage({
                 <button type="submit" className="btn btn-primary btn-block">
                   发起投票
                 </button>
-                <p className="muted">发起后在投票页给每个本传图和写描述。</p>
+                <p className="muted">发起后在投票页给每个板子传图和写描述。</p>
               </form>
             </details>
           )}

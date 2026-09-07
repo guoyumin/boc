@@ -2,7 +2,7 @@ import NicknameInput from "@/components/NicknameInput";
 import { submitScriptVote, withdrawScriptVote } from "@/actions/script-polls";
 
 /**
- * 剧本投票的填写表单。多选、可改票：同一个昵称再投一次会覆盖上一次。
+ * 板子投票的填写表单。多选、可改票：同一个昵称再投一次会覆盖上一次。
  */
 export default function ScriptVoteForm({
   pollId,
@@ -20,7 +20,7 @@ export default function ScriptVoteForm({
           <NicknameInput />
         </div>
         <div>
-          <span className="label">想玩哪些（可多选）</span>
+          <span className="label">想玩哪个板子（可多选）</span>
           <div className="grid gap-2 sm:grid-cols-2">
             {options.map((o) => (
               <label

@@ -86,11 +86,15 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 - 「鸽」的判定统一走 `src/lib/labels.ts` 的 `isNoShow(row)`，它接一整行报名记录
   （`signup` / `attended` / `status` / `noShowWaived`），不要在页面里自己拼条件。
   本人取消报名是 `status='cancelled'`，**记录保留、照样算鸽**，管理员可以 `no_show_waived=1` 免掉。
-- 剧本投票的候选图走和板子图同一条上传管线（magic bytes 判类型、sharp 去 EXIF、缩略图），
+- 板子投票的候选图走和板子图片同一条上传管线（magic bytes 判类型、sharp 去 EXIF、缩略图），
   落在 `event_files` 里但 kind 是 `script_option`，所以不会混进活动页的文件列表；
   `/files/[id]` 按 **mime** 而不是 kind 判断是不是图片。上传要求投票挂在活动下
   （磁盘路径按活动 id 分目录）。
-- 「剧本投票」（`script_polls` / `script_poll_options` / `script_poll_votes`）定的是**玩哪个本**，
+- **术语**：「板子」是一套角色组合（英文 script，所以表名/路由是 `script_polls`）；
+  「剧本」在这个群里指说书人每局从板子里挑出来的角色单，是另一回事。
+  中文文案里投票一律叫**板子投票**，别写成「剧本投票」；上传的 `script_json` 文件
+  仍叫「剧本 JSON」。
+- 「板子投票」（`script_polls` / `script_poll_options` / `script_poll_votes`）定的是**玩哪个板子**，
   挂在活动下，入口在活动详情页；和「时间投票」是两回事，文案别混。多选、可改票
   （同一昵称再投覆盖上一次）、结果全程公开、管理员可锁定并标记最终选定。
 - 「时间投票」是活动日期定下来之前的可用时段调查（旧文案叫「预填」，已废弃，别再用这个词）；
