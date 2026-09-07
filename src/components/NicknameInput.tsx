@@ -11,16 +11,20 @@ export default function NicknameInput({
   required = true,
   placeholder = "微信里用的名字",
   className = "input",
+  defaultValue = "",
 }: {
   id?: string;
   name?: string;
   required?: boolean;
   placeholder?: string;
   className?: string;
+  /** 登录用户绑定的玩家名。传了就优先用它，比浏览器里记的更可信 */
+  defaultValue?: string;
 }) {
   const stored = useStoredNickname();
   const [edited, setEdited] = useState<string | null>(null);
-  const value = edited ?? stored;
+  // 账号 > 这台设备上次填的 > 空。登录了还要手打自己的名字很蠢
+  const value = edited ?? (defaultValue || stored);
 
   // 输入的昵称记到浏览器里，下次自动带出（ROS-01）
   useEffect(() => {

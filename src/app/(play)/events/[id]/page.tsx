@@ -14,7 +14,7 @@ import { createGame } from "@/actions/games";
 import { deleteEventFile, uploadEventFiles } from "@/actions/files";
 import { addAttendee, cancelSignup, removeSignup, selfSignup } from "@/actions/signups";
 import { createScriptPoll } from "@/actions/script-polls";
-import { getAdmin } from "@/lib/auth";
+import { getAdmin, getUser } from "@/lib/auth";
 import { formatDate, formatMd } from "@/lib/dates";
 import { buildJielong } from "@/lib/jielong";
 import {
@@ -50,6 +50,8 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   const admin = await getAdmin();
+  const me = await getUser();
+  const myName = me?.playerName ?? "";
   const signups = getSignups(eventId);
   const games = getGames(eventId);
   const unlocked = claimsForEvent(eventId);
@@ -222,7 +224,7 @@ export default async function EventDetailPage({
               <input type="hidden" name="eventId" value={event.id} />
               <div>
                 <label className="label">你的昵称</label>
-                <NicknameInput />
+                <NicknameInput defaultValue={myName} />
               </div>
               <div>
                 <label className="label">来哪场</label>
@@ -250,7 +252,7 @@ export default async function EventDetailPage({
               <div className="flex items-end gap-2">
                 <div className="flex-1">
                   <label className="label">要取消报名？填昵称</label>
-                  <NicknameInput name="nickname" />
+                  <NicknameInput name="nickname" defaultValue={myName} />
                 </div>
                 <ConfirmSubmit message="确定取消报名？这会记一次鸽。">取消报名</ConfirmSubmit>
               </div>
@@ -440,7 +442,7 @@ export default async function EventDetailPage({
             </div>
             <div>
               <label className="label">记录者昵称</label>
-              <NicknameInput />
+              <NicknameInput defaultValue={myName} />
             </div>
             <button type="submit" className="btn btn-primary btn-block">
               建这一局，然后填玩家和角色

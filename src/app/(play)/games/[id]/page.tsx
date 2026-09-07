@@ -5,6 +5,7 @@ import Flash from "@/components/Flash";
 import LineupEditor from "@/components/LineupEditor";
 import NicknameInput from "@/components/NicknameInput";
 import { deleteGame, updateGame } from "@/actions/games";
+import { getUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { GAME_RESULT_CLASS, GAME_RESULT_LABEL, SESSION_LABEL } from "@/lib/labels";
 import { getEvent, getGame, getSignups, recentScripts } from "@/lib/queries";
@@ -27,6 +28,8 @@ export default async function GameDetailPage({
   const signups = getSignups(event.id);
   const nameOptions = [...new Set([...signups.map((s) => s.name), ...game.lineup.map((l) => l.name)])];
   const scripts = recentScripts();
+  const me = await getUser();
+  const myName = me?.playerName ?? "";
 
   return (
     <div className="space-y-4">
@@ -155,7 +158,7 @@ export default async function GameDetailPage({
             </div>
             <div>
               <label className="label">你的昵称（记录者本人或管理员才能改）</label>
-              <NicknameInput />
+              <NicknameInput defaultValue={myName} />
             </div>
             <button type="submit" className="btn btn-primary btn-block">
               保存
@@ -169,7 +172,7 @@ export default async function GameDetailPage({
             <input type="hidden" name="gameId" value={game.id} />
             <div>
               <label className="label">你的昵称</label>
-              <NicknameInput />
+              <NicknameInput defaultValue={myName} />
             </div>
             <ConfirmSubmit message="确定删掉这一局？">确认删除</ConfirmSubmit>
           </form>

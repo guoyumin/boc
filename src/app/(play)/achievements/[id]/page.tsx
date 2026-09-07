@@ -5,7 +5,7 @@ import MyPending from "@/components/MyPending";
 import NicknameInput from "@/components/NicknameInput";
 import { claimAchievement, editClaimTime, grantAchievement } from "@/actions/achievements";
 import { reviewClaim } from "@/actions/achievements";
-import { getAdmin } from "@/lib/auth";
+import { getAdmin, getUser } from "@/lib/auth";
 import RarityBadge from "@/components/RarityBadge";
 import { formatDay, formatMd } from "@/lib/dates";
 import NavIcon from "@/components/NavIcon";
@@ -24,6 +24,7 @@ export default async function AchievementDetailPage({
   const ach = getAchievement(Number(id));
   if (!ach) notFound();
   const admin = await getAdmin();
+  const me = await getUser();
   const claims = claimsForAchievement(ach.id);
   const confirmed = claims
     .filter((c) => c.status === "confirmed")
@@ -99,7 +100,7 @@ export default async function AchievementDetailPage({
             <input type="hidden" name="achievementId" value={ach.id} />
             <div>
               <label className="label">你的昵称</label>
-              <NicknameInput />
+              <NicknameInput defaultValue={me?.playerName ?? ""} />
             </div>
             <div>
               <label className="label">哪次活动（可选）</label>

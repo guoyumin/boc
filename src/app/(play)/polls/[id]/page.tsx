@@ -6,7 +6,7 @@ import ConfirmSubmit from "@/components/ConfirmSubmit";
 import Flash from "@/components/Flash";
 import PollFillForm, { PollWithdrawForm } from "@/components/PollFillForm";
 import { closePoll, decidePoll, deletePoll, reopenPoll } from "@/actions/polls";
-import { getAdmin } from "@/lib/auth";
+import { getAdmin, getUser } from "@/lib/auth";
 import { addDays, formatDate, formatMd } from "@/lib/dates";
 import { POLL_STATUS_LABEL, SLOT_LABEL, SLOT_SHORT } from "@/lib/labels";
 import { getPollView } from "@/lib/queries";
@@ -24,6 +24,7 @@ export default async function PollDetailPage({
   const view = getPollView(Number(id));
   if (!view) notFound();
   const admin = await getAdmin();
+  const myName = (await getUser())?.playerName ?? "";
   const { poll, slots, responses, counts, best, filledCount } = view;
 
   // 复制到微信的分享文案：说清是哪一轮投票，后面跟可点的链接
@@ -158,8 +159,8 @@ export default async function PollDetailPage({
       {poll.status === "open" && (
         <section className="card">
           <div className="card-title">填我的时间</div>
-          <PollFillForm pollId={poll.id} slots={slots} />
-          <PollWithdrawForm pollId={poll.id} />
+          <PollFillForm pollId={poll.id} slots={slots} defaultNickname={myName} />
+          <PollWithdrawForm pollId={poll.id} defaultNickname={myName} />
         </section>
       )}
 
