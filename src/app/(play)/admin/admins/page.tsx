@@ -24,10 +24,11 @@ export default async function AdminUsersPage({
   const sp = await searchParams;
   const admin = await getAdmin();
   if (!admin) redirect("/login?next=/admin/admins");
-  if (admin.role !== "owner") redirect("/admin?err=" + encodeURIComponent("只有初始管理员能管账号"));
+  if (admin.role !== "owner") redirect("/admin?err=" + encodeURIComponent("只有站长能管账号"));
 
   const users = listUsers();
   const requests = users.filter((u) => u.adminRequest && u.role === "member");
+  const owners = users.filter((u) => u.role === "owner");
 
   return (
     <div className="space-y-4">
@@ -102,7 +103,24 @@ export default async function AdminUsersPage({
                   </Link>
                 )}
               </div>
-              {u.role !== "owner" && (
+              {u.role === "owner" ? (
+                // owner 只留一个降级入口：不能降自己，也不能把最后一个 owner 降掉
+                u.id !== admin.id &&
+                owners.length > 1 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <form action={setUserRole}>
+                      <input type="hidden" name="userId" value={u.id} />
+                      <input type="hidden" name="role" value="admin" />
+                      <ConfirmSubmit
+                        className="btn btn-sm btn-danger"
+                        message={`把 ${u.username} 从 owner 降回管理员？他将不能再管账号和权限。`}
+                      >
+                        撤销 owner
+                      </ConfirmSubmit>
+                    </form>
+                  </div>
+                )
+              ) : (
                 <div className="mt-2 flex flex-wrap gap-2">
                   <form action={setUserRole}>
                     <input type="hidden" name="userId" value={u.id} />
@@ -110,6 +128,16 @@ export default async function AdminUsersPage({
                     <button type="submit" className="btn btn-sm">
                       {u.role === "admin" ? "撤销管理员" : "设为管理员"}
                     </button>
+                  </form>
+                  <form action={setUserRole}>
+                    <input type="hidden" name="userId" value={u.id} />
+                    <input type="hidden" name="role" value="owner" />
+                    <ConfirmSubmit
+                      className="btn btn-sm"
+                      message={`把 ${u.username} 提成 owner？他将能管所有账号和权限，包括把别人也提成 owner。`}
+                    >
+                      设为 owner
+                    </ConfirmSubmit>
                   </form>
                   <form action={setUserStatus}>
                     <input type="hidden" name="userId" value={u.id} />

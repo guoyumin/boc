@@ -51,7 +51,7 @@ export default async function MePage({
             <h1 className="page-title">{profile?.player.name ?? me.username}</h1>
             <p className="muted">
               账号 {me.username}
-              {me.role !== "member" && ` · ${me.role === "owner" ? "初始管理员" : "管理员"}`}
+              {me.role !== "member" && ` · ${me.role === "owner" ? "站长" : "管理员"}`}
             </p>
           </div>
           {profile && (
@@ -247,7 +247,7 @@ export default async function MePage({
           <div className="card-title">👮 申请当管理员</div>
           {me.adminRequest ? (
             <div className="space-y-2">
-              <p className="muted">申请已提交，等初始管理员批准：「{me.adminRequest}」</p>
+              <p className="muted">申请已提交，等站长批准：「{me.adminRequest}」</p>
               <form action={cancelAdminRequest}>
                 <button type="submit" className="btn btn-sm">
                   撤回申请
