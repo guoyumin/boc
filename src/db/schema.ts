@@ -55,6 +55,8 @@ export const users = sqliteTable(
     adminRequestedAt: text("admin_requested_at"),
     ...timestamps,
   },
+  // 还有一条 drizzle schema 表达不了的索引：drizzle/0007 里手写的
+  // users_username_ci_unique = UNIQUE(lower(username))，保证用户名不区分大小写地唯一
   (t) => [uniqueIndex("users_player_unique").on(t.playerId)],
 );
 
