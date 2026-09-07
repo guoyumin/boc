@@ -1,5 +1,5 @@
 import NicknameInput from "@/components/NicknameInput";
-import { submitPollResponse } from "@/actions/polls";
+import { submitPollResponse, withdrawPollResponse } from "@/actions/polls";
 import { SLOT_LABEL } from "@/lib/labels";
 import type { PollSlot } from "@/db/schema";
 
@@ -32,7 +32,35 @@ export default function PollFillForm({ pollId, slots }: { pollId: number; slots:
       <button type="submit" className="btn btn-primary btn-block">
         提交 / 更新我的时间
       </button>
-      <p className="muted">同一个昵称再次提交会覆盖上一次。</p>
+      <p className="muted">同一个昵称再次提交会覆盖上一次；至少要选一个时段。</p>
     </form>
+  );
+}
+
+/**
+ * 「我这次没空」：撤掉自己已填的记录。
+ * 单独一个表单，因为它不需要勾时段，只要昵称。
+ */
+export function PollWithdrawForm({ pollId }: { pollId: number }) {
+  return (
+    <details className="mt-3 rounded-lg border border-line p-3">
+      <summary className="cursor-pointer text-sm text-muted">这次都没空？撤掉我的记录</summary>
+      <form action={withdrawPollResponse} className="mt-3 space-y-2">
+        <input type="hidden" name="pollId" value={pollId} />
+        <input
+          className="input"
+          name="nickname"
+          maxLength={20}
+          required
+          placeholder="你填时用的昵称"
+        />
+        <button type="submit" className="btn btn-block">
+          我这次没空
+        </button>
+        <p className="muted">
+          记录不会消失，名单上会把你标成「已取消」，这样大家知道你是填过又撤掉的，不用再催。
+        </p>
+      </form>
+    </details>
   );
 }

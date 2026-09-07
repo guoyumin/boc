@@ -22,6 +22,10 @@ export type PollSlot = (typeof POLL_SLOTS)[number];
 /** 成就稀有度四档 */
 export const RARITIES = ["common", "rare", "epic", "legendary"] as const;
 export type Rarity = (typeof RARITIES)[number];
+/** 时间投票的记录状态：active 有效，withdrawn 本人撤回（记录保留，不计入票数） */
+export const POLL_RESPONSE_STATUSES = ["active", "withdrawn"] as const;
+export type PollResponseStatus = (typeof POLL_RESPONSE_STATUSES)[number];
+
 /** 报名状态：active 有效，cancelled 本人取消（记录保留，算鸽） */
 export const SIGNUP_STATUSES = ["active", "cancelled"] as const;
 export type SignupStatus = (typeof SIGNUP_STATUSES)[number];
@@ -92,6 +96,9 @@ export const pollResponses = sqliteTable(
     playerId: integer("player_id").notNull().references(() => players.id, { onDelete: "cascade" }),
     slots: text("slots").notNull().default("[]"),
     note: text("note"),
+    /** active 有效；withdrawn 本人撤回（记录保留，页面上明确标出「已取消」） */
+    status: text("status").notNull().default("active"),
+    withdrawnAt: text("withdrawn_at"),
     ...timestamps,
   },
   (t) => [uniqueIndex("poll_responses_unique").on(t.pollId, t.playerId), index("poll_responses_poll").on(t.pollId)],

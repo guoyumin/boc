@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
@@ -50,18 +50,27 @@ export async function submitPollResponse(fd: FormData): Promise<void> {
     const player = findOrCreatePlayer(str(fd, "nickname"));
     const allowed = new Set(JSON.parse(poll.slots) as string[]);
     const slots = many(fd, "slots").filter((s) => allowed.has(s));
+    // 一个都不选不算「填了」——那样的人会被当成没空又占着一行。
+    // 真的都没空就用撤回（withdrawPollResponse），记录留着但标成已取消。
+    if (slots.length === 0) {
+      throw new Error("至少选一个时段；这次都没空的话，用下面的「我这次没空」撤掉自己的记录");
+    }
     db.insert(pollResponses)
       .values({
         pollId,
         playerId: player.id,
         slots: JSON.stringify(slots),
         note: optStr(fd, "note"),
+        status: "active",
       })
       .onConflictDoUpdate({
         target: [pollResponses.pollId, pollResponses.playerId],
         set: {
           slots: JSON.stringify(slots),
           note: optStr(fd, "note"),
+          // 撤回过之后又来填，就重新算数
+          status: "active",
+          withdrawnAt: null,
           updatedAt: new Date().toISOString(),
         },
       })
@@ -72,6 +81,43 @@ export async function submitPollResponse(fd: FormData): Promise<void> {
   revalidatePath(back);
   revalidatePath("/");
   redirect(withMsg(back, "已保存你的时间", "ok"));
+}
+
+/**
+ * 本人撤回自己的时间（issue：一个选项都不选不该是「填了」）。
+ * 记录不删，标成 withdrawn —— 页面上照样显示这个人，但明确标出已取消，
+ * 免得别人以为他还没填、反复去催。
+ */
+export async function withdrawPollResponse(fd: FormData): Promise<void> {
+  const pollId = num(fd, "pollId");
+  const back = `/polls/${pollId}`;
+  try {
+    await assertWriteRate("poll");
+    const poll = db.select().from(polls).where(eq(polls.id, pollId)).get();
+    if (!poll) throw new Error("时间投票不存在");
+    if (poll.status !== "open") throw new Error("这次时间投票已经不接受改动了");
+    const player = findOrCreatePlayer(str(fd, "nickname"));
+    const row = db
+      .select({ id: pollResponses.id })
+      .from(pollResponses)
+      .where(and(eq(pollResponses.pollId, pollId), eq(pollResponses.playerId, player.id)))
+      .get();
+    if (!row) throw new Error("没找到你的记录——你这次还没填过时间");
+    db.update(pollResponses)
+      .set({
+        slots: "[]",
+        status: "withdrawn",
+        withdrawnAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(pollResponses.id, row.id))
+      .run();
+  } catch (e) {
+    redirect(withMsg(back, errMsg(e)));
+  }
+  revalidatePath(back);
+  revalidatePath("/");
+  redirect(withMsg(back, "已撤掉你的时间，名单上会标成「已取消」", "ok"));
 }
 
 export async function closePoll(fd: FormData): Promise<void> {

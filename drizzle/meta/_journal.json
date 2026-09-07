@@ -29,6 +29,13 @@
       "when": 1788728486182,
       "tag": "0003_square_proemial_gods",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1788767342529,
+      "tag": "0004_shallow_champions",
+      "breakpoints": true
     }
   ]
 }

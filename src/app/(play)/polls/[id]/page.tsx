@@ -4,7 +4,7 @@ import CopyButton from "@/components/CopyButton";
 import NavIcon from "@/components/NavIcon";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import Flash from "@/components/Flash";
-import PollFillForm from "@/components/PollFillForm";
+import PollFillForm, { PollWithdrawForm } from "@/components/PollFillForm";
 import { closePoll, decidePoll, deletePoll, reopenPoll } from "@/actions/polls";
 import { getAdmin } from "@/lib/auth";
 import { addDays, formatDate, formatMd } from "@/lib/dates";
@@ -24,7 +24,7 @@ export default async function PollDetailPage({
   const view = getPollView(Number(id));
   if (!view) notFound();
   const admin = await getAdmin();
-  const { poll, slots, responses, counts, best } = view;
+  const { poll, slots, responses, counts, best, filledCount } = view;
 
   // 复制到微信的分享文案：说清是哪一轮投票，后面跟可点的链接
   const shareText = [
@@ -33,7 +33,7 @@ export default async function PollDetailPage({
   ].join("\n");
 
   const summary = [
-    `${poll.title}（${responses.length} 人已填）`,
+    `${poll.title}（${filledCount} 人已填）`,
     ...slots.map(
       (s) =>
         `${SLOT_LABEL[s]}（${counts[s] ?? 0}人）：${
@@ -41,6 +41,10 @@ export default async function PollDetailPage({
         }`,
     ),
     best > 0 ? `人最多：${slots.filter((s) => counts[s] === best).map((s) => SLOT_LABEL[s]).join(" / ")}` : "",
+    // 撤回的人也发出去，免得群里反复问「XX 填了没」
+    responses.some((r) => r.withdrawn)
+      ? `已取消：${responses.filter((r) => r.withdrawn).map((r) => r.name).join("、")}`
+      : "",
     view.event ? `已定：${formatDate(view.event.date)}` : "",
   ]
     .filter(Boolean)
@@ -70,7 +74,10 @@ export default async function PollDetailPage({
 
       <section className="card">
         <div className="card-title">
-          <span>结果（{responses.length} 人）</span>
+          <span>
+            结果（{filledCount} 人已填
+            {responses.length > filledCount && ` · ${responses.length - filledCount} 人已取消`}）
+          </span>
         </div>
         {responses.length === 0 ? (
           <p className="muted">还没有人填。</p>
@@ -92,7 +99,12 @@ export default async function PollDetailPage({
                 {responses.map((r) => (
                   <tr key={r.id}>
                     <td className="sticky left-0 bg-surface font-medium">
-                      <Link href={`/players/${r.playerId}`}>{r.name}</Link>
+                      <span className="flex items-center gap-1.5">
+                        <Link href={`/players/${r.playerId}`} className={r.withdrawn ? "text-muted" : ""}>
+                          {r.name}
+                        </Link>
+                        {r.withdrawn && <span className="badge badge-plain">已取消</span>}
+                      </span>
                     </td>
                     {slots.map((s) => (
                       <td
@@ -101,7 +113,13 @@ export default async function PollDetailPage({
                           counts[s] === best && best > 0 ? "bg-brand-soft" : ""
                         }`}
                       >
-                        {r.slots.includes(s) ? <span className="text-brand-bright">✓</span> : <span className="text-faint">·</span>}
+                        {r.withdrawn ? (
+                          <span className="text-faint">—</span>
+                        ) : r.slots.includes(s) ? (
+                          <span className="text-brand-bright">✓</span>
+                        ) : (
+                          <span className="text-faint">·</span>
+                        )}
                       </td>
                     ))}
                     <td className="max-w-[10rem] truncate text-muted">{r.note ?? ""}</td>
@@ -141,6 +159,7 @@ export default async function PollDetailPage({
         <section className="card">
           <div className="card-title">填我的时间</div>
           <PollFillForm pollId={poll.id} slots={slots} />
+          <PollWithdrawForm pollId={poll.id} />
         </section>
       )}
 
