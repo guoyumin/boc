@@ -1,5 +1,6 @@
 import GrimoireLink from "@/components/GrimoireLink";
 import WechatCallout from "@/components/WechatCallout";
+import { WECHAT_ID, WECHAT_NOTE } from "@/lib/contact";
 import { formatDate } from "@/lib/dates";
 import { SLOT_SHORT } from "@/lib/labels";
 import { getOpenPoll, getPollView, getSignups, latestEvent, nextEvent } from "@/lib/queries";
@@ -25,7 +26,11 @@ const WHAT = [
 ];
 
 const FIRST = [
-  ["先在活动页报名。", "不用注册账号，填个昵称就行——昵称就是你在小镇上的身份。"],
+  [
+    "先加微信，进群。",
+    `微信 ${WECHAT_ID}，申请好友时备注「${WECHAT_NOTE}」。联系人会把你拉进血染活动群，具体活动地点在群里通知。`,
+  ],
+  ["在活动页报名。", "不用注册账号，填个昵称就行——昵称就是你在小镇上的身份。"],
   ["准时到。", "一局开始后中途不好插入，所以我们会记录出勤；实在来不了记得回去取消报名。"],
   ["什么都不用带，也不用花钱。", "剧本、角色牌、说书人我们都备好了，场地目前免费。"],
   ["来了先说你是新人。", "我们会把你安排到新手桌，说书人会在开局前讲规则，中途也可以随时举手问。"],
@@ -248,9 +253,6 @@ export default async function Home() {
               </li>
             ))}
           </ol>
-          <div className="mt-4">
-            <WechatCallout />
-          </div>
         </Section>
 
         <Section id="faq" title="常见问题" sub="questions">
