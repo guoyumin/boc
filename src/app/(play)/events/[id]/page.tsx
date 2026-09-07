@@ -313,22 +313,40 @@ export default async function EventDetailPage({
           )}
           {admin && (
             <details className="mt-3 rounded-lg border border-line p-3">
-              <summary className="cursor-pointer text-sm font-medium text-brand-bright">
-                ＋ 发起剧本投票
-              </summary>
+              <summary className="btn btn-sm btn-primary list-none">＋ 发起剧本投票</summary>
               <form action={createScriptPoll} className="mt-3 space-y-3">
                 <input type="hidden" name="eventId" value={event.id} />
                 <div>
                   <label className="label">标题</label>
                   <input className="input" name="title" maxLength={40} defaultValue="这场玩哪个本？" />
                 </div>
+                {jsons.length > 0 && (
+                  <div>
+                    <span className="label">从已上传的剧本里选</span>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {jsons.map((j) => (
+                        <label
+                          key={j.id}
+                          className="flex items-center gap-2 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm"
+                        >
+                          <input
+                            type="checkbox"
+                            name="fromFiles"
+                            value={j.id}
+                            className="h-4 w-4 accent-[#b3352f]"
+                          />
+                          <span className="min-w-0 truncate">{j.scriptName ?? j.originalName}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div>
-                  <label className="label">候选剧本（一行一个，可以写「名字 · 说明」）</label>
+                  <label className="label">再手填一些（一行一个，可以写「名字 · 说明」）</label>
                   <textarea
-                    className="input h-28"
+                    className="input h-24"
                     name="options"
-                    required
-                    placeholder={"暗流涌动 · 新手友好\n黯月初升\n梦殒春宵"}
+                    placeholder={"暗流涌动 · 新手友好\n黯月初升"}
                   />
                 </div>
                 <div>
@@ -338,6 +356,7 @@ export default async function EventDetailPage({
                 <button type="submit" className="btn btn-primary btn-block">
                   发起投票
                 </button>
+                <p className="muted">发起后在投票页给每个本传图和写描述。</p>
               </form>
             </details>
           )}

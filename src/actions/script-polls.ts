@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
@@ -34,14 +34,35 @@ export async function createScriptPoll(fd: FormData): Promise<void> {
   const back = eventId ? `/events/${eventId}` : "/admin/events";
   let pollId = 0;
   try {
-    const options = parseOptions(str(fd, "options"));
-    if (options.length < 2) throw new Error("至少给两个候选剧本，一行一个");
+    // 候选有两个来源：勾选活动里已上传的剧本 JSON，或者手填
+    const picked = many(fd, "fromFiles").map(Number).filter(Number.isInteger);
+    const fromFiles = picked.length
+      ? db
+          .select()
+          .from(eventFiles)
+          .where(and(eq(eventFiles.kind, "script_json"), inArray(eventFiles.id, picked)))
+          .all()
+          .map((f) => ({ name: f.scriptName ?? f.originalName, note: f.scriptAuthor, fileId: f.id }))
+      : [];
+    const typed = parseOptions(str(fd, "options")).map((o) => ({ ...o, fileId: null as number | null }));
+    const options = [...fromFiles, ...typed];
+    if (options.length < 2) {
+      throw new Error("至少要两个候选：勾几个已上传的剧本，或者手填几行");
+    }
     const title = str(fd, "title") || "剧本投票";
     db.transaction((tx) => {
       tx.insert(scriptPolls).values({ eventId, title, note: optStr(fd, "note") }).run();
       pollId = tx.select({ id: scriptPolls.id }).from(scriptPolls).all().at(-1)!.id;
       tx.insert(scriptPollOptions)
-        .values(options.map((o, i) => ({ pollId, name: o.name, note: o.note, sortOrder: i })))
+        .values(
+          options.map((o, i) => ({
+            pollId,
+            name: o.name,
+            note: o.note,
+            fileId: o.fileId,
+            sortOrder: i,
+          })),
+        )
         .run();
     });
     logAudit(admin.id, "script_poll.create", "script_poll", pollId, title);
@@ -189,7 +210,7 @@ export async function saveScriptOption(fd: FormData): Promise<void> {
     if (!name) throw new Error("给这个本起个名字");
     const note = optStr(fd, "note");
 
-    let fileId: number | null = null;
+    let imageFileId: number | null = null;
     const file = fd.get("image");
     if (file instanceof File && file.size > 0) {
       if (!poll.eventId) throw new Error("这场投票没挂在活动下，传不了图");
@@ -210,12 +231,13 @@ export async function saveScriptOption(fd: FormData): Promise<void> {
           uploadedBy: admin.id,
         })
         .run();
-      fileId = db.select({ id: eventFiles.id }).from(eventFiles).all().at(-1)!.id;
+      imageFileId = db.select({ id: eventFiles.id }).from(eventFiles).all().at(-1)!.id;
     }
 
     if (optionId) {
       db.update(scriptPollOptions)
-        .set({ name, note, ...(fileId ? { fileId } : {}) })
+        // 没重新选图就别把原来的图清掉
+        .set({ name, note, ...(imageFileId ? { imageFileId } : {}) })
         .where(and(eq(scriptPollOptions.id, optionId), eq(scriptPollOptions.pollId, pollId)))
         .run();
     } else {
@@ -225,7 +247,9 @@ export async function saveScriptOption(fd: FormData): Promise<void> {
         .where(eq(scriptPollOptions.pollId, pollId))
         .all()
         .reduce((m, o) => Math.max(m, o.sortOrder), 0);
-      db.insert(scriptPollOptions).values({ pollId, name, note, fileId, sortOrder: last + 1 }).run();
+      db.insert(scriptPollOptions)
+        .values({ pollId, name, note, imageFileId, sortOrder: last + 1 })
+        .run();
     }
     logAudit(admin.id, optionId ? "script_option.update" : "script_option.create", "script_poll", pollId, name);
   } catch (e) {

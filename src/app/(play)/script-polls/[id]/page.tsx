@@ -43,6 +43,7 @@ export default async function ScriptPollPage({
   const admin = await getAdmin();
   const { poll, options, voterCount, best, event } = view;
   const decided = options.find((o) => o.id === poll.decidedOptionId);
+  const missingImages = options.filter((o) => !o.imageFileId).length;
 
   const shareText = [
     poll.title,
@@ -90,6 +91,9 @@ export default async function ScriptPollPage({
       <section className="card">
         <div className="card-title">
           <span>结果（{voterCount} 人投过）</span>
+          {admin && missingImages > 0 && (
+            <span className="badge badge-plain">{missingImages} 个本还没配图</span>
+          )}
         </div>
         {options.length === 0 ? (
           <p className="muted">还没有候选剧本。</p>
@@ -105,11 +109,11 @@ export default async function ScriptPollPage({
                   }`}
                 >
                   {/* 剧本图：没传图的先留一块占位，别让卡片高矮不齐 */}
-                  {o.fileId ? (
-                    <a href={`/files/${o.fileId}`} target="_blank" rel="noreferrer" className="block">
+                  {o.imageFileId ? (
+                    <a href={`/files/${o.imageFileId}`} target="_blank" rel="noreferrer" className="block">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={`/files/${o.fileId}?thumb=1`}
+                        src={`/files/${o.imageFileId}?thumb=1`}
                         alt={o.name}
                         className="aspect-[4/3] w-full bg-surface-2 object-cover"
                       />
@@ -127,6 +131,11 @@ export default async function ScriptPollPage({
                       </span>
                     </div>
                     {o.note && <p className="muted mt-1">{o.note}</p>}
+                    {o.scriptFileId && (
+                      <a href={`/files/${o.scriptFileId}`} download className="link mt-1 inline-block text-xs">
+                        剧本文件
+                      </a>
+                    )}
                     {/* 结果全程公开，谁投的也列出来 */}
                     {o.voters.length > 0 && (
                       <p className="mt-1 text-xs text-faint">{o.voters.join("、")}</p>
@@ -143,8 +152,8 @@ export default async function ScriptPollPage({
                           </form>
                         )}
                         <details className="w-full">
-                          <summary className="cursor-pointer text-xs text-brand-bright">
-                            编辑 / 换图
+                          <summary className="btn btn-sm w-full list-none">
+                            {o.imageFileId ? "编辑 / 换图" : "＋ 传图 / 写描述"}
                           </summary>
                           <form action={saveScriptOption} className="mt-2 space-y-2">
                             <input type="hidden" name="pollId" value={poll.id} />
@@ -185,10 +194,8 @@ export default async function ScriptPollPage({
         )}
 
         {admin && (
-          <details className="mt-3 rounded-lg border border-line p-3">
-            <summary className="cursor-pointer text-sm font-medium text-brand-bright">
-              ＋ 加一个候选剧本
-            </summary>
+          <details className="mt-3 rounded-lg border border-line p-3" open={options.length === 0}>
+            <summary className="btn btn-sm list-none">＋ 加一个候选剧本</summary>
             <form action={saveScriptOption} className="mt-3 space-y-2">
               <input type="hidden" name="pollId" value={poll.id} />
               <div>
@@ -221,7 +228,7 @@ export default async function ScriptPollPage({
           <div className="card-title">投我想玩的</div>
           <ScriptVoteForm
             pollId={poll.id}
-            options={options.map((o) => ({ id: o.id, name: o.name, fileId: o.fileId }))}
+            options={options.map((o) => ({ id: o.id, name: o.name, imageFileId: o.imageFileId }))}
           />
         </section>
       ) : (
