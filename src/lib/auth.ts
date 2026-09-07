@@ -102,7 +102,7 @@ export async function requireAdmin(): Promise<CurrentUser> {
 
 export async function requireOwner(): Promise<CurrentUser> {
   const u = await requireAdmin();
-  if (u.role !== "owner") throw new Error("需要初始管理员权限");
+  if (u.role !== "owner") throw new Error("需要站长权限");
   return u;
 }
 

@@ -4,7 +4,7 @@ import { and, eq, isNotNull, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { players, sessions, users } from "@/db/schema";
+import { USER_ROLES, players, sessions, users } from "@/db/schema";
 import {
   createSession,
   hashPassword,
@@ -35,7 +35,7 @@ export async function loginAction(fd: FormData): Promise<void> {
     await assertLoginRate(username);
     const u = db.select().from(users).where(eq(users.username, username)).get();
     if (!u || !(await verifyPassword(password, u.passwordHash))) throw new Error("用户名或密码不对");
-    if (u.status === "pending") throw new Error("账号还在等初始管理员审批");
+    if (u.status === "pending") throw new Error("账号还在等站长审批");
     if (u.status !== "active") throw new Error("账号已停用");
     await createSession(u.id);
     logAudit(u.id, "user.login", "user", u.id);
@@ -197,7 +197,7 @@ export async function requestAdmin(fd: FormData): Promise<void> {
   }
   revalidatePath("/admin");
   revalidatePath("/admin/admins");
-  redirect(withMsg("/me", "申请已提交，等初始管理员批准", "ok"));
+  redirect(withMsg("/me", "申请已提交，等站长批准", "ok"));
 }
 
 export async function cancelAdminRequest(): Promise<void> {
@@ -237,15 +237,30 @@ export async function reviewAdminRequest(fd: FormData): Promise<void> {
 }
 
 /** owner 改角色 / 停用账号 */
+/**
+ * 改别人的角色。只有 owner 能动。
+ *
+ * owner 可以把别人也提成 owner（站点可以有多个 owner）。
+ * 反过来降 owner 有两条硬约束，防止把自己锁在门外或者让站点没人管：
+ *  1. 不能降自己 —— 要卸任就让另一个 owner 来操作
+ *  2. 最后一个 owner 不能降
+ */
 export async function setUserRole(fd: FormData): Promise<void> {
   const owner = await requireOwner();
   const id = num(fd, "userId");
   const role = str(fd, "role");
   try {
-    if (!["member", "admin"].includes(role)) throw new Error("角色不对");
+    if (!(USER_ROLES as readonly string[]).includes(role)) throw new Error("角色不对");
     const target = db.select().from(users).where(eq(users.id, id)).get();
     if (!target) throw new Error("账号不存在");
-    if (target.role === "owner") throw new Error("初始管理员不能被降级");
+    if (role !== "owner" && target.role === "owner") {
+      if (target.id === owner.id) throw new Error("不能给自己降级，让另一个 owner 来操作");
+      const owners = db.select().from(users).where(eq(users.role, "owner")).all().length;
+      if (owners <= 1) throw new Error("这是最后一个 owner，降了就没人能管权限了");
+    }
+    if (role === "owner" && target.status !== "active") {
+      throw new Error("停用中的账号不能提成 owner，先启用");
+    }
     db.update(users).set({ role, updatedAt: new Date().toISOString() }).where(eq(users.id, id)).run();
     logAudit(owner.id, `user.role.${role}`, "user", id, target.username);
   } catch (e) {
@@ -263,7 +278,7 @@ export async function setUserStatus(fd: FormData): Promise<void> {
     if (!["active", "disabled"].includes(status)) throw new Error("状态不对");
     const target = db.select().from(users).where(eq(users.id, id)).get();
     if (!target) throw new Error("账号不存在");
-    if (target.role === "owner") throw new Error("初始管理员不能被停用");
+    if (target.role === "owner") throw new Error("站长不能被停用，先把他降成管理员");
     db.update(users).set({ status, updatedAt: new Date().toISOString() }).where(eq(users.id, id)).run();
     if (status !== "active") db.delete(sessions).where(eq(sessions.userId, id)).run();
     logAudit(owner.id, `user.${status}`, "user", id, target.username);
@@ -280,7 +295,7 @@ export async function deleteUser(fd: FormData): Promise<void> {
   try {
     const target = db.select().from(users).where(eq(users.id, id)).get();
     if (!target) throw new Error("账号不存在");
-    if (target.role === "owner") throw new Error("初始管理员不能删除");
+    if (target.role === "owner") throw new Error("站长不能删除，先把他降成管理员");
     db.delete(users).where(eq(users.id, id)).run();
     logAudit(owner.id, "user.delete", "user", id, target.username);
   } catch (e) {
@@ -298,7 +313,7 @@ export async function resetUserPassword(fd: FormData): Promise<void> {
   try {
     const target = db.select().from(users).where(eq(users.id, id)).get();
     if (!target) throw new Error("账号不存在");
-    if (target.role === "owner" && admin.role !== "owner") throw new Error("只有初始管理员能重置自己的密码");
+    if (target.role === "owner" && admin.role !== "owner") throw new Error("只有站长能重置自己的密码");
     temp = Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
     db.update(users)
       .set({ passwordHash: await hashPassword(temp), updatedAt: new Date().toISOString() })

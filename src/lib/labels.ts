@@ -152,7 +152,7 @@ export const ADMIN_STATUS_LABEL: Record<string, string> = {
 };
 
 export const ADMIN_ROLE_LABEL: Record<string, string> = {
-  owner: "初始管理员",
+  owner: "站长",
   admin: "管理员",
 };
 
