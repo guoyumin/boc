@@ -25,7 +25,7 @@ export default function BottomNav({ isAdmin }: { isAdmin: boolean }) {
             }`}
           >
             <NavIcon name={it.icon} className="size-5" />
-            {it.label}
+            {it.label === "时间投票" ? "时间" : it.label}
           </Link>
         ))}
       </div>

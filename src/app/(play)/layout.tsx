@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import BrandMark from "@/components/BrandMark";
+import Breadcrumb from "@/components/Breadcrumb";
+import GrimoireLink from "@/components/GrimoireLink";
+import ThemeToggle from "@/components/ThemeToggle";
 import BottomNav from "@/components/BottomNav";
 import SideNav from "@/components/SideNav";
 import { getUser, isAdminRole } from "@/lib/auth";
@@ -26,21 +29,31 @@ export default async function PlayLayout({ children }: { children: React.ReactNo
 
       <div className="lg:pl-56">
         <header className="sticky top-0 z-20 border-b border-line bg-surface/85 backdrop-blur lg:hidden">
-          <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-2.5">
+          <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-2.5">
             <Link href="/" className="display flex items-center gap-1.5 text-base">
               <BrandMark className="size-5 text-brand" /> 苏黎世血染钟楼
             </Link>
+            <ThemeToggle className="ml-auto" />
             {displayName ? (
-              <Link href="/me" className="badge badge-brand">
+              <Link href="/me" className="badge badge-brand shrink-0">
                 {displayName}
               </Link>
             ) : (
-              <Link href="/login" className="text-xs text-faint">
+              <Link href="/login" className="shrink-0 text-xs text-faint">
                 登录
               </Link>
             )}
           </div>
         </header>
+
+        {/* 桌面顶栏：左边面包屑，右边魔典和外观切换（issue #34 的设计稿） */}
+        <div className="hidden border-b border-line px-8 py-3 lg:flex lg:items-center">
+          <Breadcrumb />
+          <div className="ml-auto flex items-center gap-4">
+            <GrimoireLink />
+            <ThemeToggle />
+          </div>
+        </div>
 
         <main className="mx-auto w-full max-w-3xl px-4 pt-4 pb-28 lg:max-w-5xl lg:px-8 lg:pt-8 lg:pb-12">
           {children}

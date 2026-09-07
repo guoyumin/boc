@@ -1,4 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
+import Script from "next/script";
+import { isWwwHost } from "@/lib/hosts";
+import { THEME_INIT } from "@/lib/theme";
 import "./globals.css";
 
 export const dynamic = "force-dynamic";
@@ -16,10 +20,22 @@ export const viewport: Viewport = {
   themeColor: "#0a090c", // 手机浏览器地址栏也跟着变暗
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // 浅色主题只给功能站用，社团主页固定深色（hero 是暗色夜景，浅底会碎）
+  const host = (await headers()).get("host");
+  const site = isWwwHost(host) ? "www" : "play";
   return (
-    <html lang="zh-CN" className="h-full">
-      <body className="min-h-full">{children}</body>
+    // suppressHydrationWarning：主题脚本会在 hydration 前给 <html> 加 data-theme，
+    // 服务端渲染的 HTML 上没有这个属性，不压掉 React 会报不匹配
+    <html lang="zh-CN" className="h-full" data-site={site} suppressHydrationWarning>
+      <body className="min-h-full">
+        {site === "play" && (
+          <Script id="theme-init" strategy="beforeInteractive">
+            {THEME_INIT}
+          </Script>
+        )}
+        {children}
+      </body>
     </html>
   );
 }

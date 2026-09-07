@@ -8,18 +8,18 @@
 @theme {
   /* 底 */
   --color-bg: #0a090c;
-  --color-surface: #131117;
-  --color-surface-2: #1a1620;
+  --color-surface: #141317;
+  --color-surface-2: #1b1a1f;
 
   /* 描边 */
-  --color-line: #2a2530;
-  --color-line-strong: #3d3546;
+  --color-line: #2b292f;
+  --color-line-strong: #3d3a42;
 
   /* 文字：暖白，像石头被灯打亮 */
   --color-ink: #ece7e2;
   --color-ink-2: #d6cfc9;
   --color-muted: #a89f9a;
-  --color-faint: #7d7580;
+  --color-faint: #7d787f;
 
   /* 血色。brand 是主色，soft 用来做底 */
   --color-brand: #b3352f;
@@ -53,6 +53,70 @@
 
 :root {
   color-scheme: dark;
+}
+
+/*
+ * 浅色主题（issue #34）。只在功能站生效 —— 社团主页的 hero 是暗色夜景，
+ * 浅底下会碎掉，所以根节点上带 data-site="play" 才参与切换。
+ * data-theme 由 src/components/ThemeScript.tsx 在首屏渲染前写上：
+ * light / dark 是手动固定，没有这个属性就是「自动」，跟随系统。
+ */
+@media (prefers-color-scheme: light) {
+  :root[data-site="play"]:not([data-theme="dark"]) {
+    color-scheme: light;
+    --color-bg: #f4f2ef;
+    --color-surface: #fbfaf8;
+    --color-surface-2: #edeae5;
+    --color-line: #e0dbd3;
+    --color-line-strong: #c9c2b7;
+    --color-ink: #1f1c1a;
+    --color-ink-2: #423b35;
+    --color-muted: #6b635b;
+    --color-faint: #8f877e;
+    --color-brand-bright: #9c2a25; /* 浅底上要压暗才够对比 */
+    --color-brand-soft: #f9ece9;
+    --color-brand-line: #e3c1bd;
+    --color-ok: #2e7d4f;
+    --color-ok-soft: #e8f4ec;
+    --color-warn: #8a6118;
+    --color-warn-soft: #f6efe0;
+    --color-danger: #b3322a;
+    --color-danger-soft: #fbeceb;
+    --color-rare: #2f6fb5;
+    --color-rare-soft: #e9f0f8;
+    --color-epic: #6b4fb5;
+    --color-epic-soft: #efeaf8;
+    --color-legend: #8a6a20;
+    --color-legend-soft: #f6efdc;
+  }
+}
+
+:root[data-site="play"][data-theme="light"] {
+  color-scheme: light;
+  --color-bg: #f4f2ef;
+  --color-surface: #fbfaf8;
+  --color-surface-2: #edeae5;
+  --color-line: #e0dbd3;
+  --color-line-strong: #c9c2b7;
+  --color-ink: #1f1c1a;
+  --color-ink-2: #423b35;
+  --color-muted: #6b635b;
+  --color-faint: #8f877e;
+  --color-brand-bright: #9c2a25;
+  --color-brand-soft: #f9ece9;
+  --color-brand-line: #e3c1bd;
+  --color-ok: #2e7d4f;
+  --color-ok-soft: #e8f4ec;
+  --color-warn: #8a6118;
+  --color-warn-soft: #f6efe0;
+  --color-danger: #b3322a;
+  --color-danger-soft: #fbeceb;
+  --color-rare: #2f6fb5;
+  --color-rare-soft: #e9f0f8;
+  --color-epic: #6b4fb5;
+  --color-epic-soft: #efeaf8;
+  --color-legend: #8a6a20;
+  --color-legend-soft: #f6efdc;
 }
 
 html {
