@@ -5,6 +5,7 @@ import { getUser, isAdminRole } from "@/lib/auth";
 import { RARITIES, type Rarity } from "@/db/schema";
 import NavIcon from "@/components/NavIcon";
 import RoleIcon from "@/components/RoleIcon";
+import { roleTeam } from "@/lib/roles";
 import { SKINS, SKIN_LABEL, asSkin, type Skin } from "@/lib/skins";
 import { RARITY_LABEL, asRarity } from "@/lib/labels";
 import {
@@ -22,16 +23,33 @@ function anchorId(i: number): string {
   return `role-${i}`;
 }
 
+/**
+ * 筛选是三个独立维度，可以组合（issue #41）：排序方式 × 阵营 × 解锁状态。
+ * 原来「只看已解锁」混在排序里，导致「已解锁 + 按时间」这种组合选不出来。
+ */
 const SORTS = [
   { key: "role", label: "按角色" },
   { key: "rarity", label: "按稀有度" },
   { key: "time", label: "按解锁时间" },
-  { key: "unlocked", label: "只看已解锁" },
 ] as const;
 type Sort = (typeof SORTS)[number]["key"];
 
-function asSort(v: string | null | undefined): Sort {
-  return (SORTS.map((s) => s.key) as readonly string[]).includes(String(v)) ? (v as Sort) : "role";
+const TEAMS = [
+  { key: "all", label: "全部" },
+  { key: "good", label: "蓝方" },
+  { key: "evil", label: "红方" },
+] as const;
+type Team = (typeof TEAMS)[number]["key"];
+
+const STATUSES = [
+  { key: "all", label: "全部" },
+  { key: "unlocked", label: "已解锁" },
+  { key: "locked", label: "未解锁" },
+] as const;
+type Status = (typeof STATUSES)[number]["key"];
+
+function pick<T extends string>(options: readonly { key: T }[], v: string | null | undefined, fallback: T): T {
+  return (options.map((o) => o.key) as readonly string[]).includes(String(v)) ? (v as T) : fallback;
 }
 
 /** 一组成就：已解锁的铺成卡，未解锁的缩成紧凑格 */
@@ -71,10 +89,19 @@ function Group({
 export default async function AchievementsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ err?: string; ok?: string; sort?: string; skin?: string }>;
+  searchParams: Promise<{
+    err?: string;
+    ok?: string;
+    sort?: string;
+    team?: string;
+    status?: string;
+    skin?: string;
+  }>;
 }) {
   const sp = await searchParams;
-  const sort = asSort(sp.sort);
+  const sort = pick(SORTS, sp.sort, "role");
+  const team = pick(TEAMS, sp.team, "all");
+  const status = pick(STATUSES, sp.status, "all");
   const me = await getUser();
   // URL 上的 ?skin= 优先（方便预览和分享），其次是账号里存的选择（issue #12）
   const skin = asSkin(sp.skin ?? me?.cardSkin);
@@ -83,10 +110,20 @@ export default async function AchievementsPage({
   const unlocks = confirmedUnlockMap();
 
   const isUnlocked = (a: Achievement) => (unlocks.get(a.id) ?? []).length > 0;
-  const unlockedCount = list.filter(isUnlocked).length;
-  /** 换排序时保留皮肤，换皮肤时保留排序 */
-  const sortHref = (k: Sort) => `?sort=${k}&skin=${skin}`;
-  const skinHref = (k: Skin) => `?sort=${sort}&skin=${k}`;
+
+  // 三个维度互不影响：切换其中一个，其余保持原样
+  const shown = list.filter((a) => {
+    if (team !== "all" && roleTeam(a.role) !== team) return false;
+    if (status === "unlocked" && !isUnlocked(a)) return false;
+    if (status === "locked" && isUnlocked(a)) return false;
+    return true;
+  });
+  const unlockedCount = shown.filter(isUnlocked).length;
+
+  const href = (next: Partial<{ sort: Sort; team: Team; status: Status; skin: Skin }>) => {
+    const q = new URLSearchParams({ sort, team, status, skin, ...next });
+    return `?${q}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -107,27 +144,56 @@ export default async function AchievementsPage({
       ) : (
         <>
           <p className="muted">
-            共 {list.length} 个成就，已解锁 {unlockedCount} 个。积分：普通 1 / 稀有 3 / 史诗 5 / 传说 10。
+            {shown.length === list.length
+              ? `共 ${list.length} 个成就，已解锁 ${unlockedCount} 个。`
+              : `筛出 ${shown.length} 个（全部 ${list.length} 个），其中已解锁 ${unlockedCount} 个。`}
+            积分：普通 1 / 稀有 3 / 史诗 5 / 传说 10。
           </p>
 
           <nav className="sticky top-0 z-10 -mx-4 border-b border-line bg-bg/95 px-4 py-2 backdrop-blur">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {SORTS.map((s) => (
-                <Link
-                  key={s.key}
-                  href={sortHref(s.key)}
-                  className={`btn btn-sm ${sort === s.key ? "btn-primary" : ""}`}
-                >
-                  {s.label}
-                </Link>
-              ))}
-              {/* 卡面皮肤。现在只跟着链接走，不记在账号上——记住每人的选择是后续 issue。 */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs text-faint">排序</span>
+                {SORTS.map((o) => (
+                  <Link
+                    key={o.key}
+                    href={href({ sort: o.key })}
+                    className={`btn btn-sm ${sort === o.key ? "btn-primary" : ""}`}
+                  >
+                    {o.label}
+                  </Link>
+                ))}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs text-faint">阵营</span>
+                {TEAMS.map((o) => (
+                  <Link
+                    key={o.key}
+                    href={href({ team: o.key })}
+                    className={`btn btn-sm ${team === o.key ? "btn-primary" : ""}`}
+                  >
+                    {o.label}
+                  </Link>
+                ))}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-xs text-faint">状态</span>
+                {STATUSES.map((o) => (
+                  <Link
+                    key={o.key}
+                    href={href({ status: o.key })}
+                    className={`btn btn-sm ${status === o.key ? "btn-primary" : ""}`}
+                  >
+                    {o.label}
+                  </Link>
+                ))}
+              </span>
               <span className="ml-auto flex items-center gap-1.5">
                 <span className="text-xs text-faint">卡面</span>
                 {SKINS.map((k) => (
                   <Link
                     key={k}
-                    href={skinHref(k)}
+                    href={href({ skin: k })}
                     className={`btn btn-sm ${skin === k ? "btn-primary" : ""}`}
                   >
                     {SKIN_LABEL[k]}
@@ -141,14 +207,14 @@ export default async function AchievementsPage({
             <>
               {/* 角色菜单：换行铺开，别让后面的角色藏在横向滚动里（#15） */}
               <div className="flex flex-wrap gap-1.5">
-                {groupByRole(list.filter((a) => !a.scriptName)).map((g, i) => (
+                {groupByRole(shown.filter((a) => !a.scriptName)).map((g, i) => (
                   <a key={g.role} href={`#${anchorId(i)}`} className="btn btn-sm gap-1.5">
                     <RoleIcon role={g.role} className="size-4" />
                     {g.role}
                   </a>
                 ))}
               </div>
-              {groupByRole(list.filter((a) => !a.scriptName)).map((g, i) => (
+              {groupByRole(shown.filter((a) => !a.scriptName)).map((g, i) => (
                 <Group
                   key={g.role}
                   id={anchorId(i)}
@@ -163,7 +229,7 @@ export default async function AchievementsPage({
                   skin={skin}
                 />
               ))}
-              {groupByScript(list.filter((a) => a.scriptName)).map((g) => (
+              {groupByScript(shown.filter((a) => a.scriptName)).map((g) => (
                 <Group
                   key={g.scriptName}
                   title={
@@ -186,7 +252,7 @@ export default async function AchievementsPage({
               <Group
                 key={r}
                 title={RARITY_LABEL[r]}
-                items={list.filter((a) => asRarity(a.rarity) === r)}
+                items={shown.filter((a) => asRarity(a.rarity) === r)}
                 unlocks={unlocks}
                 skin={skin}
               />
@@ -200,7 +266,7 @@ export default async function AchievementsPage({
                   按解锁时间
                 </span>
               }
-              items={[...list].sort((a, b) => {
+              items={[...shown].sort((a, b) => {
                 // 最近解锁的在前；没解锁的沉底，内部按名字稳定排
                 const at = latestUnlockAt(unlocks.get(a.id) ?? []);
                 const bt = latestUnlockAt(unlocks.get(b.id) ?? []);
@@ -214,23 +280,6 @@ export default async function AchievementsPage({
             />
           )}
 
-          {sort === "unlocked" && (
-            <Group
-              title={
-                <span className="inline-flex items-center gap-1.5">
-                  <NavIcon name="trophy" className="size-4" />
-                  已解锁
-                </span>
-              }
-              items={list.filter(isUnlocked).sort((a, b) => {
-                const at = latestUnlockAt(unlocks.get(a.id) ?? []) ?? "";
-                const bt = latestUnlockAt(unlocks.get(b.id) ?? []) ?? "";
-                return bt.localeCompare(at);
-              })}
-              unlocks={unlocks}
-              skin={skin}
-            />
-          )}
         </>
       )}
     </div>

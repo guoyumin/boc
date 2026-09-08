@@ -138,6 +138,10 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 - 角色图标是官方美术，放在 `public/roles/<英文 id>.webp`（trim 掉留白后统一 128px）。
   中文角色名 → 英文 id 的映射在 `src/lib/roles.ts`，页面里用 `<RoleIcon role=... />`，
   别再往界面上写角色 emoji。导航图标用 `<NavIcon>` 的线图，同样不用 emoji。
+- 成就墙的筛选是**三个独立维度**（排序 role/rarity/time × 阵营 all/good/evil × 状态 all/unlocked/locked），
+  互相可组合，切换一个不影响其余；后台成就管理页有搜索（`?q=`，搜名字/条件/角色/剧本）
+  加同样的阵营与稀有度筛选。阵营映射在 `src/lib/roles.ts` 的 `ROLE_TEAM`（镇民+外来者=蓝方，
+  爪牙+恶魔=红方，「通用」没有阵营），加角色时记得补一条。
 - 成就卡（`src/components/AchievementCard.tsx`）的颜色全部来自卡片根节点上的
   `data-skin` / `data-rarity`，组件里不写死颜色。**加皮肤只要在 `globals.css` 里加一个
   `[data-skin="xxx"]` 块**，再往 `src/lib/skins.ts` 的 `SKINS` / `SKIN_LABEL` 各加一条，
