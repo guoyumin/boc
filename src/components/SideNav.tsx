@@ -24,13 +24,16 @@ export default function SideNav({
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-line bg-surface lg:flex">
-      <Link href="/" className="flex items-center gap-2 px-5 py-5">
+      {/* logo 点回社团主页（issue #48）；回功能站首页走下面导航里的「首页」 */}
+      <a href={wwwHref} className="flex items-center gap-2 px-5 py-5">
         <BrandMark className="size-6 text-brand" />
         <span className="leading-tight">
-          <span className="display block text-base">苏黎世血染钟楼</span>
+          <span className="display block text-base">
+            苏黎世血染钟楼 <span className="text-xs text-faint">↗</span>
+          </span>
           <span className="eyebrow">zurich boca</span>
         </span>
-      </Link>
+      </a>
 
       <nav className="flex-1 px-3">
         {items.map((it) => {
@@ -65,7 +68,7 @@ export default function SideNav({
             登录 / 注册
           </Link>
         )}
-        <a href={wwwHref} className="mt-3 block text-faint hover:text-muted">
+        <a href={wwwHref} className="btn btn-sm mt-3 w-full">
           社团主页 ↗
         </a>
       </div>
