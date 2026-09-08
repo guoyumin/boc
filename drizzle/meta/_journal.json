@@ -57,6 +57,13 @@
       "when": 1788777488044,
       "tag": "0007_username_ci_unique",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1788889465431,
+      "tag": "0008_fresh_aaron_stack",
+      "breakpoints": true
     }
   ]
 }

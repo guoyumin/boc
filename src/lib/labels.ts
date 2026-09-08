@@ -121,6 +121,19 @@ export const EVENT_STATUS_CLASS: Record<string, string> = {
   cancelled: "bg-surface-2 text-faint border-line line-through",
 };
 
+/** 板子投票的状态：投票中=绿、已锁定=红、已定下=血色（issue #44） */
+export const SCRIPT_POLL_STATUS_LABEL: Record<string, string> = {
+  open: "投票中",
+  locked: "已锁定",
+  decided: "已定下",
+};
+
+export const SCRIPT_POLL_STATUS_CLASS: Record<string, string> = {
+  open: "bg-ok-soft text-ok border-ok/40",
+  locked: "bg-danger-soft text-danger border-danger/40",
+  decided: "bg-brand-soft text-brand-bright border-brand-line",
+};
+
 export const POLL_STATUS_LABEL: Record<string, string> = {
   open: "进行中",
   decided: "已定下",
@@ -175,6 +188,11 @@ export type NoShowInput = {
   noShowWaived?: number;
 };
 
+/** 名额满了排在候补里：没报上，所以不算鸽 */
+export function isWaitlisted(r: NoShowInput): boolean {
+  return r.status === "waitlist";
+}
+
 /** 本人取消的报名 */
 export function isCancelled(r: NoShowInput): boolean {
   return r.status === "cancelled";
@@ -191,6 +209,8 @@ export function isWaived(r: NoShowInput): boolean {
  */
 export function isNoShow(r: NoShowInput): boolean {
   if (isWaived(r)) return false;
+  // 候补压根没报上，没来不能算鸽
+  if (isWaitlisted(r)) return false;
   return r.signup !== "none" && r.attended === "none";
 }
 

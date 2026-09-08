@@ -7,7 +7,7 @@ import { db } from "@/db";
 import { events, polls } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { formatMd } from "@/lib/dates";
-import { bool, errMsg, num, optStr, str, withMsg } from "@/lib/form";
+import { bool, errMsg, num, optNum, optStr, str, withMsg } from "@/lib/form";
 import { logAudit } from "@/lib/audit";
 import { removeEventDir } from "@/lib/storage";
 
@@ -23,6 +23,9 @@ export async function createEvent(fd: FormData): Promise<void> {
     const hasAfternoon = bool(fd, "hasAfternoon") ? 1 : 0;
     const hasEvening = bool(fd, "hasEvening") ? 1 : 0;
     if (!hasAfternoon && !hasEvening) throw new Error("至少选一个场次");
+    // 报名人数上限：留空 = 不限。上限只管报名，管理员手动加人不受它限制
+    const capacity = optNum(fd, "capacity");
+    if (capacity !== null && capacity < 1) throw new Error("人数上限至少是 1，不限就留空");
     const row = db
       .insert(events)
       .values({
@@ -33,6 +36,7 @@ export async function createEvent(fd: FormData): Promise<void> {
         note: optStr(fd, "note"),
         hasAfternoon,
         hasEvening,
+        capacity,
         status: STATUSES.includes(str(fd, "status")) ? str(fd, "status") : "planned",
       })
       .returning({ id: events.id })
@@ -57,6 +61,9 @@ export async function updateEvent(fd: FormData): Promise<void> {
     const hasAfternoon = bool(fd, "hasAfternoon") ? 1 : 0;
     const hasEvening = bool(fd, "hasEvening") ? 1 : 0;
     if (!hasAfternoon && !hasEvening) throw new Error("至少选一个场次");
+    // 报名人数上限：留空 = 不限。上限只管报名，管理员手动加人不受它限制
+    const capacity = optNum(fd, "capacity");
+    if (capacity !== null && capacity < 1) throw new Error("人数上限至少是 1，不限就留空");
     db.update(events)
       .set({
         date,
@@ -66,6 +73,7 @@ export async function updateEvent(fd: FormData): Promise<void> {
         note: optStr(fd, "note"),
         hasAfternoon,
         hasEvening,
+        capacity,
         status: STATUSES.includes(str(fd, "status")) ? str(fd, "status") : "planned",
         updatedAt: new Date().toISOString(),
       })

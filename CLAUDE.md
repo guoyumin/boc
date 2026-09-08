@@ -83,6 +83,11 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
   `src/lib/hosts.ts`。本地开发用 `www.localhost:3000` / `play.localhost:3000`。
 - 公开写操作（报名、填时间、宣告成就、记录游戏）首行 `await assertWriteRate(...)`。
 - 用户输入的昵称一律走 `findOrCreatePlayer()`：去空格、忽略大小写、匹配别名。
+- 活动可以设报名人数上限（`events.capacity`，整场一个数，null = 不限）。满了之后自助报名
+  写成 `status='waitlist'`；有人取消或被移除时 `promoteFromWaitlist()` 按报名先后自动补一个。
+  候补**不算报上、也不算鸽**（`isWaitlisted()`）。管理员手动加人不受上限限制。
+- 板子投票的票数和投票人**只有管理员看得到**，公开的只有「N 人投过」和最终选定的板子——
+  免得大家跟着票走。领先项的高亮也只在管理员视角出现，别从样式上泄漏。
 - 「鸽」的判定统一走 `src/lib/labels.ts` 的 `isNoShow(row)`，它接一整行报名记录
   （`signup` / `attended` / `status` / `noShowWaived`），不要在页面里自己拼条件。
   本人取消报名是 `status='cancelled'`，**记录保留、照样算鸽**，管理员可以 `no_show_waived=1` 免掉。

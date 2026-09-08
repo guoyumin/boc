@@ -43,6 +43,20 @@ export default async function NewEventPage({
             </label>
             <input id="startTime" className="input" name="startTime" placeholder="下午一点半" />
           </div>
+          <div>
+            <label className="label" htmlFor="capacity">
+              报名人数上限
+            </label>
+            <input
+              id="capacity"
+              className="input"
+              type="number"
+              name="capacity"
+              min={1}
+              placeholder="留空 = 不限"
+            />
+            <p className="muted mt-1">先报先得，满了之后新报名进候补；有人取消会自动补上。</p>
+          </div>
         </div>
         <div>
           <span className="label">场次</span>
