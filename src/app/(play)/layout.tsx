@@ -30,9 +30,10 @@ export default async function PlayLayout({ children }: { children: React.ReactNo
       <div className="lg:pl-56">
         <header className="sticky top-0 z-20 border-b border-line bg-surface/85 backdrop-blur lg:hidden">
           <div className="mx-auto flex max-w-3xl items-center gap-2 px-4 py-2.5">
-            <Link href="/" className="display flex items-center gap-1.5 text-base">
+            <a href={wwwUrl("/")} className="display flex items-center gap-1.5 text-base">
               <BrandMark className="size-5 text-brand" /> 苏黎世血染钟楼
-            </Link>
+              <span className="text-xs text-faint">↗</span>
+            </a>
             <ThemeToggle className="ml-auto" />
             {displayName ? (
               <Link href="/me" className="badge badge-brand shrink-0">
@@ -49,7 +50,10 @@ export default async function PlayLayout({ children }: { children: React.ReactNo
         {/* 桌面顶栏：左边面包屑，右边魔典和外观切换（issue #34 的设计稿） */}
         <div className="hidden border-b border-line px-8 py-3 lg:flex lg:items-center">
           <Breadcrumb />
-          <div className="ml-auto flex items-center gap-4">
+          <div className="ml-auto flex items-center gap-3">
+            <a href={wwwUrl("/")} className="btn btn-sm">
+              社团主页 ↗
+            </a>
             <GrimoireLink />
             <ThemeToggle />
           </div>
