@@ -11,6 +11,7 @@ import {
   deleteScriptPoll,
   saveScriptOption,
   setScriptPollStatus,
+  updateScriptPoll,
 } from "@/actions/script-polls";
 import { getAdmin, getUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
@@ -258,6 +259,30 @@ export default async function ScriptPollPage({
               管理员
             </span>
           </div>
+          <details className="mb-3 rounded-lg border border-line p-3">
+            <summary className="btn btn-sm list-none">编辑标题 / 说明</summary>
+            <form action={updateScriptPoll} className="mt-3 space-y-2">
+              <input type="hidden" name="pollId" value={poll.id} />
+              <div>
+                <label className="label">标题</label>
+                <input className="input" name="title" defaultValue={poll.title} maxLength={40} required />
+              </div>
+              <div>
+                <label className="label">说明</label>
+                <input
+                  className="input"
+                  name="note"
+                  defaultValue={poll.note ?? ""}
+                  maxLength={100}
+                  placeholder="投票到周四晚上截止"
+                />
+              </div>
+              <button type="submit" className="btn btn-sm btn-primary">
+                保存
+              </button>
+            </form>
+          </details>
+
           <div className="flex flex-wrap gap-2">
             <form action={setScriptPollStatus}>
               <input type="hidden" name="pollId" value={poll.id} />

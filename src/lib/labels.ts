@@ -229,3 +229,19 @@ export const SIGNUP_SOURCE_LABEL: Record<string, string> = {
   jielong: "接龙导入",
   admin: "管理员添加",
 };
+
+/**
+ * 报名人数的统一写法：有上限就写成 6/16，让还在犹豫的人看得见还剩多少位子。
+ * 候补有人才显示，没有就不占地方。
+ */
+export function signupSummary(opts: {
+  signupCount: number;
+  waitlistCount: number;
+  capacity: number | null;
+}): string {
+  const head =
+    opts.capacity === null
+      ? `已报名 ${opts.signupCount} 人`
+      : `已报名 ${opts.signupCount}/${opts.capacity} 人`;
+  return opts.waitlistCount > 0 ? `${head} · 候补 ${opts.waitlistCount} 人` : head;
+}

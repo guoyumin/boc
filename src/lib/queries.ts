@@ -130,7 +130,9 @@ export function getPollView(id: number): PollView | null {
 }
 
 export type EventListRow = EventRow & {
+  /** 真的占着位子的人数：不含候补和已取消 */
   signupCount: number;
+  waitlistCount: number;
   attendCount: number;
   noShowCount: number;
   scripts: string[];
@@ -160,7 +162,8 @@ export function listEvents(limit = 50): EventListRow[] {
     const own = signups.filter((s) => s.eventId === e.id);
     return {
       ...e,
-      signupCount: own.filter((s) => s.signup !== "none").length,
+      signupCount: own.filter((s) => s.status === "active" && s.signup !== "none").length,
+      waitlistCount: own.filter((s) => s.status === "waitlist").length,
       attendCount: own.filter((s) => s.attended !== "none").length,
       noShowCount: isFinished(e.date, e.status)
         ? own.filter((s) => isNoShow(s)).length
