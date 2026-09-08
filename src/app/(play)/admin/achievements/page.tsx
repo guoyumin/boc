@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import Flash from "@/components/Flash";
 import RoleIcon from "@/components/RoleIcon";
+import { RARITIES, type Rarity } from "@/db/schema";
+import { roleTeam } from "@/lib/roles";
 import RarityBadge from "@/components/RarityBadge";
 import { deleteAchievement, grantAchievement, saveAchievement } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
-import { RARITY_OPTIONS } from "@/lib/labels";
+import { RARITY_LABEL, RARITY_OPTIONS, asRarity } from "@/lib/labels";
 import {
   achievementRoles,
   confirmedUnlockMap,
@@ -162,16 +164,34 @@ function Item({ a, owners }: { a: Ach; owners: number }) {
 export default async function AdminAchievementsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ err?: string; ok?: string }>;
+  searchParams: Promise<{ err?: string; ok?: string; q?: string; team?: string; rarity?: string }>;
 }) {
   const sp = await searchParams;
   if (!(await getAdmin())) redirect("/admin/login");
   const list = listAchievements(true);
   const unlocks = confirmedUnlockMap();
   const roles = achievementRoles();
-  const global = groupByRole(list.filter((a) => !a.scriptName));
-  const scripts = groupByScript(list.filter((a) => a.scriptName));
+
+  // 搜索 + 筛选（issue #41）：成就越来越多，一屏一屏翻太慢
+  const q = (sp.q ?? "").trim().toLowerCase();
+  const team = sp.team === "good" || sp.team === "evil" ? sp.team : "all";
+  const rarity = RARITIES.includes(sp.rarity as Rarity) ? (sp.rarity as Rarity) : "all";
+  const shown = list.filter((a) => {
+    if (q && !`${a.name} ${a.description} ${a.role} ${a.scriptName ?? ""}`.toLowerCase().includes(q)) {
+      return false;
+    }
+    if (team !== "all" && roleTeam(a.role) !== team) return false;
+    if (rarity !== "all" && asRarity(a.rarity) !== rarity) return false;
+    return true;
+  });
+
+  const global = groupByRole(shown.filter((a) => !a.scriptName));
+  const scripts = groupByScript(shown.filter((a) => a.scriptName));
   const count = (id: number) => (unlocks.get(id) ?? []).length;
+  const chip = (next: Record<string, string>) => {
+    const params = new URLSearchParams({ ...(q ? { q } : {}), team, rarity, ...next });
+    return `?${params}`;
+  };
 
   return (
     <div className="space-y-4">
@@ -190,9 +210,75 @@ export default async function AdminAchievementsPage({
       </datalist>
 
       <p className="muted">
-        共 {list.length} 个成就。正式清单来自 <code>docs/achievements.tsv</code>，
-        在这里的改动只影响数据库，不会写回那份表。
+        {shown.length === list.length
+          ? `共 ${list.length} 个成就。`
+          : `筛出 ${shown.length} 个（全部 ${list.length} 个）。`}
+        正式清单来自 <code>docs/achievements.tsv</code>，在这里的改动只影响数据库，不会写回那份表。
       </p>
+
+      {/* 搜索走 GET，刷新和分享链接都能保持筛选状态 */}
+      <div className="card space-y-3">
+        <form method="get" className="flex gap-2">
+          <input type="hidden" name="team" value={team} />
+          <input type="hidden" name="rarity" value={rarity} />
+          <input
+            className="input"
+            name="q"
+            defaultValue={sp.q ?? ""}
+            placeholder="搜成就名、达成条件、角色、剧本"
+          />
+          <button type="submit" className="btn btn-primary shrink-0">
+            搜索
+          </button>
+          {(q || team !== "all" || rarity !== "all") && (
+            <Link href="/admin/achievements" className="btn shrink-0">
+              清空
+            </Link>
+          )}
+        </form>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="flex items-center gap-1.5">
+            <span className="text-xs text-faint">阵营</span>
+            {[
+              { key: "all", label: "全部" },
+              { key: "good", label: "蓝方" },
+              { key: "evil", label: "红方" },
+            ].map((o) => (
+              <Link
+                key={o.key}
+                href={chip({ team: o.key })}
+                className={`btn btn-sm ${team === o.key ? "btn-primary" : ""}`}
+              >
+                {o.label}
+              </Link>
+            ))}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="text-xs text-faint">稀有度</span>
+            <Link
+              href={chip({ rarity: "all" })}
+              className={`btn btn-sm ${rarity === "all" ? "btn-primary" : ""}`}
+            >
+              全部
+            </Link>
+            {RARITIES.map((r) => (
+              <Link
+                key={r}
+                href={chip({ rarity: r })}
+                className={`btn btn-sm ${rarity === r ? "btn-primary" : ""}`}
+              >
+                {RARITY_LABEL[r]}
+              </Link>
+            ))}
+          </span>
+        </div>
+      </div>
+
+      {shown.length === 0 && (
+        <div className="card">
+          <p className="muted">没有符合条件的成就。</p>
+        </div>
+      )}
 
       <details className="card">
         <summary className="cursor-pointer text-sm font-medium text-brand-bright">＋ 新建成就</summary>

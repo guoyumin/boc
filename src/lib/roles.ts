@@ -51,3 +51,37 @@ export function isMaskIcon(role: string): boolean {
 export function roleIconSrc(role: string): string {
   return `/roles/${roleSlug(role)}.webp`;
 }
+
+/**
+ * 阵营。官方把角色分四类，善良 = 镇民 + 外来者，邪恶 = 爪牙 + 恶魔。
+ * 群里习惯叫红方 / 蓝方，成就墙的筛选按这个分。
+ * 「通用」不属于任何一方（那些成就不绑定角色），所以返回 null。
+ */
+export const ROLE_TEAM: Record<string, "good" | "evil"> = {
+  厨师: "good",
+  贵族: "good",
+  共情者: "good",
+  舞蛇人: "good",
+  数学家: "good",
+  僧侣: "good",
+  赌徒: "good",
+  半兽人: "good",
+  女裁缝: "good",
+  哲学家: "good",
+  炼金术士: "good",
+  农夫: "good",
+  管家: "good", // 外来者也算善良阵营
+  解谜大师: "good",
+  疯子: "good",
+  食人魔: "good", // Ogre 是外来者，不是爪牙
+  麻脸巫婆: "evil",
+  魔鬼代言人: "evil",
+  哥布林: "evil",
+  精神病患者: "evil",
+  鹰身女妖: "evil",
+  痢蛭: "evil", // Lleech 是恶魔
+};
+
+export function roleTeam(role: string): "good" | "evil" | null {
+  return ROLE_TEAM[role] ?? null;
+}
