@@ -133,6 +133,26 @@ export async function withdrawScriptVote(fd: FormData): Promise<void> {
   redirect(withMsg(back, "已撤掉你的票", "ok"));
 }
 
+/** 改标题和说明（发起之后才想起来要改的那种） */
+export async function updateScriptPoll(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const pollId = num(fd, "pollId");
+  const back = `/script-polls/${pollId}`;
+  try {
+    const title = str(fd, "title");
+    if (!title) throw new Error("标题不能为空");
+    db.update(scriptPolls)
+      .set({ title, note: optStr(fd, "note"), updatedAt: new Date().toISOString() })
+      .where(eq(scriptPolls.id, pollId))
+      .run();
+    logAudit(admin.id, "script_poll.update", "script_poll", pollId, title);
+  } catch (e) {
+    redirect(withMsg(back, errMsg(e)));
+  }
+  revalidatePath(back);
+  redirect(withMsg(back, "已保存", "ok"));
+}
+
 /** 锁定 / 重新开放 */
 export async function setScriptPollStatus(fd: FormData): Promise<void> {
   const admin = await requireAdmin();

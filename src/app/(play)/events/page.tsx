@@ -3,7 +3,7 @@ import GrimoireLink from "@/components/GrimoireLink";
 import Flash from "@/components/Flash";
 import { getAdmin } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
-import { EVENT_STATUS_CLASS, EVENT_STATUS_LABEL } from "@/lib/labels";
+import { EVENT_STATUS_CLASS, EVENT_STATUS_LABEL, signupSummary } from "@/lib/labels";
 import { listEvents } from "@/lib/queries";
 
 export default async function EventsPage({
@@ -50,8 +50,10 @@ export default async function EventsPage({
                     {EVENT_STATUS_LABEL[e.status]}
                   </span>
                 </div>
-                <div className="mt-2 flex gap-3 text-xs text-muted">
-                  <span>报名 {e.signupCount}</span>
+                <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted">
+                  <span className={e.capacity !== null && e.signupCount >= e.capacity ? "text-warn" : ""}>
+                    {signupSummary(e)}
+                  </span>
                   <span>到场 {e.attendCount}</span>
                   {e.noShowCount > 0 && <span className="text-warn">鸽 {e.noShowCount}</span>}
                 </div>

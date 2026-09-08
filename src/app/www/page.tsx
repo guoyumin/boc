@@ -2,7 +2,7 @@ import GrimoireLink from "@/components/GrimoireLink";
 import WechatCallout from "@/components/WechatCallout";
 import { WECHAT_ID, WECHAT_NOTE } from "@/lib/contact";
 import { formatDate } from "@/lib/dates";
-import { SLOT_SHORT } from "@/lib/labels";
+import { SLOT_SHORT, signupSummary } from "@/lib/labels";
 import { getOpenPoll, getPollView, getSignups, latestEvent, nextEvent } from "@/lib/queries";
 import { PLAY_LINKS, playUrl } from "@/lib/urls";
 
@@ -85,7 +85,8 @@ export default async function Home() {
   const upcoming = nextEvent();
   const event = upcoming ?? latestEvent();
   const signups = event ? getSignups(event.id) : [];
-  const signedUp = signups.filter((x) => x.signup !== "none").length;
+  const signedUp = signups.filter((x) => x.status === "active" && x.signup !== "none").length;
+  const waitlisted = signups.filter((x) => x.status === "waitlist").length;
   const attended = signups.filter((x) => x.attended !== "none").length;
 
   return (
@@ -152,7 +153,13 @@ export default async function Home() {
                   {[event.location, event.startTime].filter(Boolean).join(" · ") || event.title}
                 </p>
                 <p className="mt-2 text-sm text-ink-2">
-                  {upcoming ? `已报名 ${signedUp} 人` : `到场 ${attended} 人`}
+                  {upcoming
+                    ? signupSummary({
+                        signupCount: signedUp,
+                        waitlistCount: waitlisted,
+                        capacity: event.capacity,
+                      })
+                    : `到场 ${attended} 人`}
                 </p>
                 <span className={`btn btn-block mt-3 ${upcoming ? "btn-primary" : ""}`}>
                   {upcoming ? "去报名" : "看看这一场"}

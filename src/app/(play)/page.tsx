@@ -38,7 +38,8 @@ export default async function HomePage() {
 
   const attended = signups.filter((s) => s.attended !== "none").length;
   const noShow = signups.filter((s) => isNoShow(s)).length;
-  const signedUp = signups.filter((s) => s.signup !== "none").length;
+  const signedUp = signups.filter((s) => s.status === "active" && s.signup !== "none").length;
+  const waitlisted = signups.filter((s) => s.status === "waitlist").length;
   const finished = event ? isFinished(event.date, event.status) : false;
 
   return (
@@ -134,12 +135,18 @@ export default async function HomePage() {
 
               <div className="mt-4 grid grid-cols-2 divide-x divide-line border-t border-line pt-3">
                 <div className="text-center">
-                  <p className="display text-2xl">{finished ? attended : signedUp}</p>
+                  <p className="display text-2xl">
+                    {finished ? attended : signedUp}
+                    {/* 有上限就写成 6/16，让还在犹豫的人看得见还剩多少位子 */}
+                    {!finished && event.capacity !== null && (
+                      <span className="text-base text-muted">/{event.capacity}</span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted">{finished ? "到场人数" : "已报名"}</p>
                 </div>
                 <div className="text-center">
-                  <p className="display text-2xl">{finished ? noShow : signups.length - signedUp}</p>
-                  <p className="text-xs text-muted">{finished ? "鸽" : "未定"}</p>
+                  <p className="display text-2xl">{finished ? noShow : waitlisted}</p>
+                  <p className="text-xs text-muted">{finished ? "鸽" : "候补"}</p>
                 </div>
               </div>
 

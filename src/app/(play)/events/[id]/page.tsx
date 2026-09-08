@@ -34,6 +34,7 @@ import {
   isWaitlisted,
   isWaived,
   isWalkIn,
+  signupSummary,
 } from "@/lib/labels";
 import {
   claimsForEvent,
@@ -160,9 +161,9 @@ export default async function EventDetailPage({
       <section className="card">
         <div className="card-title">
           <span>
-            👥 报名 / 出席（报名 {signedUpCount} · 到场{" "}
-            {signups.filter((s) => s.attended !== "none").length}
-            {waitlistCount > 0 && ` · 候补 ${waitlistCount}`}）
+            👥 {signupSummary({ signupCount: signedUpCount, waitlistCount, capacity: event.capacity })}
+            {" · 到场 "}
+            {signups.filter((s) => s.attended !== "none").length} 人
           </span>
           {event.capacity !== null && (
             <span
