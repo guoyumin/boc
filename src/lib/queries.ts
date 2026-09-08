@@ -665,12 +665,27 @@ export function getScriptPollView(id: number): ScriptPollView | null {
 
 /** 某个活动下的板子投票，活动页上挂个入口 */
 export function scriptPollsForEvent(eventId: number) {
-  return db
+  const polls = db
     .select()
     .from(scriptPolls)
     .where(eq(scriptPolls.eventId, eventId))
     .orderBy(desc(scriptPolls.id))
     .all();
+  // 活动页要把候选板子直接列出来，光一句标题太不起眼。
+  // 只带名字和图，不带票数——票数是管理员专属（见 getScriptPollView）
+  return polls.map((poll) => ({
+    ...poll,
+    options: db
+      .select({
+        id: scriptPollOptions.id,
+        name: scriptPollOptions.name,
+        imageFileId: scriptPollOptions.imageFileId,
+      })
+      .from(scriptPollOptions)
+      .where(eq(scriptPollOptions.pollId, poll.id))
+      .orderBy(scriptPollOptions.sortOrder, scriptPollOptions.id)
+      .all(),
+  }));
 }
 
 /** 这场投票有多少人投过（人数，不是票数）。活动页只露这个数 */

@@ -345,26 +345,58 @@ export default async function EventDetailPage({
           {scriptPolls.length === 0 ? (
             <p className="muted">这场还没有板子投票。</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {scriptPolls.map((sp2) => (
-                <li
-                  key={sp2.id}
-                  className="flex items-center justify-between gap-2 rounded-lg border border-line p-2 text-sm"
-                >
-                  <Link href={`/script-polls/${sp2.id}`} className="min-w-0 flex-1 truncate font-medium text-ink">
-                    {sp2.title}
-                  </Link>
-                  <Link
-                    href={`/script-polls/${sp2.id}`}
-                    className={`btn btn-sm shrink-0 ${sp2.status === "open" ? "btn-primary" : ""}`}
-                  >
-                    {sp2.status === "open" ? "我要投票 →" : "看结果 →"}
-                  </Link>
+                <li key={sp2.id} className="rounded-lg border border-line p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <Link
+                      href={`/script-polls/${sp2.id}`}
+                      className="display min-w-0 flex-1 truncate text-base"
+                    >
+                      {sp2.title}
+                    </Link>
+                    <Link
+                      href={`/script-polls/${sp2.id}`}
+                      className={`btn btn-sm shrink-0 ${sp2.status === "open" ? "btn-primary" : ""}`}
+                    >
+                      {sp2.status === "open" ? "我要投票 →" : "看结果 →"}
+                    </Link>
+                  </div>
+
+                  {/* 候选板子直接列出来：光一句标题太不起眼。只列名字和图，票数是管理员专属 */}
+                  {sp2.options.length === 0 ? (
+                    <p className="muted mt-2">还没有候选板子。</p>
+                  ) : (
+                    <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {sp2.options.map((o) => (
+                        <li key={o.id}>
+                          <Link
+                            href={`/script-polls/${sp2.id}`}
+                            className="flex items-center gap-2 rounded-lg border border-line bg-surface-2/60 p-1.5 text-sm transition hover:border-brand-line"
+                          >
+                            {o.imageFileId ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={`/files/${o.imageFileId}?thumb=1`}
+                                alt=""
+                                className="size-10 shrink-0 rounded object-cover"
+                              />
+                            ) : (
+                              <span className="flex size-10 shrink-0 items-center justify-center rounded bg-surface text-[10px] text-faint">
+                                无图
+                              </span>
+                            )}
+                            <span className="min-w-0 truncate text-ink-2">{o.name}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
           )}
-          {admin && (
+          {admin && scriptPolls.length === 0 && (
             <details className="mt-3 rounded-lg border border-line p-3">
               <summary className="btn btn-sm btn-primary list-none">＋ 发起板子投票</summary>
               <form action={createScriptPoll} className="mt-3 space-y-3">
