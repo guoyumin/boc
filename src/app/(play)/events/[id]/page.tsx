@@ -22,17 +22,29 @@ import {
   EVENT_STATUS_LABEL,
   GAME_RESULT_CLASS,
   GAME_RESULT_LABEL,
+  SCRIPT_POLL_STATUS_CLASS,
+  SCRIPT_POLL_STATUS_LABEL,
   SESSION_LABEL,
   SESSION_OPTIONS,
   SIGNUP_LABEL,
-  isFinished,
   isCancelled,
+  isFinished,
   isNoShow,
   isPartial,
+  isWaitlisted,
   isWaived,
   isWalkIn,
 } from "@/lib/labels";
-import { claimsForEvent, getEvent, getEventFiles, getGames, getSignups, recentScripts, scriptPollsForEvent } from "@/lib/queries";
+import {
+  claimsForEvent,
+  getEvent,
+  getEventFiles,
+  getGames,
+  getSignups,
+  recentScripts,
+  scriptPollVoterCount,
+  scriptPollsForEvent,
+} from "@/lib/queries";
 import { readFileText } from "@/lib/storage";
 import type { Session } from "@/db/schema";
 
@@ -59,6 +71,12 @@ export default async function EventDetailPage({
 
   const files = getEventFiles(eventId);
   const scriptPolls = scriptPollsForEvent(eventId);
+  // 只露总人数，具体票数在投票页且只有管理员看得到（issue #44）
+  const scriptPollVoters = scriptPolls.reduce((n, sp2) => n + scriptPollVoterCount(sp2.id), 0);
+  // 名额只算真的占着位子的人：候补和已取消都不算（issue #44）
+  const signedUpCount = signups.filter((s) => s.status === "active" && s.signup !== "none").length;
+  const waitlistCount = signups.filter((s) => s.status === "waitlist").length;
+  const seatsLeft = event.capacity === null ? Infinity : Math.max(0, event.capacity - signedUpCount);
   const images = files.filter((f) => f.kind === "board_image");
   const jsons = files.filter((f) => f.kind === "script_json");
   // 「复制 JSON」是客户端组件，内容要服务端读出来传过去。JSON 上限 1 MB，可以接受。
@@ -142,9 +160,19 @@ export default async function EventDetailPage({
       <section className="card">
         <div className="card-title">
           <span>
-            👥 报名 / 出席（报名 {signups.filter((s) => s.signup !== "none").length} · 到场{" "}
-            {signups.filter((s) => s.attended !== "none").length}）
+            👥 报名 / 出席（报名 {signedUpCount} · 到场{" "}
+            {signups.filter((s) => s.attended !== "none").length}
+            {waitlistCount > 0 && ` · 候补 ${waitlistCount}`}）
           </span>
+          {event.capacity !== null && (
+            <span
+              className={`badge ${
+                seatsLeft > 0 ? "bg-ok-soft text-ok border-ok/40" : "bg-danger-soft text-danger border-danger/40"
+              }`}
+            >
+              {seatsLeft > 0 ? `还剩 ${seatsLeft} 个名额` : "名额已满"}
+            </span>
+          )}
         </div>
         {signups.length === 0 ? (
           <p className="muted">还没有人报名。</p>
@@ -176,6 +204,9 @@ export default async function EventDetailPage({
                         </span>
                       )}
                       {isCancelled(s) && <span className="badge ml-1 badge-plain">已取消</span>}
+                      {isWaitlisted(s) && (
+                        <span className="badge ml-1 border-warn/30 bg-warn-soft text-warn">候补</span>
+                      )}
                       {finished && isPartial(s) && (
                         <span className="badge ml-1 badge-plain">只到一场</span>
                       )}
@@ -222,6 +253,11 @@ export default async function EventDetailPage({
             <summary className="cursor-pointer text-sm font-medium text-brand-bright">✍️ 我要报名</summary>
             <form action={selfSignup} className="mt-3 space-y-3">
               <input type="hidden" name="eventId" value={event.id} />
+              {event.capacity !== null && seatsLeft === 0 && (
+                <p className="rounded-lg border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">
+                  名额已满（{event.capacity} 人）。还是可以提交，你会排进候补，前面有人取消就自动补上。
+                </p>
+              )}
               <div>
                 <label className="label">你的昵称</label>
                 <NicknameInput defaultValue={myName} />
@@ -292,9 +328,18 @@ export default async function EventDetailPage({
       {(scriptPolls.length > 0 || admin) && (
         <section className="card">
           <div className="card-title">
-            <span className="inline-flex items-center gap-2">
+            <span className="inline-flex flex-wrap items-center gap-2">
               <NavIcon name="book" className="size-[18px]" />
               板子投票
+              {/* 状态和已投人数挪到标题旁边，右边留给「我要投票」（issue #44） */}
+              {scriptPolls.map((sp2) => (
+                <span key={sp2.id} className={`badge ${SCRIPT_POLL_STATUS_CLASS[sp2.status]}`}>
+                  {SCRIPT_POLL_STATUS_LABEL[sp2.status]}
+                </span>
+              ))}
+              {scriptPollVoters > 0 && (
+                <span className="text-xs font-normal text-muted">{scriptPollVoters} 人已投</span>
+              )}
             </span>
           </div>
           {scriptPolls.length === 0 ? (
@@ -302,12 +347,18 @@ export default async function EventDetailPage({
           ) : (
             <ul className="space-y-2">
               {scriptPolls.map((sp2) => (
-                <li key={sp2.id}>
-                  <Link href={`/script-polls/${sp2.id}`} className="flex items-center justify-between gap-2 rounded-lg border border-line p-2 text-sm">
-                    <span className="font-medium text-ink">{sp2.title}</span>
-                    <span className="badge badge-plain shrink-0">
-                      {sp2.status === "open" ? "投票中" : sp2.status === "locked" ? "已锁定" : "已定下"}
-                    </span>
+                <li
+                  key={sp2.id}
+                  className="flex items-center justify-between gap-2 rounded-lg border border-line p-2 text-sm"
+                >
+                  <Link href={`/script-polls/${sp2.id}`} className="min-w-0 flex-1 truncate font-medium text-ink">
+                    {sp2.title}
+                  </Link>
+                  <Link
+                    href={`/script-polls/${sp2.id}`}
+                    className={`btn btn-sm shrink-0 ${sp2.status === "open" ? "btn-primary" : ""}`}
+                  >
+                    {sp2.status === "open" ? "我要投票 →" : "看结果 →"}
                   </Link>
                 </li>
               ))}
@@ -623,6 +674,16 @@ export default async function EventDetailPage({
               <div>
                 <label className="label">日期</label>
                 <input className="input" type="date" name="date" defaultValue={event.date} required />
+              </div>
+              <div>
+                <label className="label">报名人数上限（留空 = 不限）</label>
+                <input
+                  className="input"
+                  type="number"
+                  name="capacity"
+                  min={1}
+                  defaultValue={event.capacity ?? ""}
+                />
               </div>
               <div>
                 <label className="label">标题</label>

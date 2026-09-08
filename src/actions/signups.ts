@@ -1,10 +1,10 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { eventSignups, events, SESSIONS, type Session } from "@/db/schema";
+import { SESSIONS, eventSignups, events, players, type Session } from "@/db/schema";
 import { getAdmin, requireAdmin } from "@/lib/auth";
 import { JOIN_HINT } from "@/lib/contact";
 import { errMsg, num, optStr, str, withMsg } from "@/lib/form";
@@ -17,10 +17,49 @@ function asSession(v: string, fallback: Session = "full"): Session {
   return (SESSIONS as readonly string[]).includes(v) ? (v as Session) : fallback;
 }
 
+/**
+ * 名额：活动可以设一个整场上限（events.capacity），先报先得。
+ * 满了之后新报名进候补（status = waitlist），有人取消就按报名先后自动补上。
+ */
+function activeSignupCount(eventId: number): number {
+  return db
+    .select({ id: eventSignups.id })
+    .from(eventSignups)
+    .where(
+      and(
+        eq(eventSignups.eventId, eventId),
+        eq(eventSignups.status, "active"),
+        ne(eventSignups.signup, "none"),
+      ),
+    )
+    .all().length;
+}
+
+/** 有位子空出来时，把候补里最早的一个补上 */
+function promoteFromWaitlist(eventId: number): string | null {
+  const ev = db.select().from(events).where(eq(events.id, eventId)).get();
+  if (!ev?.capacity) return null;
+  if (activeSignupCount(eventId) >= ev.capacity) return null;
+  const next = db
+    .select({ id: eventSignups.id, playerId: eventSignups.playerId })
+    .from(eventSignups)
+    .where(and(eq(eventSignups.eventId, eventId), eq(eventSignups.status, "waitlist")))
+    .orderBy(eventSignups.id)
+    .get();
+  if (!next) return null;
+  db.update(eventSignups)
+    .set({ status: "active", updatedAt: new Date().toISOString() })
+    .where(eq(eventSignups.id, next.id))
+    .run();
+  const p = db.select({ name: players.name }).from(players).where(eq(players.id, next.playerId)).get();
+  return p?.name ?? null;
+}
+
 /** SIGN-01：玩家自助报名（再次提交覆盖） */
 export async function selfSignup(fd: FormData): Promise<void> {
   const eventId = num(fd, "eventId");
   const back = `/events/${eventId}`;
+  let waitlisted = false;
   try {
     await assertWriteRate("signup");
     const ev = db.select().from(events).where(eq(events.id, eventId)).get();
@@ -29,25 +68,46 @@ export async function selfSignup(fd: FormData): Promise<void> {
     const player = findOrCreatePlayer(str(fd, "nickname"));
     const signup = asSession(str(fd, "session"));
     const note = optStr(fd, "note");
+
+    // 已经占着位子的人改报名场次，不该被自己挤到候补里去
+    const mine = db
+      .select({ status: eventSignups.status, signup: eventSignups.signup })
+      .from(eventSignups)
+      .where(and(eq(eventSignups.eventId, eventId), eq(eventSignups.playerId, player.id)))
+      .get();
+    const holdsSeat = mine?.status === "active" && mine.signup !== "none";
+    const full =
+      ev.capacity !== null && !holdsSeat && activeSignupCount(eventId) >= ev.capacity;
+    const status = full ? "waitlist" : "active";
+
     db.insert(eventSignups)
-      .values({ eventId, playerId: player.id, signup, signupNote: note, source: "self", status: "active" })
+      .values({ eventId, playerId: player.id, signup, signupNote: note, source: "self", status })
       .onConflictDoUpdate({
         target: [eventSignups.eventId, eventSignups.playerId],
         set: {
           signup,
           signupNote: note,
-          status: "active",
+          status,
           cancelledAt: null,
           updatedAt: new Date().toISOString(),
         },
       })
       .run();
+    waitlisted = full;
   } catch (e) {
     redirect(withMsg(back, errMsg(e)));
   }
   revalidatePath(back);
   revalidatePath("/events");
-  redirect(withMsg(back, `报名成功。${JOIN_HINT}`, "ok"));
+  redirect(
+    withMsg(
+      back,
+      waitlisted
+        ? `名额已满，你排进了候补。有人取消就自动补上你。${JOIN_HINT}`
+        : `报名成功。${JOIN_HINT}`,
+      "ok",
+    ),
+  );
 }
 
 export async function cancelSignup(fd: FormData): Promise<void> {
@@ -73,9 +133,18 @@ export async function cancelSignup(fd: FormData): Promise<void> {
   } catch (e) {
     redirect(withMsg(back, errMsg(e)));
   }
+  const promoted = promoteFromWaitlist(eventId);
   revalidatePath(back);
   revalidatePath("/events");
-  redirect(withMsg(back, "已取消报名。放鸽子会记一笔，情况特殊可以找管理员免掉", "ok"));
+  redirect(
+    withMsg(
+      back,
+      promoted
+        ? `已取消报名。空出来的位子给了候补里的${promoted}。放鸽子会记一笔，情况特殊可以找管理员免掉`
+        : "已取消报名。放鸽子会记一笔，情况特殊可以找管理员免掉",
+      "ok",
+    ),
+  );
 }
 
 /** SIGN-04：管理员点选出席状态，客户端 startTransition 调用 */
@@ -131,8 +200,15 @@ export async function removeSignup(fd: FormData): Promise<void> {
   const eventId = num(fd, "eventId");
   db.delete(eventSignups).where(eq(eventSignups.id, id)).run();
   logAudit(admin.id, "signup.delete", "event_signup", id);
+  const promoted = promoteFromWaitlist(eventId);
   revalidatePath(`/events/${eventId}`);
-  redirect(withMsg(`/events/${eventId}`, "已从名单里移除", "ok"));
+  redirect(
+    withMsg(
+      `/events/${eventId}`,
+      promoted ? `已移除，候补里的${promoted}补上了` : "已从名单里移除",
+      "ok",
+    ),
+  );
 }
 
 /** SIGN-02：接龙预览确认后批量写入。rows 由客户端解析后以 JSON 提交。 */
@@ -213,6 +289,13 @@ export async function adminCancelSignup(fd: FormData): Promise<void> {
     .where(eq(eventSignups.id, id))
     .run();
   logAudit(admin.id, "signup.cancel", "event_signup", id);
+  const promoted = promoteFromWaitlist(eventId);
   revalidatePath(`/events/${eventId}`);
-  redirect(withMsg(`/events/${eventId}`, "已标记为取消报名", "ok"));
+  redirect(
+    withMsg(
+      `/events/${eventId}`,
+      promoted ? `已标记为取消报名，候补里的${promoted}补上了` : "已标记为取消报名",
+      "ok",
+    ),
+  );
 }

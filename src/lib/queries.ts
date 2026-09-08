@@ -673,6 +673,16 @@ export function scriptPollsForEvent(eventId: number) {
     .all();
 }
 
+/** 这场投票有多少人投过（人数，不是票数）。活动页只露这个数 */
+export function scriptPollVoterCount(pollId: number): number {
+  const rows = db
+    .select({ playerId: scriptPollVotes.playerId })
+    .from(scriptPollVotes)
+    .where(eq(scriptPollVotes.pollId, pollId))
+    .all();
+  return new Set(rows.map((r) => r.playerId)).size;
+}
+
 /** 某人在这场投票里选了哪些，用来回显 */
 export function scriptVotesOf(pollId: number, playerId: number): number[] {
   return db

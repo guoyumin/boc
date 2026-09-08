@@ -26,8 +26,11 @@ export type Rarity = (typeof RARITIES)[number];
 export const POLL_RESPONSE_STATUSES = ["active", "withdrawn"] as const;
 export type PollResponseStatus = (typeof POLL_RESPONSE_STATUSES)[number];
 
-/** 报名状态：active 有效，cancelled 本人取消（记录保留，算鸽） */
-export const SIGNUP_STATUSES = ["active", "cancelled"] as const;
+/**
+ * 报名状态：active 有效，cancelled 本人取消（记录保留，算鸽），
+ * waitlist 名额满了排候补（不算报上，也不算鸽）
+ */
+export const SIGNUP_STATUSES = ["active", "cancelled", "waitlist"] as const;
 export type SignupStatus = (typeof SIGNUP_STATUSES)[number];
 /** 账号角色 */
 export const USER_ROLES = ["member", "admin", "owner"] as const;
@@ -178,6 +181,8 @@ export const events = sqliteTable(
     location: text("location"),
     startTime: text("start_time"),
     note: text("note"),
+    /** 报名人数上限（整场一个数）；null = 不限 */
+    capacity: integer("capacity"),
     hasAfternoon: integer("has_afternoon").notNull().default(1),
     hasEvening: integer("has_evening").notNull().default(1),
     status: text("status").notNull().default("planned"), // planned | done | cancelled

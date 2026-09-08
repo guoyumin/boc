@@ -91,7 +91,7 @@ export default async function ScriptPollPage({
 
       <section className="card">
         <div className="card-title">
-          <span>结果（{voterCount} 人投过）</span>
+          <span>{admin ? `结果（${voterCount} 人投过）` : `候选板子（${voterCount} 人投过）`}</span>
           {admin && missingImages > 0 && (
             <span className="badge badge-plain">{missingImages} 个本还没配图</span>
           )}
@@ -101,7 +101,8 @@ export default async function ScriptPollPage({
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {options.map((o) => {
-              const top = o.votes === best && best > 0;
+              // 非管理员看不到票数，自然也不能靠高亮猜出谁领先
+              const top = admin && o.votes === best && best > 0;
               return (
                 <li
                   key={o.id}
@@ -127,9 +128,11 @@ export default async function ScriptPollPage({
                   <div className={`p-3 ${top ? "bg-brand-soft" : "bg-surface"}`}>
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="font-medium text-ink">{o.name}</span>
-                      <span className={`shrink-0 text-sm ${top ? "text-brand-bright" : "text-muted"}`}>
-                        {o.votes} 票
-                      </span>
+                      {admin && (
+                        <span className={`shrink-0 text-sm ${top ? "text-brand-bright" : "text-muted"}`}>
+                          {o.votes} 票
+                        </span>
+                      )}
                     </div>
                     {o.note && <p className="muted mt-1">{o.note}</p>}
                     {o.scriptFileId && (
@@ -137,8 +140,8 @@ export default async function ScriptPollPage({
                         剧本 JSON
                       </a>
                     )}
-                    {/* 结果全程公开，谁投的也列出来 */}
-                    {o.voters.length > 0 && (
+                    {/* 谁投了什么只有管理员看得到（issue #44） */}
+                    {admin && o.voters.length > 0 && (
                       <p className="mt-1 text-xs text-faint">{o.voters.join("、")}</p>
                     )}
                     {admin && (
@@ -223,6 +226,12 @@ export default async function ScriptPollPage({
           </details>
         )}
       </section>
+
+      {!admin && (
+        <p className="muted -mt-1">
+          票数只有管理员看得到，免得大家跟着票走。投完可以随时回来改。
+        </p>
+      )}
 
       {poll.status === "open" ? (
         <section className="card">
