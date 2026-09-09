@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Flash from "@/components/Flash";
+import RoleIcon from "@/components/RoleIcon";
 import { reviewClaim } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
@@ -89,8 +90,9 @@ export default async function AdminHome({
               <li key={c.claimId} className="rounded-lg border border-line p-2">
                 <p className="text-sm">
                   <span className="font-medium">{c.playerName}</span> 宣告了{" "}
-                  <span className="font-medium">
-                    {c.icon} {c.achievementName}
+                  <span className="inline-flex items-center gap-1 font-medium">
+                    <RoleIcon role={c.role} className="size-4" />
+                    {c.achievementName}
                   </span>
                 </p>
                 {c.note && <p className="muted">{c.note}</p>}

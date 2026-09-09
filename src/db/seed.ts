@@ -17,7 +17,6 @@ import {
 } from "./schema";
 import { ACHIEVEMENT_SEEDS } from "./achievements-data";
 import { addDays, formatMd, nextSaturday, pollTitle } from "@/lib/dates";
-import { roleIcon } from "@/lib/labels";
 import { cleanName, normalizeName } from "@/lib/names";
 
 type DB = BetterSQLite3Database<typeof schema>;
@@ -93,7 +92,6 @@ export function seedAchievements(db: DB): void {
       .values({
         name: a.name,
         description: a.condition,
-        icon: roleIcon(a.role),
         role: a.role,
         rarity: a.rarity,
         scriptName: null, // 全局成就；剧本专属成就以后从飞书的对应标签页导入

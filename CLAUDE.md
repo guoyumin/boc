@@ -43,10 +43,11 @@
 npm run dev              # 开发；SEED_DEMO=1 npm run dev 载入演示数据
 npm run build            # 生产构建（output: standalone）
 npm run lint             # eslint
-npm test                 # vitest（接龙解析、剧本 JSON 解析）
+npm test                 # vitest（接龙解析、剧本 JSON 解析、成就表格导入）
 npx tsc --noEmit         # 类型检查
 npx drizzle-kit generate # 改完 schema 生成迁移
 npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
+npm run gen:roles        # 从官方仓库同步角色表与角色图标（官方出新角色时跑）
 ```
 
 ## 目录
@@ -55,9 +56,9 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
 |---|---|
 | `src/app/` | 页面。`(play)/` 功能站（公开页 + `admin/` 后台）、`www/` 社团主页，两站按 Host 分流 |
 | `src/actions/` | Server Actions，按领域分文件（polls / events / signups / games / achievements / files / account / players） |
-| `src/lib/` | `auth` 会话、`players` 昵称匹配、`jielong` 接龙解析（纯函数）、`dates`、`labels` 中文映射、角色 emoji、稀有度与鸽子判定、`queries` 读查询、`storage` 上传落盘、`script-json` 剧本解析、`rate-limit`、`form` FormData 工具、`hosts` 两站域名判定、`urls` 跨站链接 |
+| `src/lib/` | `auth` 会话、`players` 昵称匹配、`jielong` 接龙解析（纯函数）、`dates`、`labels` 中文映射、稀有度与鸽子判定、`roles` 角色名/阵营/图标（数据在自动生成的 `roles-data.ts`）、`achievements-csv` 成就表格导入导出（纯函数）、`queries` 读查询、`storage` 上传落盘、`script-json` 剧本解析、`rate-limit`、`form` FormData 工具、`hosts` 两站域名判定、`urls` 跨站链接 |
 | `src/db/` | `schema.ts`（数据模型权威定义）、`index.ts`（连接 + 迁移 + seed）、`seed.ts`、`achievements-data.ts`（自动生成，别手改） |
-| `scripts/` | `gen-achievements.ts`（TSV → 成就种子）、`backup.sh` / `restore.sh`（VPS 上跑） |
+| `scripts/` | `gen-achievements.ts`（TSV → 成就种子）、`gen-roles.ts`（官方角色表 → `roles-data.ts` + 图标）、`backup.sh` / `restore.sh`（VPS 上跑） |
 | `drizzle/` | 迁移文件，**要提交进 git** |
 | `deploy/` | compose、nginx site、部署说明 |
 
@@ -71,6 +72,13 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
   `/admin/achievements` 后台，或者在生产库上直接 SQL 改——改 TSV 对已有的库没有任何作用。
   仍然要维护 TSV 的场景只有一个：将来重建空库时种子得是对的。改了 TSV 记得跑
   `npm run gen:achievements` 并把生成的 TS 一起提交，生成的文件别手改。
+  后台可以**导出**一份种子 TSV（`/admin/achievements/export?format=tsv`）覆盖回仓库，
+  这是让种子跟上库的正路；注意普通档一律导成 1 星（1★ 和 2★ 进库时就并档了）。
+- **成就的批量导入只新增，不改也不删**（`importAchievements`）。名字命中已有的直接跳过，
+  判重前先归一化（去空格、全角引号当半角）——`“无恶不做”` 这种名字复制一趟引号就变了。
+  解析规则在 `src/lib/achievements-csv.ts`，**浏览器预览和服务端写库跑的是同一个函数**
+  （表单交上去的是整份表格原文，不是浏览器解析好的行），预览里说会导什么就一定导什么。
+  改成就仍然是后台单条编辑，删成就仍然一条条点——批量删会级联删掉所有宣告记录。
 - 上传的文件在 `UPLOAD_DIR`（默认 `./data/uploads`），路径是 `{活动 id}/{uuid}.{ext}`，
   永远不用用户给的文件名做路径。图片上传要过 sharp（去 EXIF + 缩略图），类型按 magic bytes 判断。
   改上传大小上限时，`next.config.ts` 的 `serverActions.bodySizeLimit` 和 nginx 的
@@ -135,13 +143,21 @@ npm run gen:achievements # 改完 docs/achievements.tsv 重新生成成就数据
   `bg-brand-soft` / `border-brand-line`，状态 `ok` / `warn` / `danger`，稀有度
   `rare` / `epic` / `legend`。**别再写 `bg-white`、`text-stone-*` 这类固定色**。
   标题用 `.display` / `.page-title`（系统衬线栈，不加载字体文件），配 `.eyebrow` 小字英文。
-- 角色图标是官方美术，放在 `public/roles/<英文 id>.webp`（trim 掉留白后统一 128px）。
-  中文角色名 → 英文 id 的映射在 `src/lib/roles.ts`，页面里用 `<RoleIcon role=... />`，
-  别再往界面上写角色 emoji。导航图标用 `<NavIcon>` 的线图，同样不用 emoji。
+- **角色表是生成的，别手写**。`src/lib/roles-data.ts`（177 个官方角色：英文 id、简体中文名、
+  team）由 `npm run gen:roles` 从 TPI 官方仓库拉下来，同时把角色美术处理成
+  `public/roles/<英文 id>.webp`（trim 掉留白后统一 128px，好人版取蓝、坏人版取红）。
+  `src/lib/roles.ts` 只放在这份数据上派生的逻辑（中文名 → id、阵营、图标路径）。
+  官方出新角色就重跑脚本并提交生成的文件，**不要**往映射表里手加一条。
+  `public/roles/generic.webp`（「通用」的门环纹样）是我们自己的，脚本不碰。
+  页面里用 `<RoleIcon role=... />`，别再往界面上写角色 emoji；导航图标用 `<NavIcon>` 的线图。
+- 新建 / 编辑成就时角色是**下拉选**（`AchievementFields` 里的 `RoleSelect`），选完图标自动对上，
+  非官方角色走「其他（手填）」。下拉有 177 个选项，所以后台列表里每条成就的编辑表单是
+  **点开才渲染**的（`AchievementEditor`）——全部预渲染的话光 option 就上万个。
+  `achievements.icon`（emoji）这个字段已经废弃：不再读也不再写，界面上一律用角色图标。
 - 成就墙的筛选是**三个独立维度**（排序 role/rarity/time × 阵营 all/good/evil × 状态 all/unlocked/locked），
   互相可组合，切换一个不影响其余；后台成就管理页有搜索（`?q=`，搜名字/条件/角色/剧本）
-  加同样的阵营与稀有度筛选。阵营映射在 `src/lib/roles.ts` 的 `ROLE_TEAM`（镇民+外来者=蓝方，
-  爪牙+恶魔=红方，「通用」没有阵营），加角色时记得补一条。
+  加同样的阵营与稀有度筛选。阵营由官方的 team 字段派生（镇民+外来者=蓝方，爪牙+恶魔=红方；
+  旅行者、传奇、规则牌和「通用」都不算红蓝），不用手工维护。
 - 成就卡（`src/components/AchievementCard.tsx`）的颜色全部来自卡片根节点上的
   `data-skin` / `data-rarity`，组件里不写死颜色。**加皮肤只要在 `globals.css` 里加一个
   `[data-skin="xxx"]` 块**，再往 `src/lib/skins.ts` 的 `SKINS` / `SKIN_LABEL` 各加一条，

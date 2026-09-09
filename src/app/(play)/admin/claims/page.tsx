@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
 import Flash from "@/components/Flash";
+import RoleIcon from "@/components/RoleIcon";
 import { reviewClaim } from "@/actions/achievements";
 import { db } from "@/db";
 import { achievementClaims, achievements, players } from "@/db/schema";
@@ -22,7 +23,7 @@ export default async function AdminClaimsPage({
       id: achievementClaims.id,
       status: achievementClaims.status,
       name: achievements.name,
-      icon: achievements.icon,
+      role: achievements.role,
       playerName: players.name,
       reviewNote: achievementClaims.reviewNote,
     })
@@ -52,8 +53,12 @@ export default async function AdminClaimsPage({
                     {c.playerName}
                   </Link>{" "}
                   宣告了{" "}
-                  <Link href={`/achievements/${c.achievementId}`} className="font-medium text-brand-bright">
-                    {c.icon} {c.achievementName}
+                  <Link
+                    href={`/achievements/${c.achievementId}`}
+                    className="inline-flex items-center gap-1 font-medium text-brand-bright"
+                  >
+                    <RoleIcon role={c.role} className="size-4" />
+                    {c.achievementName}
                   </Link>
                 </p>
                 {c.note && <p className="muted mt-1">{c.note}</p>}
@@ -95,8 +100,9 @@ export default async function AdminClaimsPage({
           <ul className="space-y-1 text-sm">
             {handled.map((h) => (
               <li key={h.id} className="flex items-center justify-between gap-2">
-                <span>
-                  {h.icon} {h.name} · {h.playerName}
+                <span className="inline-flex items-center gap-1">
+                  <RoleIcon role={h.role} className="size-4" />
+                  {h.name} · {h.playerName}
                 </span>
                 <span className="badge badge-plain">{CLAIM_STATUS_LABEL[h.status]}</span>
               </li>

@@ -268,7 +268,7 @@ erDiagram
 |---|---|---|
 | name | text unique | 成就名称 |
 | description | text | 达成条件 |
-| icon | text | emoji，默认跟所属角色走 |
+| icon | text | 已废弃的 emoji 字段，不再读写；界面上一律用 `role` 对应的官方角色图标 |
 | role | text | 角色名，如 `通用` / `厨师` / `麻脸巫婆`，与 `docs/achievements.tsv` 一致 |
 | rarity | text | `common` / `rare` / `epic` / `legendary`，积分 1 / 3 / 5 / 10 |
 | script_name | text null | 剧本专属成就的剧本名；null = 全局成就 |
@@ -327,10 +327,14 @@ boc/
 │   │   ├── jielong.ts         # 接龙文本解析（EVT-07）
 │   │   ├── hosts.ts           # 两站域名常量与分流判定（proxy 也 import）
 │   │   ├── urls.ts            # wwwUrl() / playUrl() 跨站链接
-│   │   └── labels.ts          # 中文映射、角色 emoji、稀有度工具
+│   │   ├── labels.ts          # 中文映射、稀有度工具
+│   │   ├── roles.ts           # 角色名 ↔ 官方 id ↔ 阵营 ↔ 图标（数据在 roles-data.ts）
+│   │   ├── roles-data.ts      # 自动生成：177 个官方角色
+│   │   └── achievements-csv.ts # 成就表格导入导出（纯函数，客户端也用）
 │   └── actions/               # Server Actions，按领域分文件
 ├── scripts/
-│   └── gen-achievements.ts    # docs/achievements.tsv → src/db/achievements-data.ts
+│   ├── gen-achievements.ts    # docs/achievements.tsv → src/db/achievements-data.ts
+│   └── gen-roles.ts           # 官方角色表 → src/lib/roles-data.ts + public/roles/*.webp
 ├── deploy/
 │   ├── docker-compose.yml
 │   ├── Caddyfile
