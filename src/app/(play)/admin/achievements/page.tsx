@@ -1,117 +1,25 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import ConfirmSubmit from "@/components/ConfirmSubmit";
+import AchievementEditor from "@/components/AchievementEditor";
+import AchievementFields from "@/components/AchievementFields";
 import Flash from "@/components/Flash";
+import NavIcon from "@/components/NavIcon";
 import RoleIcon from "@/components/RoleIcon";
 import { RARITIES, type Rarity } from "@/db/schema";
 import { roleTeam } from "@/lib/roles";
 import RarityBadge from "@/components/RarityBadge";
-import { deleteAchievement, grantAchievement, saveAchievement } from "@/actions/achievements";
+import { grantAchievement, saveAchievement } from "@/actions/achievements";
 import { getAdmin } from "@/lib/auth";
-import { RARITY_LABEL, RARITY_OPTIONS, asRarity } from "@/lib/labels";
-import {
-  achievementRoles,
-  confirmedUnlockMap,
-  groupByRole,
-  groupByScript,
-  listAchievements,
-} from "@/lib/queries";
+import { RARITY_LABEL, asRarity } from "@/lib/labels";
+import { confirmedUnlockMap, groupByRole, groupByScript, listAchievements } from "@/lib/queries";
 
 type Ach = ReturnType<typeof listAchievements>[number];
-
-function Fields({ a }: { a?: Ach }) {
-  return (
-    <>
-      <div className="grid grid-cols-[4rem_1fr] gap-2">
-        <div>
-          <label className="label">图标</label>
-          <input className="input text-center" name="icon" defaultValue={a?.icon ?? ""} maxLength={4} placeholder="按角色" />
-        </div>
-        <div>
-          <label className="label">名称</label>
-          <input className="input" name="name" defaultValue={a?.name ?? ""} maxLength={30} required />
-        </div>
-      </div>
-      <div>
-        <label className="label">达成条件</label>
-        <textarea
-          className="input"
-          name="description"
-          rows={2}
-          defaultValue={a?.description ?? ""}
-          maxLength={200}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="label">角色</label>
-          <input
-            className="input"
-            name="role"
-            list="ach-roles"
-            defaultValue={a?.role ?? "通用"}
-            maxLength={20}
-            placeholder="通用 / 厨师 / 麻脸巫婆"
-          />
-        </div>
-        <div>
-          <label className="label">稀有度</label>
-          <select className="input" name="rarity" defaultValue={a?.rarity ?? "common"}>
-            {RARITY_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div>
-        <label className="label">剧本专属（留空 = 全局成就）</label>
-        <input
-          className="input"
-          name="scriptName"
-          defaultValue={a?.scriptName ?? ""}
-          maxLength={40}
-          placeholder="宏伟岩廊"
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="label">排序</label>
-          <input className="input" name="sortOrder" type="number" defaultValue={a?.sortOrder ?? 100} />
-        </div>
-        <div className="flex items-end gap-4 pb-2">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="hidden"
-              value="1"
-              defaultChecked={a?.hidden === 1}
-              className="h-4 w-4 accent-[#8b1e2d]"
-            />
-            隐藏
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="active"
-              value="1"
-              defaultChecked={a ? a.active === 1 : true}
-              className="h-4 w-4 accent-[#8b1e2d]"
-            />
-            上架
-          </label>
-        </div>
-      </div>
-    </>
-  );
-}
 
 function Item({ a, owners }: { a: Ach; owners: number }) {
   return (
     <li className="card">
       <div className="flex items-start gap-2">
-        <span className="text-2xl leading-none">{a.icon}</span>
+        <RoleIcon role={a.role} className="size-8" />
         <div className="min-w-0 flex-1">
           <p className="font-medium text-ink">
             {a.name}
@@ -126,22 +34,19 @@ function Item({ a, owners }: { a: Ach; owners: number }) {
         </div>
       </div>
 
-      <details className="mt-2">
-        <summary className="cursor-pointer text-sm text-brand-bright">编辑</summary>
-        <form action={saveAchievement} className="mt-3 space-y-3">
-          <input type="hidden" name="achievementId" value={a.id} />
-          <Fields a={a} />
-          <button type="submit" className="btn btn-primary btn-block">
-            保存
-          </button>
-        </form>
-        <form action={deleteAchievement} className="mt-2">
-          <input type="hidden" name="achievementId" value={a.id} />
-          <ConfirmSubmit message={`删除成就「${a.name}」？相关宣告也会一起删掉。`}>
-            删除成就
-          </ConfirmSubmit>
-        </form>
-      </details>
+      <AchievementEditor
+        id={a.id}
+        a={{
+          name: a.name,
+          description: a.description,
+          role: a.role,
+          rarity: a.rarity,
+          scriptName: a.scriptName,
+          hidden: a.hidden,
+          sortOrder: a.sortOrder,
+          active: a.active,
+        }}
+      />
 
       <form action={grantAchievement} className="mt-2 flex gap-2">
         <input type="hidden" name="achievementId" value={a.id} />
@@ -170,7 +75,6 @@ export default async function AdminAchievementsPage({
   if (!(await getAdmin())) redirect("/admin/login");
   const list = listAchievements(true);
   const unlocks = confirmedUnlockMap();
-  const roles = achievementRoles();
 
   // 搜索 + 筛选（issue #41）：成就越来越多，一屏一屏翻太慢
   const q = (sp.q ?? "").trim().toLowerCase();
@@ -197,24 +101,34 @@ export default async function AdminAchievementsPage({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="page-title">成就管理</h1>
-        <Link href="/achievements" className="btn btn-sm">
-          看成就墙
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/admin/achievements/import" className="btn btn-sm btn-primary">
+            批量新增
+          </Link>
+          <Link href="/achievements" className="btn btn-sm">
+            看成就墙
+          </Link>
+        </div>
       </div>
       <Flash err={sp.err} ok={sp.ok} />
-
-      <datalist id="ach-roles">
-        {roles.map((r) => (
-          <option key={r} value={r} />
-        ))}
-      </datalist>
 
       <p className="muted">
         {shown.length === list.length
           ? `共 ${list.length} 个成就。`
           : `筛出 ${shown.length} 个（全部 ${list.length} 个）。`}
-        正式清单来自 <code>docs/achievements.tsv</code>，在这里的改动只影响数据库，不会写回那份表。
+        改动只写进数据库；<code>docs/achievements.tsv</code> 只是空库首次导入的种子，
+        要同步它就导出一份种子 TSV 覆盖过去。
       </p>
+
+      <div className="flex flex-wrap gap-2">
+        <a href="/admin/achievements/export" className="btn btn-sm">
+          导出 CSV（全量）
+        </a>
+        <a href="/admin/achievements/export?format=tsv" className="btn btn-sm">
+          导出种子 TSV
+        </a>
+        <span className="self-center text-xs text-faint">种子 TSV 里普通档一律写成 1 星（1★ 和 2★ 进来时就并档了）</span>
+      </div>
 
       {/* 搜索走 GET，刷新和分享链接都能保持筛选状态 */}
       <div className="card space-y-3">
@@ -283,7 +197,7 @@ export default async function AdminAchievementsPage({
       <details className="card">
         <summary className="cursor-pointer text-sm font-medium text-brand-bright">＋ 新建成就</summary>
         <form action={saveAchievement} className="mt-3 space-y-3">
-          <Fields />
+          <AchievementFields />
           <button type="submit" className="btn btn-primary btn-block">
             创建
           </button>
@@ -306,7 +220,7 @@ export default async function AdminAchievementsPage({
       {scripts.map((g) => (
         <section key={g.scriptName}>
           <h2 className="section-title">
-            📕 剧本专属 · {g.scriptName}（{g.items.length}）
+            <NavIcon name="book" className="size-4" /> 剧本专属 · {g.scriptName}（{g.items.length}）
           </h2>
           <ul className="space-y-2">
             {g.items.map((a) => (

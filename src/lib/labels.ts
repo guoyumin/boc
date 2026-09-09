@@ -78,36 +78,6 @@ export function rarityPoints(v: string): number {
   return RARITY_POINTS[asRarity(v)];
 }
 
-export const ROLE_ICON: Record<string, string> = {
-  通用: "🎭",
-  厨师: "👨‍🍳",
-  贵族: "👑",
-  共情者: "💞",
-  舞蛇人: "🐍",
-  数学家: "🧮",
-  僧侣: "🧘",
-  赌徒: "🎲",
-  半兽人: "🐺",
-  女裁缝: "🧵",
-  哲学家: "📜",
-  炼金术士: "⚗️",
-  农夫: "🌾",
-  管家: "🎩",
-  解谜大师: "🧩",
-  疯子: "🤪",
-  食人魔: "👹",
-  麻脸巫婆: "🧙",
-  魔鬼代言人: "😈",
-  鹰身女妖: "🦅",
-  哥布林: "👺",
-  痢蛭: "🩸",
-  精神病患者: "🔪",
-};
-
-export function roleIcon(role: string): string {
-  return ROLE_ICON[role] ?? "🏆";
-}
-
 export const EVENT_STATUS_LABEL: Record<string, string> = {
   planned: "计划中",
   done: "已结束",

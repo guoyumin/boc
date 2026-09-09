@@ -9,7 +9,8 @@
     "lint": "eslint",
     "gen:achievements": "tsx scripts/gen-achievements.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "gen:roles": "tsx scripts/gen-roles.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

@@ -8,6 +8,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import { starsToRarity } from "@/lib/achievements-csv";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const SRC = path.join(ROOT, "docs/achievements.tsv");
@@ -32,17 +33,6 @@ type Row = {
   firstDateNote: string | null;
   firstPlayer: string | null;
 };
-
-/**
- * 飞书表里稀有度是 1–5 星，站内用四档。映射：1–2 星普通，3 星稀有，4 星史诗，5 星传说。
- * 改这个映射会影响所有成就的档位与积分。
- */
-function starsToRarity(stars: number): string {
-  if (stars >= 5) return "legendary";
-  if (stars === 4) return "epic";
-  if (stars === 3) return "rare";
-  return "common";
-}
 
 function fail(line: number, msg: string): never {
   console.error(`[gen:achievements] docs/achievements.tsv 第 ${line} 行：${msg}`);

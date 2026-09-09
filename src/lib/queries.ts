@@ -286,7 +286,6 @@ export type UnlockView = {
   claimId: number;
   achievementId: number;
   achievementName: string;
-  icon: string;
   rarity: string;
   role: string;
   playerId: number;
@@ -304,7 +303,6 @@ function claimQuery() {
       claimId: achievementClaims.id,
       achievementId: achievements.id,
       achievementName: achievements.name,
-      icon: achievements.icon,
       rarity: achievements.rarity,
       role: achievements.role,
       hidden: achievements.hidden,
@@ -357,16 +355,6 @@ export function listAchievements(includeInactive = false): Achievement[] {
 
 export function getAchievement(id: number): Achievement | null {
   return db.select().from(achievements).where(eq(achievements.id, id)).get() ?? null;
-}
-
-/** 成就管理页用的角色候选（datalist） */
-export function achievementRoles(): string[] {
-  const rows = db
-    .select({ role: achievements.role })
-    .from(achievements)
-    .orderBy(achievements.sortOrder, achievements.id)
-    .all();
-  return [...new Set(rows.map((r) => r.role).filter(Boolean))];
 }
 
 export type AchievementGroup = { role: string; items: Achievement[] };
