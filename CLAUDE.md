@@ -72,8 +72,6 @@ npm run gen:roles        # 从官方仓库同步角色表与角色图标（官�
   `/admin/achievements` 后台，或者在生产库上直接 SQL 改——改 TSV 对已有的库没有任何作用。
   仍然要维护 TSV 的场景只有一个：将来重建空库时种子得是对的。改了 TSV 记得跑
   `npm run gen:achievements` 并把生成的 TS 一起提交，生成的文件别手改。
-  后台可以**导出**一份种子 TSV（`/admin/achievements/export?format=tsv`）覆盖回仓库，
-  这是让种子跟上库的正路；注意普通档一律导成 1 星（1★ 和 2★ 进库时就并档了）。
 - **成就的批量导入只新增，不改也不删**（`importAchievements`）。名字命中已有的直接跳过，
   判重前先归一化（去空格、全角引号当半角）——`“无恶不做”` 这种名字复制一趟引号就变了。
   解析规则在 `src/lib/achievements-csv.ts`，**浏览器预览和服务端写库跑的是同一个函数**

@@ -115,11 +115,6 @@ describe("parseAchievementsTable", () => {
 });
 
 describe("toDelimited", () => {
-  it("种子 TSV 不带 BOM、用 LF，免得覆盖回仓库时整个文件都算改过", () => {
-    const out = toDelimited([["a", "b"], [1, 2]], "\t", { bom: false, eol: "\n" });
-    expect(out).toBe("a\tb\n1\t2\n");
-  });
-
   it("带 BOM，字段里的引号和分隔符会转义", () => {
     const out = toDelimited(
       [

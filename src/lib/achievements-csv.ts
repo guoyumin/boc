@@ -276,16 +276,7 @@ function csvCell(v: string | number | null, sep: string): string {
     : s;
 }
 
-/**
- * 序列化。CSV 给人用 Excel 打开，**必须带 BOM 且用 CRLF**，不然中文乱码；
- * 种子 TSV 是拿来覆盖仓库里 docs/achievements.tsv 的，用不带 BOM 的 LF，
- * 免得 git 里整个文件看起来都改过。
- */
-export function toDelimited(
-  rows: (string | number | null)[][],
-  sep: string,
-  { bom = true, eol = "\r\n" }: { bom?: boolean; eol?: string } = {},
-): string {
-  const body = rows.map((r) => r.map((c) => csvCell(c, sep)).join(sep)).join(eol) + eol;
-  return bom ? "\ufeff" + body : body;
+/** 序列化。给人用 Excel 打开，**必须带 BOM 且用 CRLF**，不然中文全是乱码。 */
+export function toDelimited(rows: (string | number | null)[][], sep: string): string {
+  return "\ufeff" + rows.map((r) => r.map((c) => csvCell(c, sep)).join(sep)).join("\r\n") + "\r\n";
 }
