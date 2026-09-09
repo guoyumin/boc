@@ -197,7 +197,7 @@
 | ACH-08 | 首页显示最近确认的成就动态。 | P1 |
 | ACH-09 | 基于游戏记录的自动判定（如"以 X 角色获胜"）。 | P2 |
 | ACH-10 | 管理员可从表格（CSV / TSV，飞书或 Excel 直接复制也行）**批量新增**成就：先解析预览（新增几条、因重名跳过哪几条、哪几行读不出来），确认后一次性写库。**只新增**——重名跳过，不改已有成就，也不删。 | P1 |
-| ACH-11 | 管理员可导出全量成就：CSV（带 id、解锁人数、首解者，Excel 直接打开）和种子 TSV（`docs/achievements.tsv` 的格式，用来把仓库里的种子同步回来）。 | P1 |
+| ACH-11 | 管理员可导出全量成就 CSV（带 id、解锁人数、首解者，UTF-8 BOM，Excel 直接打开），用来对账和备份。 | P1 |
 
 **成就清单的数据源**：`docs/achievements.tsv`（制表符分隔，UTF-8）是**唯一数据源**，用户从飞书导出后覆盖它。
 列为 `role` / `name` / `condition` / `stars` / `first_date` / `first_date_note` / `first_player`。

@@ -117,17 +117,13 @@ export default async function AdminAchievementsPage({
           ? `共 ${list.length} 个成就。`
           : `筛出 ${shown.length} 个（全部 ${list.length} 个）。`}
         改动只写进数据库；<code>docs/achievements.tsv</code> 只是空库首次导入的种子，
-        要同步它就导出一份种子 TSV 覆盖过去。
+        在这里改动不会写回那份表。
       </p>
 
       <div className="flex flex-wrap gap-2">
         <a href="/admin/achievements/export" className="btn btn-sm">
           导出 CSV（全量）
         </a>
-        <a href="/admin/achievements/export?format=tsv" className="btn btn-sm">
-          导出种子 TSV
-        </a>
-        <span className="self-center text-xs text-faint">种子 TSV 里普通档一律写成 1 星（1★ 和 2★ 进来时就并档了）</span>
       </div>
 
       {/* 搜索走 GET，刷新和分享链接都能保持筛选状态 */}
