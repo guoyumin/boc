@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EmptyState from "@/components/EmptyState";
 import AchievementCard from "@/components/AchievementCard";
 import Flash from "@/components/Flash";
 import { getUser, isAdminRole } from "@/lib/auth";
@@ -139,7 +140,7 @@ export default async function AchievementsPage({
 
       {list.length === 0 ? (
         <div className="card">
-          <p className="muted">还没有成就。</p>
+          <EmptyState art="shelf">还没有成就。</EmptyState>
         </div>
       ) : (
         <>

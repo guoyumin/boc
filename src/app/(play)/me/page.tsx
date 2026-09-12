@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EmptyState from "@/components/EmptyState";
 import Flash from "@/components/Flash";
 import GuestMe from "@/components/GuestMe";
 import BrandMark from "@/components/BrandMark";
@@ -139,9 +140,12 @@ export default async function MePage({
       <section className="card">
         <div className="card-title">📋 我报名的活动</div>
         {upcoming.length === 0 ? (
-          <p className="muted">
-            还没有报名中的活动。<Link href="/events" className="link">去看看</Link>
-          </p>
+          <EmptyState art="calendar" compact>
+            还没有报名中的活动。
+            <Link href="/events" className="link ml-1">
+              去看看
+            </Link>
+          </EmptyState>
         ) : (
           <ul className="space-y-2">
             {upcoming.map((a) => (
@@ -160,7 +164,7 @@ export default async function MePage({
       <section className="card">
         <div className="card-title">🕘 出勤记录</div>
         {(profile?.attendance.length ?? 0) === 0 ? (
-          <p className="muted">还没有记录。</p>
+          <EmptyState art="ghost" compact>还没有出席记录。</EmptyState>
         ) : (
           <ul className="space-y-1 text-sm">
             {profile!.attendance.slice(0, 15).map((a) => {
@@ -193,7 +197,12 @@ export default async function MePage({
           </Link>
         </div>
         {(profile?.unlocks.length ?? 0) === 0 ? (
-          <p className="muted">还没有已确认的成就。去成就墙上宣告一个。</p>
+          <EmptyState art="shelf" compact>
+            奖章架还空着。
+            <Link href="/achievements" className="link ml-1">
+              去成就墙上宣告一个
+            </Link>
+          </EmptyState>
         ) : (
           <ul className="space-y-1">
             {profile!.unlocks.map((u) => (

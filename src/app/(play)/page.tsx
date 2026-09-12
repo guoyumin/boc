@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EmptyState from "@/components/EmptyState";
 import NavIcon from "@/components/NavIcon";
 import RarityBadge from "@/components/RarityBadge";
 import { getUser } from "@/lib/auth";
@@ -155,7 +156,7 @@ export default async function HomePage() {
               </Link>
             </>
           ) : (
-            <p className="muted">还没有排下一场。</p>
+            <EmptyState art="calendar" compact>还没有排下一场，先去时间投票里填个空。</EmptyState>
           )}
         </section>
       </div>
@@ -171,7 +172,7 @@ export default async function HomePage() {
           </Link>
         </div>
         {unlocks.length === 0 ? (
-          <p className="muted">还没有确认的成就。</p>
+          <EmptyState art="shelf" compact>还没有确认的成就，奖章架空着。</EmptyState>
         ) : (
           <ul>
             {unlocks.map((u) => (

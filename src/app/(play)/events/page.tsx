@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EmptyState from "@/components/EmptyState";
 import GrimoireLink from "@/components/GrimoireLink";
 import Flash from "@/components/Flash";
 import { getAdmin } from "@/lib/auth";
@@ -32,7 +33,7 @@ export default async function EventsPage({
 
       {rows.length === 0 ? (
         <div className="card">
-          <p className="muted">还没有活动。</p>
+          <EmptyState art="calendar">还没有活动。</EmptyState>
         </div>
       ) : (
         <ul className="grid gap-2 lg:grid-cols-2">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import DateTile from "@/components/DateTile";
 import GrimoireLink from "@/components/GrimoireLink";
 import NavIcon from "@/components/NavIcon";
 import { notFound } from "next/navigation";
@@ -105,6 +106,8 @@ export default async function EventDetailPage({
   );
 
   const finished = isFinished(event.date, event.status);
+  // 还能报名：没结束、没取消。结束了顶部就不放报名按钮，表单还留着给管理员补录
+  const canSignup = !finished && event.status !== "cancelled";
   const sessionOptions = SESSION_OPTIONS.filter(
     (o) =>
       (o.value === "afternoon" && event.hasAfternoon === 1) ||
@@ -131,37 +134,54 @@ export default async function EventDetailPage({
     <div className="space-y-4">
       <Flash err={sp.err} ok={sp.ok} />
 
-      {/* 基本信息 */}
+      {/* 基本信息：日历牌 + 大标题，时间地点放大，报名按钮提到最上面（issue #28） */}
       <section className="card">
-        <div className="card-title">
-          <span>{formatDate(event.date)}</span>
-          <span className={`badge ${EVENT_STATUS_CLASS[event.status] ?? "badge-plain"}`}>
-            {EVENT_STATUS_LABEL[event.status]}
-          </span>
-        </div>
-        <p className="font-medium text-ink">{event.title}</p>
-        <dl className="mt-2 space-y-1 text-sm text-ink-2">
-          {event.location && <div>📍 {event.location}</div>}
-          {event.startTime && <div>⏰ {event.startTime}</div>}
-          <div>
-            🕑 场次：
-            {[event.hasAfternoon === 1 ? "下午" : null, event.hasEvening === 1 ? "晚上" : null]
-              .filter(Boolean)
-              .join(" + ") || "—"}
+        <div className="flex items-start gap-4">
+          <DateTile ymd={event.date} />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="eyebrow">
+                  Event<span className="hidden sm:inline"> · {formatDate(event.date)}</span>
+                </p>
+                <h1 className="display text-xl leading-snug sm:text-2xl">{event.title}</h1>
+              </div>
+              <span className={`badge shrink-0 ${EVENT_STATUS_CLASS[event.status] ?? "badge-plain"}`}>
+                {EVENT_STATUS_LABEL[event.status]}
+              </span>
+            </div>
+            <dl className="mt-2 space-y-1 text-[0.9375rem] text-ink">
+              {event.startTime && <div>⏰ {event.startTime}</div>}
+              {event.location && <div>📍 {event.location}</div>}
+              <div className="text-ink-2">
+                🕑 场次：
+                {[event.hasAfternoon === 1 ? "下午" : null, event.hasEvening === 1 ? "晚上" : null]
+                  .filter(Boolean)
+                  .join(" + ") || "—"}
+              </div>
+              {event.note && <div className="text-muted">📝 {event.note}</div>}
+            </dl>
           </div>
-          {event.note && <div className="text-muted">📝 {event.note}</div>}
-        </dl>
-        <div className="mt-3 flex flex-wrap gap-2">
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {canSignup && (
+            <a href="#signup" className="btn btn-primary">
+              ✍️ 我要报名
+              {event.capacity !== null && seatsLeft > 0 && (
+                <span className="text-xs font-normal opacity-80">· 还剩 {seatsLeft} 位</span>
+              )}
+            </a>
+          )}
           {/* 分享到群里用的链接（issue #22） */}
           <CopyButton
             text={shareText}
             label="复制分享链接"
-            className="btn btn-sm btn-primary"
+            className={`btn ${canSignup ? "" : "btn-primary"}`}
             block={false}
           />
-          <CopyButton text={jielongText} label="复制接龙" className="btn btn-sm" block={false} />
+          <CopyButton text={jielongText} label="复制接龙" className="btn" block={false} />
           {admin && (
-            <Link href={`/events/${event.id}/jielong`} className="btn btn-sm btn-primary">
+            <Link href={`/events/${event.id}/jielong`} className="btn">
               粘贴接龙
             </Link>
           )}
@@ -173,7 +193,7 @@ export default async function EventDetailPage({
         <div className="card-title">
           <span>
             👥 {signupSummary({ signupCount: signedUpCount, waitlistCount, capacity: event.capacity })}
-            {twoSessions && (
+            {twoSessions && signedUpCount > 0 && (
               <span className="font-normal text-muted">
                 （下午 {split.afternoon} · 晚上 {split.evening}）
               </span>
@@ -283,7 +303,12 @@ export default async function EventDetailPage({
         )}
 
         {event.status !== "cancelled" && (
-          <details className="mt-4 rounded-lg border border-line p-3" open={signups.length === 0}>
+          <details
+            id="signup"
+            className="mt-4 scroll-mt-4 rounded-lg border border-line p-3"
+            /* 还能报名就默认展开——报名是这页的主要动作，顶上的按钮跳过来要能直接填 */
+            open={canSignup}
+          >
             <summary className="cursor-pointer text-sm font-medium text-brand-bright">✍️ 我要报名</summary>
             <form action={selfSignup} className="mt-3 space-y-3">
               <input type="hidden" name="eventId" value={event.id} />
