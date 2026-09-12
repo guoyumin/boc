@@ -12,7 +12,7 @@ import NicknameInput from "@/components/NicknameInput";
 import { deleteEvent, updateEvent } from "@/actions/events";
 import { createGame } from "@/actions/games";
 import { deleteEventFile, uploadEventFiles } from "@/actions/files";
-import { addAttendee, cancelSignup, removeSignup, selfSignup } from "@/actions/signups";
+import { addAttendee, cancelSignup, markAllAttended, removeSignup, selfSignup } from "@/actions/signups";
 import { createScriptPoll } from "@/actions/script-polls";
 import { getAdmin, getUser } from "@/lib/auth";
 import { formatDate, formatMd } from "@/lib/dates";
@@ -29,11 +29,13 @@ import {
   SIGNUP_LABEL,
   isCancelled,
   isFinished,
+  isLate,
   isNoShow,
   isPartial,
   isWaitlisted,
   isWaived,
   isWalkIn,
+  sessionSplit,
   signupSummary,
 } from "@/lib/labels";
 import {
@@ -78,6 +80,15 @@ export default async function EventDetailPage({
   const signedUpCount = signups.filter((s) => s.status === "active" && s.signup !== "none").length;
   const waitlistCount = signups.filter((s) => s.status === "waitlist").length;
   const seatsLeft = event.capacity === null ? Infinity : Math.max(0, event.capacity - signedUpCount);
+  // 分场次人数只在两场都开的活动上有意义，单场活动它就等于报名总数（issue #57）
+  const twoSessions = event.hasAfternoon === 1 && event.hasEvening === 1;
+  const split = sessionSplit(signups);
+  const attendedCount = signups.filter((s) => s.attended !== "none").length;
+  const lateCount = signups.filter((s) => isLate(s)).length;
+  // 一键到场能动到的人：报了名、有效、还没标到场
+  const markable = signups.filter(
+    (s) => s.status === "active" && s.signup !== "none" && s.attended === "none",
+  ).length;
   const images = files.filter((f) => f.kind === "board_image");
   const jsons = files.filter((f) => f.kind === "script_json");
   // 「复制 JSON」是客户端组件，内容要服务端读出来传过去。JSON 上限 1 MB，可以接受。
@@ -162,8 +173,14 @@ export default async function EventDetailPage({
         <div className="card-title">
           <span>
             👥 {signupSummary({ signupCount: signedUpCount, waitlistCount, capacity: event.capacity })}
+            {twoSessions && (
+              <span className="font-normal text-muted">
+                （下午 {split.afternoon} · 晚上 {split.evening}）
+              </span>
+            )}
             {" · 到场 "}
-            {signups.filter((s) => s.attended !== "none").length} 人
+            {attendedCount} 人
+            {lateCount > 0 && <span className="font-normal text-warn">（迟到 {lateCount}）</span>}
           </span>
           {event.capacity !== null && (
             <span
@@ -175,6 +192,18 @@ export default async function EventDetailPage({
             </span>
           )}
         </div>
+        {admin && markable > 0 && (
+          <form action={markAllAttended} className="mb-3 flex flex-wrap items-center gap-2">
+            <input type="hidden" name="eventId" value={event.id} />
+            <ConfirmSubmit
+              message={`把 ${markable} 个报了名、还没签到的人按报名场次标成到场？没来的之后手动改回「未到」就行。`}
+              className="btn btn-sm btn-primary"
+            >
+              一键按报名标到场（{markable} 人）
+            </ConfirmSubmit>
+            <span className="text-xs text-muted">先全标到场，再把没来的改成「未到」，比一个个点快</span>
+          </form>
+        )}
         {signups.length === 0 ? (
           <p className="muted">还没有人报名。</p>
         ) : (
@@ -197,7 +226,10 @@ export default async function EventDetailPage({
                         {s.name}
                       </Link>
                       {finished && isNoShow(s) && (
-                        <span className="badge ml-1 border-warn/30 bg-warn-soft text-warn">鸽</span>
+                        <span className="badge ml-1 border-danger/30 bg-danger-soft text-danger">鸽</span>
+                      )}
+                      {isLate(s) && (
+                        <span className="badge ml-1 border-warn/30 bg-warn-soft text-warn">迟到</span>
                       )}
                       {finished && isWaived(s) && (
                         <span className="badge ml-1 border-ok/30 bg-ok-soft text-ok">
@@ -218,10 +250,11 @@ export default async function EventDetailPage({
                     <td className="text-ink-2">{SIGNUP_LABEL[s.signup as Session]}</td>
                     <td>
                       {admin ? (
-                        <AttendanceButtons signupId={s.id} value={s.attended} />
+                        <AttendanceButtons signupId={s.id} value={s.attended} signup={s.signup} late={s.late === 1} />
                       ) : (
                         <span className={s.attended === "none" ? "text-faint" : "text-ink-2"}>
                           {SESSION_LABEL[s.attended as Session]}
+                          {isLate(s) && <span className="ml-1 text-warn">迟到</span>}
                         </span>
                       )}
                     </td>

@@ -14,6 +14,7 @@ import {
   SIGNUP_LABEL,
   isCancelled,
   isFinished,
+  isLate,
   isNoShow,
   isWaived,
 } from "@/lib/labels";
@@ -37,6 +38,7 @@ export default async function MePage({
     (a) => isFinished(a.date, a.eventStatus) && isNoShow(a),
   );
   const attended = (profile?.attendance ?? []).filter((a) => a.attended !== "none");
+  const lates = (profile?.attendance ?? []).filter((a) => isLate(a));
   const upcoming = (profile?.attendance ?? []).filter(
     (a) => !isFinished(a.date, a.eventStatus) && a.signup !== "none" && !isCancelled(a),
   );
@@ -61,7 +63,7 @@ export default async function MePage({
           )}
         </div>
         {profile && (
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <div className="mt-3 grid grid-cols-4 gap-2 text-center">
             <div className="rounded-lg bg-surface-2 p-2">
               <div className="text-lg font-semibold">{attended.length}</div>
               <div className="text-xs text-muted">到场</div>
@@ -71,8 +73,12 @@ export default async function MePage({
               <div className="text-xs text-muted">成就 · {profile.points} 分</div>
             </div>
             <div className="rounded-lg bg-surface-2 p-2">
-              <div className="text-lg font-semibold">{noShows.length}</div>
+              <div className={`text-lg font-semibold ${noShows.length > 0 ? "text-danger" : ""}`}>{noShows.length}</div>
               <div className="text-xs text-muted">鸽</div>
+            </div>
+            <div className="rounded-lg bg-surface-2 p-2">
+              <div className={`text-lg font-semibold ${lates.length > 0 ? "text-warn" : ""}`}>{lates.length}</div>
+              <div className="text-xs text-muted">迟到</div>
             </div>
           </div>
         )}
@@ -167,7 +173,8 @@ export default async function MePage({
                   <span className="shrink-0 text-xs text-muted">
                     报名 {SIGNUP_LABEL[a.signup as never]} · 到场{" "}
                     {ATTEND_OPTIONS.find((o) => o.value === a.attended)?.label ?? SESSION_LABEL.none}
-                    {finished && isNoShow(a) && <span className="ml-1 text-warn">鸽</span>}
+                    {finished && isNoShow(a) && <span className="ml-1 text-danger">鸽</span>}
+                    {isLate(a) && <span className="ml-1 text-warn">迟到</span>}
                     {finished && isWaived(a) && <span className="ml-1 text-ok">已免</span>}
                   </span>
                 </li>

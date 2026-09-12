@@ -156,6 +156,7 @@ export type NoShowInput = {
   attended: string;
   status?: string;
   noShowWaived?: number;
+  late?: number;
 };
 
 /** 名额满了排在候补里：没报上，所以不算鸽 */
@@ -176,12 +177,18 @@ export function isWaived(r: NoShowInput): boolean {
 /**
  * 报名了但没来 = 鸽。本人取消也算（记录保留），除非管理员点了"免鸽"。
  * 是否真的显示成鸽子还要看活动是不是已经过去了（isFinished）。
+ * 迟到的人 attended 不是 none，所以天然不算鸽（issue #1）——迟到和鸽分开统计。
  */
 export function isNoShow(r: NoShowInput): boolean {
   if (isWaived(r)) return false;
   // 候补压根没报上，没来不能算鸽
   if (isWaitlisted(r)) return false;
   return r.signup !== "none" && r.attended === "none";
+}
+
+/** 到了但晚了。只在人确实到了的前提下成立，「未到 + 迟到」这种组合不算。 */
+export function isLate(r: NoShowInput): boolean {
+  return r.attended !== "none" && (r.late ?? 0) === 1;
 }
 
 /** 报了全天只到一场 */
@@ -199,6 +206,18 @@ export const SIGNUP_SOURCE_LABEL: Record<string, string> = {
   jielong: "接龙导入",
   admin: "管理员添加",
 };
+
+/**
+ * 分场次数人：全天的两场都算。只数真占着位子的（active 且报了名），
+ * 候补和已取消不算——这是给排桌子用的数（issue #57）。
+ */
+export function sessionSplit(rows: NoShowInput[]): { afternoon: number; evening: number } {
+  const active = rows.filter((r) => r.status !== "waitlist" && r.status !== "cancelled");
+  return {
+    afternoon: active.filter((r) => r.signup === "afternoon" || r.signup === "full").length,
+    evening: active.filter((r) => r.signup === "evening" || r.signup === "full").length,
+  };
+}
 
 /**
  * 报名人数的统一写法：有上限就写成 6/16，让还在犹豫的人看得见还剩多少位子。

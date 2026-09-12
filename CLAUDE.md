@@ -97,6 +97,13 @@ npm run gen:roles        # 从官方仓库同步角色表与角色图标（官�
 - 「鸽」的判定统一走 `src/lib/labels.ts` 的 `isNoShow(row)`，它接一整行报名记录
   （`signup` / `attended` / `status` / `noShowWaived`），不要在页面里自己拼条件。
   本人取消报名是 `status='cancelled'`，**记录保留、照样算鸽**，管理员可以 `no_show_waived=1` 免掉。
+- **迟到和鸽是两回事，分开数、分开显示**（`event_signups.late`，`isLate(row)`）。迟到和到了哪场
+  正交——可以「下午 + 迟到」——所以是单独一个 0/1 字段，不是 `attended` 的一个取值；
+  迟到的人 `attended` 不是 none，天然不算鸽。改成「未到」会把迟到一起清掉；还没标到场就点迟到，
+  按报名场次顺手补上到场。颜色：鸽用 `danger`（红），迟到用 `warn`（黄），别混。
+- 报名统计里的分场次人数走 `sessionSplit(rows)`：全天两边都算，候补和已取消不算；
+  只在两场都开的活动上显示。管理员有「一键按报名标到场」（`markAllAttended`）：只动
+  「报了名、有效、还没标到场」的记录，标完再把没来的改回「未到」。
 - 板子投票的候选图走和板子图片同一条上传管线（magic bytes 判类型、sharp 去 EXIF、缩略图），
   落在 `event_files` 里但 kind 是 `script_option`，所以不会混进活动页的文件列表；
   `/files/[id]` 按 **mime** 而不是 kind 判断是不是图片。上传要求投票挂在活动下

@@ -19,7 +19,7 @@ import {
   type PollSlot,
 } from "@/db/schema";
 import { POLL_SLOTS } from "@/db/schema";
-import { isFinished, isNoShow, rarityPoints } from "./labels";
+import { isFinished, isLate, isNoShow, rarityPoints, sessionSplit } from "./labels";
 
 export type Poll = typeof polls.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
@@ -135,6 +135,10 @@ export type EventListRow = EventRow & {
   waitlistCount: number;
   attendCount: number;
   noShowCount: number;
+  lateCount: number;
+  /** 分场次报名人数，全天两边都算；只有两场都开的活动才有意义 */
+  afternoonCount: number;
+  eveningCount: number;
   scripts: string[];
 };
 
@@ -149,6 +153,7 @@ export function listEvents(limit = 50): EventListRow[] {
       attended: eventSignups.attended,
       status: eventSignups.status,
       noShowWaived: eventSignups.noShowWaived,
+      late: eventSignups.late,
     })
     .from(eventSignups)
     .where(inArray(eventSignups.eventId, ids))
@@ -160,6 +165,7 @@ export function listEvents(limit = 50): EventListRow[] {
     .all();
   return rows.map((e) => {
     const own = signups.filter((s) => s.eventId === e.id);
+    const split = sessionSplit(own);
     return {
       ...e,
       signupCount: own.filter((s) => s.status === "active" && s.signup !== "none").length,
@@ -168,6 +174,9 @@ export function listEvents(limit = 50): EventListRow[] {
       noShowCount: isFinished(e.date, e.status)
         ? own.filter((s) => isNoShow(s)).length
         : 0,
+      lateCount: own.filter((s) => isLate(s)).length,
+      afternoonCount: split.afternoon,
+      eveningCount: split.evening,
       scripts: [...new Set(scriptRows.filter((g) => g.eventId === e.id).map((g) => g.scriptName))],
     };
   });
@@ -189,6 +198,7 @@ export type SignupView = {
   status: string;
   cancelledAt: string | null;
   noShowWaived: number;
+  late: number;
 };
 
 export function getSignups(eventId: number): SignupView[] {
@@ -205,6 +215,7 @@ export function getSignups(eventId: number): SignupView[] {
       status: eventSignups.status,
       cancelledAt: eventSignups.cancelledAt,
       noShowWaived: eventSignups.noShowWaived,
+      late: eventSignups.late,
     })
     .from(eventSignups)
     .innerJoin(players, eq(players.id, eventSignups.playerId))
@@ -480,6 +491,7 @@ export function getPlayerProfile(id: number): PlayerProfile | null {
       status: eventSignups.status,
       cancelledAt: eventSignups.cancelledAt,
       noShowWaived: eventSignups.noShowWaived,
+      late: eventSignups.late,
       date: events.date,
       title: events.title,
       eventId: events.id,
