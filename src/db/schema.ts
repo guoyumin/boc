@@ -207,6 +207,8 @@ export const eventSignups = sqliteTable(
     /** 管理员免鸽：1 = 这次不算鸽子 */
     noShowWaived: integer("no_show_waived").notNull().default(0),
     attended: text("attended").notNull().default("none"),
+    /** 迟到：1 = 到了但晚了。和 attended 正交（可以「下午场 + 迟到」），不算鸽（issue #1） */
+    late: integer("late").notNull().default(0),
     ...timestamps,
   },
   (t) => [

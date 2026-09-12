@@ -7,6 +7,7 @@ import {
   SESSION_LABEL,
   SIGNUP_LABEL,
   isFinished,
+  isLate,
   isNoShow,
 } from "@/lib/labels";
 import { getPlayerProfile } from "@/lib/queries";
@@ -24,6 +25,8 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   const noShow = attendance.filter(
     (a) => isFinished(a.date, a.eventStatus) && isNoShow(a),
   ).length;
+  // 鸽和迟到分开数：迟到的人到了，不算鸽（issue #1）
+  const late = attendance.filter((a) => isLate(a)).length;
 
   return (
     <div className="space-y-4">
@@ -60,7 +63,16 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             <p className="muted">积分</p>
           </div>
         </div>
-        {noShow > 0 && <p className="muted mt-2">报名没到 {noShow} 次 🕊️</p>}
+        {(noShow > 0 || late > 0) && (
+          <p className="mt-2 flex flex-wrap gap-1.5 text-sm">
+            {noShow > 0 && (
+              <span className="badge border-danger/30 bg-danger-soft text-danger">鸽 {noShow} 次</span>
+            )}
+            {late > 0 && (
+              <span className="badge border-warn/30 bg-warn-soft text-warn">迟到 {late} 次</span>
+            )}
+          </p>
+        )}
       </section>
 
       <section className="card">
@@ -89,11 +101,12 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
                     <td
                       className={
                         a.attended === "none" && isFinished(a.date, a.eventStatus)
-                          ? "text-warn"
+                          ? "text-danger"
                           : "text-ink-2"
                       }
                     >
                       {SESSION_LABEL[a.attended as Session]}
+                      {isLate(a) && <span className="ml-1 text-warn">迟到</span>}
                     </td>
                   </tr>
                 ))}

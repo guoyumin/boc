@@ -158,11 +158,71 @@ export async function setAttendance(signupId: number, attended: string): Promise
       attended: value,
       // 人来了就不算取消
       status: value === "none" ? row.status : "active",
+      // 「未到」和「迟到」说不通，改成未到就把迟到一起清掉
+      late: value === "none" ? 0 : row.late,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(eventSignups.id, signupId))
     .run();
   revalidatePath(`/events/${row.eventId}`);
+}
+
+/**
+ * 迟到开关（issue #1）。迟到是「到了但晚了」，和到了哪场正交，所以单独一个字段。
+ * 还没标到场就点迟到，顺手按报名的场次把到场也标上——人既然迟到了肯定是来了。
+ */
+export async function setLate(signupId: number, late: boolean): Promise<void> {
+  await requireAdmin();
+  const row = db.select().from(eventSignups).where(eq(eventSignups.id, signupId)).get();
+  if (!row) throw new Error("这条报名不存在");
+  const attended: Session =
+    late && row.attended === "none" ? asSession(row.signup, "full") : asSession(row.attended, "none");
+  db.update(eventSignups)
+    .set({
+      late: late ? 1 : 0,
+      attended,
+      status: attended === "none" ? row.status : "active",
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(eventSignups.id, signupId))
+    .run();
+  revalidatePath(`/events/${row.eventId}`);
+}
+
+/**
+ * 一键按报名标记到场（issue #57）。大部分人报了就会来，先全部按报名的场次记成到场，
+ * 管理员只要把真没来的那几个改回「未到」。只动「报了名、还没标到场」的有效报名：
+ * 已经标过的、候补的、取消的都不碰。
+ */
+export async function markAllAttended(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const eventId = num(fd, "eventId");
+  const back = `/events/${eventId}`;
+  const rows = db
+    .select({ id: eventSignups.id, signup: eventSignups.signup })
+    .from(eventSignups)
+    .where(
+      and(
+        eq(eventSignups.eventId, eventId),
+        eq(eventSignups.status, "active"),
+        ne(eventSignups.signup, "none"),
+        eq(eventSignups.attended, "none"),
+      ),
+    )
+    .all();
+  if (rows.length === 0) redirect(withMsg(back, "没有需要标记的人：报了名的都已经记过到场了"));
+  db.transaction((tx) => {
+    for (const r of rows) {
+      tx.update(eventSignups)
+        .set({ attended: asSession(r.signup, "full"), updatedAt: new Date().toISOString() })
+        .where(eq(eventSignups.id, r.id))
+        .run();
+    }
+  });
+  logAudit(admin.id, "attendance.mark_all", "event", eventId, `${rows.length} 人`);
+  revalidatePath(back);
+  revalidatePath("/events");
+  redirect(withMsg(back, `已按报名把 ${rows.length} 人标成到场，没来的请手动改回「未到」`, "ok"));
 }
 
 /** SIGN-06：管理员添加临时来的玩家 */

@@ -1,0 +1,1 @@
+ALTER TABLE `event_signups` ADD `late` integer DEFAULT 0 NOT NULL;

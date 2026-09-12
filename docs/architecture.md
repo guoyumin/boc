@@ -240,8 +240,10 @@ erDiagram
 | cancelled_at | text null | |
 | no_show_waived | int | 1 = 管理员已免鸽 |
 | attended | text | `none` / `afternoon` / `evening` / `full` |
+| late | int | 1 = 到了但迟到。和 attended 正交（可以「下午 + 迟到」），不算鸽 |
 
-派生：`no_show = 活动已结束 AND signup != 'none' AND attended = 'none' AND no_show_waived = 0`。
+派生：`no_show = 活动已结束 AND signup != 'none' AND attended = 'none' AND no_show_waived = 0`；
+`late = attended != 'none' AND late = 1`。鸽和迟到分开统计、分开显示（鸽红、迟到黄）。
 本人取消（`status='cancelled'`）保留 `signup` 值，所以照样算鸽，除非管理员免掉。
 
 **games**

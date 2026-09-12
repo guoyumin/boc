@@ -54,8 +54,15 @@ export default async function EventsPage({
                   <span className={e.capacity !== null && e.signupCount >= e.capacity ? "text-warn" : ""}>
                     {signupSummary(e)}
                   </span>
+                  {/* 两场都开的活动顺带给出分场次人数，排桌子一眼看清（issue #57） */}
+                  {e.hasAfternoon === 1 && e.hasEvening === 1 && e.signupCount > 0 && (
+                    <span>
+                      下午 {e.afternoonCount} · 晚上 {e.eveningCount}
+                    </span>
+                  )}
                   <span>到场 {e.attendCount}</span>
-                  {e.noShowCount > 0 && <span className="text-warn">鸽 {e.noShowCount}</span>}
+                  {e.noShowCount > 0 && <span className="text-danger">鸽 {e.noShowCount}</span>}
+                  {e.lateCount > 0 && <span className="text-warn">迟到 {e.lateCount}</span>}
                 </div>
               </Link>
             </li>

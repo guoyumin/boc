@@ -43,8 +43,14 @@ export default async function AdminEventsPage({
                   </Link>
                   <p className="muted truncate">{e.title}</p>
                   <p className="text-xs text-muted">
-                    报名 {e.signupCount} · 到场 {e.attendCount}
-                    {e.noShowCount > 0 && ` · 鸽 ${e.noShowCount}`}
+                    报名 {e.signupCount}
+                    {e.hasAfternoon === 1 && e.hasEvening === 1 && e.signupCount > 0 && (
+                      <span>（下午 {e.afternoonCount} · 晚上 {e.eveningCount}）</span>
+                    )}
+                    {" · 到场 "}
+                    {e.attendCount}
+                    {e.noShowCount > 0 && <span className="text-danger"> · 鸽 {e.noShowCount}</span>}
+                    {e.lateCount > 0 && <span className="text-warn"> · 迟到 {e.lateCount}</span>}
                   </p>
                 </div>
                 <span className={`badge shrink-0 ${EVENT_STATUS_CLASS[e.status]}`}>
