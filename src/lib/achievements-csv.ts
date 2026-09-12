@@ -22,6 +22,28 @@ export function starsToRarity(stars: number): Rarity {
   return "common";
 }
 
+/** 实心星：数它们的个数。⭐ 后面常跟一个 U+FE0F 变体选择符，先去掉 */
+const FILLED_STAR = /[⭐★✦✭✮🌟]/gu;
+/** 空心星：「★★★☆☆」这种评分写法里占位用的，不算数 */
+const HOLLOW_STAR = /[☆✩✧]/gu;
+const CN_DIGIT: Record<string, number> = { 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5 };
+
+/**
+ * 星数那一格可以写成 `4`、`4星`、`四星`、`⭐⭐⭐⭐`、`★★★★☆`（issue #62）。
+ * 认不出来返回 null，由调用方报错。
+ */
+export function parseStars(cell: string): number | null {
+  const v = cell.replace(/[\s\uFE0F]/g, "");
+  if (v === "") return null;
+
+  const filled = (v.match(FILLED_STAR) ?? []).length;
+  if (filled > 0 && v.replace(FILLED_STAR, "").replace(HOLLOW_STAR, "") === "") return filled;
+
+  const m = /^([1-5]|[一二两三四五])(星|颗星)?$/u.exec(v);
+  if (!m) return null;
+  return CN_DIGIT[m[1]] ?? Number(m[1]);
+}
+
 /** 反过来给导出用；普通只能还原成 1 星（1★ 和 2★ 进来时就并档了） */
 export function rarityToStars(rarity: string): number {
   return { common: 1, rare: 3, epic: 4, legendary: 5 }[asRarity(rarity)];
@@ -210,9 +232,9 @@ export function parseAchievementsTable(text: string, existingNames: string[] = [
       }
       rarity = rarityCell as Rarity;
     } else if (starsCell) {
-      const stars = Number(starsCell);
-      if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
-        errors.push({ line, reason: `星数要是 1–5 的整数，实际是「${starsCell}」` });
+      const stars = parseStars(starsCell);
+      if (stars === null || stars < 1 || stars > 5) {
+        errors.push({ line, reason: `星数要是 1–5 星（数字或 ⭐ 都行），实际是「${starsCell}」` });
         continue;
       }
       rarity = starsToRarity(stars);
