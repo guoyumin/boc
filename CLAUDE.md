@@ -77,6 +77,9 @@ npm run gen:roles        # 从官方仓库同步角色表与角色图标（官�
   解析规则在 `src/lib/achievements-csv.ts`，**浏览器预览和服务端写库跑的是同一个函数**
   （表单交上去的是整份表格原文，不是浏览器解析好的行），预览里说会导什么就一定导什么。
   改成就仍然是后台单条编辑，删成就仍然一条条点——批量删会级联删掉所有宣告记录。
+- 站内的图片（板子图片、板子投票候选图）一律用 `<Zoomable src thumb alt>`：缩略图点开在**当前页**
+  盖一层看大图，大图按屏幕 fit（contain），✕ / 点空白 / Esc 关；别再写 `target="_blank"` 开原图。
+  大图那层 portal 到 body，所以放在 `<label>` 里也不会把 checkbox 一起点了。
 - 上传的文件在 `UPLOAD_DIR`（默认 `./data/uploads`），路径是 `{活动 id}/{uuid}.{ext}`，
   永远不用用户给的文件名做路径。图片上传要过 sharp（去 EXIF + 缩略图），类型按 magic bytes 判断。
   改上传大小上限时，`next.config.ts` 的 `serverActions.bodySizeLimit` 和 nginx 的

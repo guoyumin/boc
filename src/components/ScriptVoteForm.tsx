@@ -1,4 +1,5 @@
 import NicknameInput from "@/components/NicknameInput";
+import Zoomable from "@/components/Zoomable";
 import { submitScriptVote, withdrawScriptVote } from "@/actions/script-polls";
 
 /**
@@ -31,11 +32,13 @@ export default function ScriptVoteForm({
               >
                 <input type="checkbox" name="options" value={o.id} className="h-4 w-4 accent-[#b3352f]" />
                 {o.imageFileId && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={`/files/${o.imageFileId}?thumb=1`}
-                    alt=""
-                    className="size-10 shrink-0 rounded object-cover"
+                  /* 按钮在 label 里不会触发 checkbox，大图那层挂在 body 上，点了也不会 */
+                  <Zoomable
+                    src={`/files/${o.imageFileId}`}
+                    thumb={`/files/${o.imageFileId}?thumb=1`}
+                    alt={o.name}
+                    className="size-10 rounded object-cover"
+                    buttonClassName="block shrink-0"
                   />
                 )}
                 <span className="min-w-0 truncate">{o.name}</span>
