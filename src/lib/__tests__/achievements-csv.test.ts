@@ -3,6 +3,7 @@ import {
   normalizeAchievementName,
   parseAchievementsTable,
   parseDelimited,
+  parseStars,
   rarityToStars,
   starsToRarity,
   toDelimited,
@@ -35,6 +36,30 @@ describe("starsToRarity", () => {
       "epic",
       "legendary",
     ]);
+  });
+
+  it("星数格认数字、中文、星号，以及带空心星的评分写法（issue #62）", () => {
+    expect(parseStars("4")).toBe(4);
+    expect(parseStars(" 4星 ")).toBe(4);
+    expect(parseStars("四星")).toBe(4);
+    expect(parseStars("⭐⭐⭐")).toBe(3);
+    expect(parseStars("⭐️⭐️⭐️⭐️⭐️")).toBe(5); // 带 U+FE0F 变体选择符
+    expect(parseStars("★★★★")).toBe(4);
+    expect(parseStars("★★☆☆☆")).toBe(2);
+    expect(parseStars("🌟🌟")).toBe(2);
+  });
+
+  it("认不出来的星数返回 null，导入时整行报错", () => {
+    expect(parseStars("")).toBeNull();
+    expect(parseStars("6")).toBeNull();
+    expect(parseStars("x")).toBeNull();
+    expect(parseStars("⭐x")).toBeNull();
+    const r = parseAchievementsTable("name,stars\n甲,⭐⭐⭐⭐\n乙,⭐⭐⭐⭐⭐⭐\n丙,★★★☆☆");
+    expect(r.rows.map((x) => [x.name, x.rarity])).toEqual([
+      ["甲", "epic"],
+      ["丙", "rare"],
+    ]);
+    expect(r.errors).toEqual([{ line: 3, reason: "星数要是 1–5 星（数字或 ⭐ 都行），实际是「⭐⭐⭐⭐⭐⭐」" }]);
   });
 
   it("反过来导出时普通只能还原成 1 星", () => {
@@ -87,8 +112,8 @@ describe("parseAchievementsTable", () => {
     expect(r.rows.map((x) => x.name)).toEqual(["甲"]);
     expect(r.errors).toEqual([
       { line: 3, reason: "成就名称是空的" },
-      { line: 4, reason: "星数要是 1–5 的整数，实际是「9」" },
-      { line: 5, reason: "星数要是 1–5 的整数，实际是「x」" },
+      { line: 4, reason: "星数要是 1–5 星（数字或 ⭐ 都行），实际是「9」" },
+      { line: 5, reason: "星数要是 1–5 星（数字或 ⭐ 都行），实际是「x」" },
     ]);
   });
 

@@ -76,7 +76,7 @@ export default function AchievementImport({ existingNames }: { existingNames: st
         </div>
         <p className="muted mt-2">
           第一行是表头，必须有「成就名称」这一列（写 name / 成就名称 / 标题都认）。
-          其余列可选：角色、达成条件、星数（1–5）、剧本、排序、隐藏、上架。
+          其余列可选：角色、达成条件、星数（1–5，写数字或 ⭐⭐⭐ 都行）、剧本、排序、隐藏、上架。
         </p>
       </div>
 
