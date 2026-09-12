@@ -156,6 +156,9 @@ npm run gen:roles        # 从官方仓库同步角色表与角色图标（官�
   team）由 `npm run gen:roles` 从 TPI 官方仓库拉下来，同时把角色美术处理成
   `public/roles/<英文 id>.webp`（trim 掉留白后统一 128px，好人版取蓝、坏人版取红）。
   `src/lib/roles.ts` 只放在这份数据上派生的逻辑（中文名 → id、阵营、图标路径）。
+  查表一律走 `roleSlug()` / `roleTeam()` / `isOfficialRole()`，它们忽略连字符和空格
+  （官方「诺-达鲺」，群里写「诺达鲺」）；成就保存 / 导入前用 `canonicalRole()` 收敛成官方写法，
+  库里只留一种，成就墙按角色分组才不会裂成两块。
   官方出新角色就重跑脚本并提交生成的文件，**不要**往映射表里手加一条。
   `public/roles/generic.webp`（「通用」的门环纹样）是我们自己的，脚本不碰。
   页面里用 `<RoleIcon role=... />`，别再往界面上写角色 emoji；导航图标用 `<NavIcon>` 的线图。

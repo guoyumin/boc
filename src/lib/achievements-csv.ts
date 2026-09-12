@@ -8,7 +8,7 @@
  */
 import { RARITIES, type Rarity } from "@/db/schema";
 import { asRarity } from "@/lib/labels";
-import { GENERIC_ROLE, isOfficialRole } from "@/lib/roles";
+import { GENERIC_ROLE, canonicalRole, isOfficialRole } from "@/lib/roles";
 
 /**
  * 星数 → 四档稀有度。飞书底稿里稀有度是 1–5 星，站内是四档。
@@ -217,7 +217,8 @@ export function parseAchievementsTable(text: string, existingNames: string[] = [
     }
 
     const warnings: string[] = [];
-    const role = get("role") || GENERIC_ROLE;
+    // 官方写法优先：「诺达鲺」进来存成「诺-达鲺」，库里只留一种写法
+    const role = canonicalRole(get("role"));
     if (role !== GENERIC_ROLE && !isOfficialRole(role)) {
       warnings.push(`「${role}」不是官方角色名，图标会用通用纹样，红蓝筛选里也不会出现`);
     }

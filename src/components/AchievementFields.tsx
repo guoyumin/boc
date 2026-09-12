@@ -3,7 +3,7 @@
 import { useId, useState } from "react";
 import RoleIcon from "@/components/RoleIcon";
 import { RARITY_OPTIONS } from "@/lib/labels";
-import { GENERIC_ROLE, roleOptionGroups } from "@/lib/roles";
+import { GENERIC_ROLE, canonicalRole, roleOptionGroups } from "@/lib/roles";
 
 /** 表单里用得到的字段，页面传进来的是普通对象（服务端组件 → 客户端组件要可序列化） */
 export type AchievementDraft = {
@@ -27,9 +27,11 @@ const OFFICIAL = new Set(GROUPS.flatMap((g) => g.roles));
  * 非官方角色（自制板子之类）走「其他（手填）」。
  */
 function RoleSelect({ defaultValue }: { defaultValue: string }) {
-  const known = defaultValue === GENERIC_ROLE || OFFICIAL.has(defaultValue);
-  const [choice, setChoice] = useState(known ? defaultValue : CUSTOM);
-  const [custom, setCustom] = useState(known ? "" : defaultValue);
+  // 库里的旧写法（少个连字符之类）先收敛成官方写法，才能在下拉里选中
+  const initial = canonicalRole(defaultValue);
+  const known = initial === GENERIC_ROLE || OFFICIAL.has(initial);
+  const [choice, setChoice] = useState(known ? initial : CUSTOM);
+  const [custom, setCustom] = useState(known ? "" : initial);
   const role = choice === CUSTOM ? custom : choice;
   const id = useId();
 

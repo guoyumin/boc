@@ -12,6 +12,7 @@ import { findOrCreatePlayer } from "@/lib/players";
 import { assertWriteRate } from "@/lib/rate-limit";
 import { logAudit } from "@/lib/audit";
 import { parseAchievementsTable } from "@/lib/achievements-csv";
+import { canonicalRole } from "@/lib/roles";
 
 /** ACH-03：玩家宣告"我达成了" */
 export async function claimAchievement(fd: FormData): Promise<void> {
@@ -157,7 +158,8 @@ export async function saveAchievement(fd: FormData): Promise<void> {
   try {
     const name = str(fd, "name");
     if (!name) throw new Error("请填写成就名称");
-    const role = str(fd, "role") || "通用";
+    // 「诺达鲺」这类少个连字符的写法收敛成官方的「诺-达鲺」，不然图标对不上、分组也会裂开
+    const role = canonicalRole(str(fd, "role"));
     const values = {
       name,
       description: str(fd, "description"),
