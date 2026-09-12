@@ -71,6 +71,8 @@ export function parseJielong(text: string, defaultSession: JielongSession = "ful
 
     const m = NUMBERED.exec(line);
     if (!m) {
+      // 我们自己生成的接龙里标题下面带一行报名链接，粘贴回来时直接忽略，不算跳过
+      if (/https?:\/\//.test(line)) return;
       if (!sawNumbered && !titleUsed) {
         titleUsed = true; // 标题行
         return;
@@ -113,12 +115,18 @@ export function parseJielong(text: string, defaultSession: JielongSession = "ful
   return { rows, skipped };
 }
 
-/** 由报名表反向生成接龙文本（EVT-05）。 */
+/**
+ * 由报名表反向生成接龙文本（EVT-05）。
+ * `link` 是活动页地址，放在标题下一行，群里看到能直接点进来报名；
+ * 粘贴回来解析时这行会被忽略（见 parseJielong）。
+ */
 export function buildJielong(
   title: string,
   entries: { name: string; note?: string | null }[],
+  link?: string,
 ): string {
   const lines = [title];
+  if (link) lines.push(`报名：${link}`);
   entries.forEach((e, i) => {
     const note = e.note ? `（${e.note}）` : "";
     lines.push(`${i + 1}. ${e.name}${note}`);
