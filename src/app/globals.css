@@ -319,3 +319,95 @@ body {
     color: var(--ach-dim);
   }
 }
+
+/* ==========================================================================
+ * 主页之外的装饰（issue #28）：活动页日历牌、玩家页镇民档案、成就解锁动效
+ * 全部走语义 token，深浅色都不用单独调。
+ * ========================================================================== */
+@layer components {
+  /* 日历牌：血色月份条 + 衬线大号日期 */
+  .date-tile {
+    @apply flex w-16 shrink-0 flex-col items-center overflow-hidden rounded-lg border border-line-strong
+      bg-surface-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)];
+  }
+  .date-tile-month {
+    @apply w-full bg-brand py-0.5 text-[11px] font-medium tracking-wider text-white;
+  }
+  .date-tile-day {
+    @apply font-serif text-3xl leading-none font-bold text-ink pt-1.5;
+  }
+  .date-tile-wd {
+    @apply pb-1.5 text-[11px] text-muted;
+  }
+
+  /* 镇民档案：双线边框 + 左上角一点血色晕染，像一张翻开的档案卡 */
+  .dossier {
+    @apply relative overflow-hidden rounded-xl border border-line-strong p-5;
+    background:
+      radial-gradient(120% 90% at 0% 0%, var(--color-brand-soft), transparent 55%),
+      var(--color-surface);
+  }
+  .dossier::before {
+    content: "";
+    @apply pointer-events-none absolute inset-1.5 rounded-lg border border-line;
+  }
+  /* 蜡封头像：双圈血色圆章，里面一个衬线字 */
+  .seal {
+    @apply flex size-16 shrink-0 items-center justify-center rounded-full font-serif text-2xl font-bold text-white;
+    background: radial-gradient(circle at 35% 30%, var(--color-brand-bright), var(--color-brand-dark) 75%);
+    box-shadow:
+      0 0 0 2px var(--color-surface),
+      0 0 0 3px var(--color-brand-line),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  }
+
+  /* 新解锁的角标 */
+  .ach-new {
+    @apply absolute top-2.5 left-3 rounded-sm px-1.5 py-0.5 text-[10px] font-medium tracking-wider text-white;
+    background: var(--color-brand);
+  }
+}
+
+/* 解锁动效：页面加载时点亮一次（边框泛金光、图标框盖章式落下），不循环、没声音。
+ * 只给最近 7 天内解锁的卡（data-fresh），减少动效的用户完全不放。 */
+@keyframes ach-ignite {
+  0% {
+    border-color: var(--ach-frame);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  30% {
+    border-color: var(--ach-gold);
+    box-shadow:
+      0 0 0 3px var(--ach-glow),
+      0 0 28px var(--ach-glow);
+  }
+  100% {
+    border-color: var(--ach-frame);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+@keyframes ach-stamp {
+  0% {
+    transform: scale(1.18);
+    opacity: 0.2;
+  }
+  55% {
+    transform: scale(0.97);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.ach-card[data-fresh] {
+  animation: ach-ignite 1.4s ease-out 1 both;
+}
+.ach-card[data-fresh] .ach-frame {
+  animation: ach-stamp 0.7s cubic-bezier(0.2, 0.8, 0.3, 1.1) 1 both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ach-card[data-fresh],
+  .ach-card[data-fresh] .ach-frame {
+    animation: none;
+  }
+}

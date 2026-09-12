@@ -9,12 +9,22 @@ type Ach = {
   id: number;
   name: string;
   description: string;
-  icon: string;
   role: string;
   rarity: string;
   scriptName: string | null;
   hidden: number;
 };
+
+/** 最近 7 天内解锁过的卡在页面加载时点亮一次（issue #28）。日期不可考的历史记录不算。 */
+const FRESH_MS = 7 * 24 * 60 * 60 * 1000;
+function isFresh(owners: Unlocker[]): boolean {
+  const now = Date.now();
+  return owners.some((o) => {
+    if (o.unlockedAtText) return false;
+    const t = Date.parse(o.unlockedAt);
+    return Number.isFinite(t) && now - t < FRESH_MS;
+  });
+}
 
 /**
  * 成就卡。已解锁和未解锁是同一张卡、同一个尺寸，
@@ -32,6 +42,7 @@ export default function AchievementCard({
   const locked = owners.length === 0;
   const masked = a.hidden === 1 && locked;
   const first = owners[0];
+  const fresh = !locked && isFresh(owners);
 
   return (
     <Link href={`/achievements/${a.id}`} className="block h-full">
@@ -39,8 +50,10 @@ export default function AchievementCard({
         data-skin={skin}
         data-rarity={a.rarity}
         data-locked={locked ? "" : undefined}
+        data-fresh={fresh ? "" : undefined}
         className="ach-card"
       >
+        {fresh && <span className="ach-new">新解锁</span>}
         <p className="ach-state">{locked ? "未解锁" : "已解锁"}</p>
 
         <div className="ach-frame">

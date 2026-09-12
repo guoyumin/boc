@@ -168,6 +168,12 @@ npm run gen:roles        # 从官方仓库同步角色表与角色图标（官�
   `[data-skin="xxx"]` 块**，再往 `src/lib/skins.ts` 的 `SKINS` / `SKIN_LABEL` 各加一条，
   组件和页面都不用动。皮肤优先级：URL 的 `?skin=`（预览、分享）> 账号里的
   `users.card_skin`（个人中心里选）> 默认 `gothic`。
+- 装饰件（issue #28）都在 `globals.css` 末尾那一段，走语义 token：活动页顶部的日历牌
+  `<DateTile ymd>`（`.date-tile`）、玩家页的镇民档案 `.dossier` + 蜡封头像 `.seal`、
+  空状态 `<EmptyState art="ghost|shelf|dice|calendar">`（线图和 `NavIcon` 一个画风，
+  加一张图就往 `ART` 里加一组 path）。**空状态别再干写「还没有记录」**，用 `EmptyState`。
+  成就卡最近 7 天内解锁过的带 `data-fresh`，页面加载时点亮一次（`ach-ignite` / `ach-stamp`），
+  不循环、没声音，`prefers-reduced-motion` 下关掉；别再加会持续闪的动效。
 - 移动端底部 tab bar 是 `BottomNav`，桌面（`lg` 起）换成 `SideNav` 左侧栏，导航项在
   `src/components/nav-items.ts` 里共用一份。列表和成就墙在桌面上要铺成多列，别留大片空白。
 - 首页 hero 图在 `public/hero/`（webp，三档尺寸，窄屏用 portrait 裁切）。`src/proxy.ts` 的
