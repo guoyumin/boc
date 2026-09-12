@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Zoomable from "@/components/Zoomable";
 import { notFound } from "next/navigation";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import CopyButton from "@/components/CopyButton";
@@ -113,14 +114,12 @@ export default async function ScriptPollPage({
                 >
                   {/* 板子图片：没传图的先留一块占位，别让卡片高矮不齐 */}
                   {o.imageFileId ? (
-                    <a href={`/files/${o.imageFileId}`} target="_blank" rel="noreferrer" className="block">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/files/${o.imageFileId}?thumb=1`}
-                        alt={o.name}
-                        className="aspect-[4/3] w-full bg-surface-2 object-cover"
-                      />
-                    </a>
+                    <Zoomable
+                      src={`/files/${o.imageFileId}`}
+                      thumb={`/files/${o.imageFileId}?thumb=1`}
+                      alt={o.name}
+                      className="aspect-[4/3] w-full bg-surface-2 object-cover"
+                    />
                   ) : (
                     <div className="flex aspect-[4/3] w-full items-center justify-center bg-surface-2 text-xs text-faint">
                       还没有图

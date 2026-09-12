@@ -1,5 +1,6 @@
 import Link from "next/link";
 import DateTile from "@/components/DateTile";
+import Zoomable from "@/components/Zoomable";
 import GrimoireLink from "@/components/GrimoireLink";
 import NavIcon from "@/components/NavIcon";
 import { notFound } from "next/navigation";
@@ -428,24 +429,29 @@ export default async function EventDetailPage({
                   ) : (
                     <ul className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {sp2.options.map((o) => (
-                        <li key={o.id}>
+                        <li
+                          key={o.id}
+                          className="flex items-center gap-2 rounded-lg border border-line bg-surface-2/60 p-1.5 text-sm transition hover:border-brand-line"
+                        >
+                          {/* 图点开放大看板子，名字点进投票页 */}
+                          {o.imageFileId ? (
+                            <Zoomable
+                              src={`/files/${o.imageFileId}`}
+                              thumb={`/files/${o.imageFileId}?thumb=1`}
+                              alt={o.name}
+                              className="size-10 rounded object-cover"
+                              buttonClassName="block shrink-0"
+                            />
+                          ) : (
+                            <span className="flex size-10 shrink-0 items-center justify-center rounded bg-surface text-[10px] text-faint">
+                              无图
+                            </span>
+                          )}
                           <Link
                             href={`/script-polls/${sp2.id}`}
-                            className="flex items-center gap-2 rounded-lg border border-line bg-surface-2/60 p-1.5 text-sm transition hover:border-brand-line"
+                            className="min-w-0 flex-1 truncate py-2 text-ink-2"
                           >
-                            {o.imageFileId ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img
-                                src={`/files/${o.imageFileId}?thumb=1`}
-                                alt=""
-                                className="size-10 shrink-0 rounded object-cover"
-                              />
-                            ) : (
-                              <span className="flex size-10 shrink-0 items-center justify-center rounded bg-surface text-[10px] text-faint">
-                                无图
-                              </span>
-                            )}
-                            <span className="min-w-0 truncate text-ink-2">{o.name}</span>
+                            {o.name}
                           </Link>
                         </li>
                       ))}
@@ -609,15 +615,12 @@ export default async function EventDetailPage({
             <ul className="grid grid-cols-3 gap-2">
               {images.map((f) => (
                 <li key={f.id} className="space-y-1">
-                  <a href={`/files/${f.id}`} target="_blank" rel="noreferrer" className="block">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`/files/${f.id}?thumb=1`}
-                      alt={f.originalName}
-                      loading="lazy"
-                      className="aspect-square w-full rounded-lg border border-line object-cover"
-                    />
-                  </a>
+                  <Zoomable
+                    src={`/files/${f.id}`}
+                    thumb={`/files/${f.id}?thumb=1`}
+                    alt={f.originalName}
+                    className="aspect-square w-full rounded-lg border border-line object-cover"
+                  />
                   <p className="truncate text-xs text-muted">
                     {f.session ? `${SESSION_LABEL[f.session as Session]} · ` : ""}
                     {f.originalName}
