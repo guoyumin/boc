@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseJielong } from "../jielong";
+import { buildJielong, parseJielong } from "../jielong";
 import { formatDate, nextSaturday, pollTitle, weekendRange, addDays, weekdayCn } from "../dates";
 
 const SAMPLE = `#接龙 9月7日 血染钟楼（下午场）
@@ -73,5 +73,19 @@ describe("dates", () => {
     expect(nextSaturday(new Date(2026, 8, 5))).toBe("2026-09-05");
     expect(nextSaturday(new Date(2026, 8, 6))).toBe("2026-09-12");
     expect(addDays("2026-09-05", 1)).toBe("2026-09-06");
+  });
+});
+
+describe("buildJielong 带报名链接", () => {
+  it("链接放在标题下一行，粘贴回来解析时被忽略", () => {
+    const text = buildJielong(
+      "#接龙 9月20日 血染钟楼（14:00）",
+      [{ name: "张三", note: "下午" }, { name: "李四" }],
+      "https://play.zurich-boca.party/events/3",
+    );
+    expect(text.split("\n")[1]).toBe("报名：https://play.zurich-boca.party/events/3");
+    const r = parseJielong(text);
+    expect(r.rows.map((x) => x.name)).toEqual(["张三", "李四"]);
+    expect(r.skipped).toEqual([]);
   });
 });

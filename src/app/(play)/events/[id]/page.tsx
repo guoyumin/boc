@@ -124,11 +124,14 @@ export default async function EventDetailPage({
     .filter(Boolean)
     .join("\n");
 
+  // 开头带 `#接龙`，微信会认成接龙消息；粘贴回来时这行也会被解析器跳过（不带的话
+  // 「9月20日」会被当成 9 号玩家「月20日」）
   const jielongText = buildJielong(
-    `${formatMd(event.date)} 血染钟楼接龙${event.startTime ? `（${event.startTime}）` : ""}`,
+    `#接龙 ${formatMd(event.date)} 血染钟楼${event.startTime ? `（${event.startTime}）` : ""}`,
     signups
       .filter((s) => s.signup !== "none")
       .map((s) => ({ name: s.name, note: s.signupNote ?? SIGNUP_LABEL[s.signup as Session] })),
+    playUrl(`/events/${event.id}`),
   );
 
   return (
