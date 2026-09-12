@@ -11,20 +11,40 @@ import { OFFICIAL_ROLES, type RoleTeam } from "./roles-data";
 export const GENERIC_ROLE = "通用";
 const GENERIC_SLUG = "generic";
 
-/** 中文角色名 → 官方 id（= public/roles/<id>.webp 的文件名） */
-export const ROLE_SLUG: Record<string, string> = {
-  [GENERIC_ROLE]: GENERIC_SLUG,
-  ...Object.fromEntries(OFFICIAL_ROLES.map((r) => [r.zh, r.id])),
-};
+/**
+ * 对比角色名时忽略连字符、间隔号和空格：官方译名「诺-达鲺」，群里一直写「诺达鲺」，
+ * 少个横线就对不上图标（这个坑踩过）。只用来查表，不改显示。
+ */
+export function normalizeRoleName(role: string): string {
+  return role.replace(/[\s\-‐‑–—·•・．.]/g, "");
+}
+
+/** 归一化后的名字 → 官方角色，查表都走这里 */
+const BY_KEY = new Map(OFFICIAL_ROLES.map((r) => [normalizeRoleName(r.zh), r]));
+
+function lookup(role: string) {
+  return BY_KEY.get(normalizeRoleName(role));
+}
 
 /** 没配图标的角色回落到门环纹样，别让页面开天窗 */
 export function roleSlug(role: string): string {
-  return ROLE_SLUG[role] ?? GENERIC_SLUG;
+  if (role === GENERIC_ROLE) return GENERIC_SLUG;
+  return lookup(role)?.id ?? GENERIC_SLUG;
 }
 
-/** 是不是官方角色名。手填的、写错的、以及「通用」都返回 false。 */
+/** 是不是官方角色名（连字符、空格的差异不算）。手填的、写错的、以及「通用」都返回 false。 */
 export function isOfficialRole(role: string): boolean {
-  return Object.hasOwn(ROLE_SLUG, role) && role !== GENERIC_ROLE;
+  return role !== GENERIC_ROLE && lookup(role) !== undefined;
+}
+
+/**
+ * 收敛成官方写法：「诺达鲺」→「诺-达鲺」。认不出来的原样返回。
+ * 保存 / 导入成就时都过一遍，库里只留一种写法，成就墙分组才不会裂成两块。
+ */
+export function canonicalRole(role: string): string {
+  const r = role.trim();
+  if (r === "" || r === GENERIC_ROLE) return GENERIC_ROLE;
+  return lookup(r)?.zh ?? r;
 }
 
 /**
@@ -55,15 +75,9 @@ const TEAM_SIDE: Partial<Record<RoleTeam, "good" | "evil">> = {
   demon: "evil",
 };
 
-export const ROLE_TEAM: Record<string, "good" | "evil"> = Object.fromEntries(
-  OFFICIAL_ROLES.flatMap((r) => {
-    const side = TEAM_SIDE[r.team];
-    return side ? [[r.zh, side] as const] : [];
-  }),
-);
-
 export function roleTeam(role: string): "good" | "evil" | null {
-  return ROLE_TEAM[role] ?? null;
+  const r = lookup(role);
+  return r ? (TEAM_SIDE[r.team] ?? null) : null;
 }
 
 /** 下拉框里的分组，顺序就是官方角色表的排法 */
