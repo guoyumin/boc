@@ -123,6 +123,9 @@ npm run gen:roles        # 从官方仓库同步角色表与角色图标（官�
   日期定下来之后那一步才叫「报名」。
 - 写完数据 `revalidatePath()`，出错用 `redirect(withMsg(path, 消息))` 回到页面顶部的提示条
   （页面用 `<Flash err={sp.err} ok={sp.ok} />` 渲染）。
+- 统计用 GA4（`src/components/Analytics.tsx`，`@next/third-parties/google`），两个站共用一个数据流，
+  ID 从 `GA_MEASUREMENT_ID` **运行时**读（不用 `NEXT_PUBLIC_`，改 .env 重启就生效）。
+  没配 ID 或当前登录的是管理员就不加载。要加行为事件用 `sendGAEvent`，别再手写 gtag。
 - 所有用户可见文案用简体中文。
 - `data/`、`.env` 不进 git。
 

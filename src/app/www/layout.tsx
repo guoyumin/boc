@@ -73,6 +73,11 @@ export default function WwwLayout({ children }: { children: React.ReactNode }) {
           <p className="mt-3 text-xs text-faint">
             《血染钟楼》是 The Pandemonium Institute 的作品，本站与其无隶属关系。
           </p>
+          {process.env.GA_MEASUREMENT_ID && (
+            <p className="mt-1 text-xs text-faint">
+              本站使用 Google Analytics 统计访问情况（IP 已匿名化，不用于广告）。
+            </p>
+          )}
         </div>
       </footer>
     </>
