@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import CopyButton from "@/components/CopyButton";
+import { Track } from "@/components/Track";
 import NavIcon from "@/components/NavIcon";
 import ConfirmSubmit from "@/components/ConfirmSubmit";
 import Flash from "@/components/Flash";
@@ -11,6 +12,7 @@ import { addDays, formatDate, formatMd } from "@/lib/dates";
 import { POLL_STATUS_LABEL, SLOT_LABEL, SLOT_SHORT } from "@/lib/labels";
 import { getPollView } from "@/lib/queries";
 import { playUrl } from "@/lib/urls";
+import { withUtm } from "@/lib/analytics";
 
 export default async function PollDetailPage({
   params,
@@ -30,7 +32,7 @@ export default async function PollDetailPage({
   // 复制到微信的分享文案：说清是哪一轮投票，后面跟可点的链接
   const shareText = [
     poll.title,
-    `填你有空的时段：${playUrl(`/polls/${poll.id}`)}`,
+    `填你有空的时段：${withUtm(playUrl(`/polls/${poll.id}`), "share")}`,
   ].join("\n");
 
   const summary = [
@@ -53,6 +55,7 @@ export default async function PollDetailPage({
 
   return (
     <div className="space-y-4">
+      <Track name="view_poll" params={{ poll_id: poll.id }} />
       <Flash err={sp.err} ok={sp.ok} />
 
       <div className="card">
@@ -151,6 +154,7 @@ export default async function PollDetailPage({
             label="复制分享链接"
             className="btn btn-sm btn-primary"
             block={false}
+            share="link"
           />
           <CopyButton text={summary} label="复制结果到微信" className="btn btn-sm" block={false} />
         </div>

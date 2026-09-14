@@ -80,11 +80,14 @@ export async function createScriptPoll(fd: FormData): Promise<void> {
 export async function submitScriptVote(fd: FormData): Promise<void> {
   const pollId = num(fd, "pollId");
   const back = `/script-polls/${pollId}`;
+  let eventId: number | null = null;
+  let optionCount = 0;
   try {
     await assertWriteRate("script-poll");
     const poll = db.select().from(scriptPolls).where(eq(scriptPolls.id, pollId)).get();
     if (!poll) throw new Error("板子投票不存在");
     if (poll.status !== "open") throw new Error("这次板子投票已经锁定，不能再投了");
+    eventId = poll.eventId;
     const player = findOrCreatePlayer(str(fd, "nickname"));
     const valid = db
       .select({ id: scriptPollOptions.id })
@@ -96,6 +99,7 @@ export async function submitScriptVote(fd: FormData): Promise<void> {
       .map((x) => Number(x))
       .filter((id) => valid.includes(id));
     if (picked.length === 0) throw new Error("至少选一个板子");
+    optionCount = picked.length;
     db.transaction((tx) => {
       tx.delete(scriptPollVotes)
         .where(and(eq(scriptPollVotes.pollId, pollId), eq(scriptPollVotes.playerId, player.id)))
@@ -108,7 +112,12 @@ export async function submitScriptVote(fd: FormData): Promise<void> {
     redirect(withMsg(back, errMsg(e)));
   }
   revalidatePath(back);
-  redirect(withMsg(back, "投好了，随时可以回来改", "ok"));
+  redirect(
+    withMsg(back, "投好了，随时可以回来改", "ok", {
+      name: "script_vote_success",
+      params: { poll_id: pollId, event_id: eventId, option_count: optionCount },
+    }),
+  );
 }
 
 /** 撤回自己的票：记录直接删掉，因为板子投票没有「填过又没空」这种语义 */

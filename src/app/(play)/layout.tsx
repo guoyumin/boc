@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import BrandMark from "@/components/BrandMark";
 import Breadcrumb from "@/components/Breadcrumb";
 import GrimoireLink from "@/components/GrimoireLink";
 import ThemeToggle from "@/components/ThemeToggle";
 import BottomNav from "@/components/BottomNav";
 import SideNav from "@/components/SideNav";
+import { TrackFromQuery } from "@/components/Track";
 import { getUser, isAdminRole } from "@/lib/auth";
 import { wwwUrl } from "@/lib/urls";
 
@@ -25,6 +27,10 @@ export default async function PlayLayout({ children }: { children: React.ReactNo
 
   return (
     <>
+      {/* Server Action 成功后 redirect 带回来的 ?ev=… 在这里上报（GA 行为事件） */}
+      <Suspense fallback={null}>
+        <TrackFromQuery />
+      </Suspense>
       <SideNav isAdmin={isAdmin} displayName={displayName} wwwHref={wwwUrl("/")} />
 
       <div className="lg:pl-56">

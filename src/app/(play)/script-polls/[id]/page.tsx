@@ -18,6 +18,7 @@ import { getAdmin, getUser } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { getScriptPollView } from "@/lib/queries";
 import { playUrl } from "@/lib/urls";
+import { withUtm } from "@/lib/analytics";
 
 const STATUS_LABEL: Record<string, string> = {
   open: "投票中",
@@ -51,7 +52,7 @@ export default async function ScriptPollPage({
   const shareText = [
     poll.title,
     event ? `${formatDate(event.date)} ${event.title}` : "",
-    `投你想玩的本：${playUrl(`/script-polls/${poll.id}`)}`,
+    `投你想玩的本：${withUtm(playUrl(`/script-polls/${poll.id}`), "share")}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -87,6 +88,7 @@ export default async function ScriptPollPage({
             label="复制分享链接"
             className="btn btn-sm btn-primary"
             block={false}
+            share="link"
           />
         </div>
       </section>

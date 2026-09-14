@@ -60,6 +60,7 @@ export async function selfSignup(fd: FormData): Promise<void> {
   const eventId = num(fd, "eventId");
   const back = `/events/${eventId}`;
   let waitlisted = false;
+  let session = "full";
   try {
     await assertWriteRate("signup");
     const ev = db.select().from(events).where(eq(events.id, eventId)).get();
@@ -67,6 +68,7 @@ export async function selfSignup(fd: FormData): Promise<void> {
     if (ev.status === "cancelled") throw new Error("这次活动已取消");
     const player = findOrCreatePlayer(str(fd, "nickname"));
     const signup = asSession(str(fd, "session"));
+    session = signup;
     const note = optStr(fd, "note");
 
     // 已经占着位子的人改报名场次，不该被自己挤到候补里去
@@ -106,6 +108,7 @@ export async function selfSignup(fd: FormData): Promise<void> {
         ? `名额已满，你排进了候补。有人取消就自动补上你。${JOIN_HINT}`
         : `报名成功。${JOIN_HINT}`,
       "ok",
+      { name: "rsvp_success", params: { event_id: eventId, session, waitlisted } },
     ),
   );
 }
@@ -143,6 +146,7 @@ export async function cancelSignup(fd: FormData): Promise<void> {
         ? `已取消报名。空出来的位子给了候补里的${promoted}。放鸽子会记一笔，情况特殊可以找管理员免掉`
         : "已取消报名。放鸽子会记一笔，情况特殊可以找管理员免掉",
       "ok",
+      { name: "rsvp_cancel", params: { event_id: eventId } },
     ),
   );
 }
