@@ -1,4 +1,5 @@
 /** Server Action 里读取 FormData 的小工具。 */
+import { trackQuery, type TrackEvent } from "@/lib/analytics";
 
 export function str(fd: FormData, key: string): string {
   const v = fd.get(key);
@@ -36,9 +37,16 @@ export function errMsg(e: unknown): string {
   return "操作失败，请重试";
 }
 
-export function withMsg(path: string, msg: string, kind: "err" | "ok" = "err"): string {
+export function withMsg(
+  path: string,
+  msg: string,
+  kind: "err" | "ok" = "err",
+  /** 成功后要上报的行为事件（GA），会以 ?ev=… 带到落地页，由 <TrackFromQuery> 上报 */
+  track?: TrackEvent,
+): string {
   const sep = path.includes("?") ? "&" : "?";
-  return `${path}${sep}${kind}=${encodeURIComponent(msg)}`;
+  const ev = track ? `&${trackQuery(track)}` : "";
+  return `${path}${sep}${kind}=${encodeURIComponent(msg)}${ev}`;
 }
 
 /** redirect() 抛出的内部错误不能被吞掉 */

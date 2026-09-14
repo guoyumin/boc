@@ -42,6 +42,7 @@ export async function createPoll(fd: FormData): Promise<void> {
 export async function submitPollResponse(fd: FormData): Promise<void> {
   const pollId = num(fd, "pollId");
   const back = `/polls/${pollId}`;
+  let slotCount = 0;
   try {
     await assertWriteRate("poll");
     const poll = db.select().from(polls).where(eq(polls.id, pollId)).get();
@@ -55,6 +56,7 @@ export async function submitPollResponse(fd: FormData): Promise<void> {
     if (slots.length === 0) {
       throw new Error("至少选一个时段；这次都没空的话，用下面的「我这次没空」撤掉自己的记录");
     }
+    slotCount = slots.length;
     db.insert(pollResponses)
       .values({
         pollId,
@@ -80,7 +82,12 @@ export async function submitPollResponse(fd: FormData): Promise<void> {
   }
   revalidatePath(back);
   revalidatePath("/");
-  redirect(withMsg(back, "已保存你的时间", "ok"));
+  redirect(
+    withMsg(back, "已保存你的时间", "ok", {
+      name: "poll_fill_success",
+      params: { poll_id: pollId, slot_count: slotCount },
+    }),
+  );
 }
 
 /**

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import DateTile from "@/components/DateTile";
+import { Track } from "@/components/Track";
 import Zoomable from "@/components/Zoomable";
 import GrimoireLink from "@/components/GrimoireLink";
 import NavIcon from "@/components/NavIcon";
@@ -9,6 +10,7 @@ import ConfirmSubmit from "@/components/ConfirmSubmit";
 import WaiveButton from "@/components/WaiveButton";
 import CopyButton from "@/components/CopyButton";
 import { playUrl } from "@/lib/urls";
+import { withUtm } from "@/lib/analytics";
 import Flash from "@/components/Flash";
 import NicknameInput from "@/components/NicknameInput";
 import { deleteEvent, updateEvent } from "@/actions/events";
@@ -119,7 +121,7 @@ export default async function EventDetailPage({
   const shareText = [
     `${formatDate(event.date)} ${event.title}`,
     [event.location, event.startTime].filter(Boolean).join(" · "),
-    `报名：${playUrl(`/events/${event.id}`)}`,
+    `报名：${withUtm(playUrl(`/events/${event.id}`), "share")}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -131,11 +133,12 @@ export default async function EventDetailPage({
     signups
       .filter((s) => s.signup !== "none")
       .map((s) => ({ name: s.name, note: s.signupNote ?? SIGNUP_LABEL[s.signup as Session] })),
-    playUrl(`/events/${event.id}`),
+    withUtm(playUrl(`/events/${event.id}`), "jielong"),
   );
 
   return (
     <div className="space-y-4">
+      <Track name="view_event" params={{ event_id: event.id }} />
       <Flash err={sp.err} ok={sp.ok} />
 
       {/* 基本信息：日历牌 + 大标题，时间地点放大，报名按钮提到最上面（issue #28） */}
@@ -182,8 +185,9 @@ export default async function EventDetailPage({
             label="复制分享链接"
             className={`btn ${canSignup ? "" : "btn-primary"}`}
             block={false}
+            share="link"
           />
-          <CopyButton text={jielongText} label="复制接龙" className="btn" block={false} />
+          <CopyButton text={jielongText} label="复制接龙" className="btn" block={false} share="jielong" />
           {admin && (
             <Link href={`/events/${event.id}/jielong`} className="btn">
               粘贴接龙
