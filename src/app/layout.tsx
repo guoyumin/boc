@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import Script from "next/script";
+import Analytics from "@/components/Analytics";
 import { isWwwHost } from "@/lib/hosts";
 import { THEME_INIT } from "@/lib/theme";
 import "./globals.css";
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </Script>
         )}
         {children}
+        <Analytics />
       </body>
     </html>
   );
