@@ -16,6 +16,7 @@ import {
   isCancelled,
   isFinished,
   isLate,
+  isLeftEarly,
   isNoShow,
   isWaived,
 } from "@/lib/labels";
@@ -179,6 +180,7 @@ export default async function MePage({
                     {ATTEND_OPTIONS.find((o) => o.value === a.attended)?.label ?? SESSION_LABEL.none}
                     {finished && isNoShow(a) && <span className="ml-1 text-danger">鸽</span>}
                     {isLate(a) && <span className="ml-1 text-warn">迟到</span>}
+                    {isLeftEarly(a) && <span className="ml-1 text-warn">早退</span>}
                     {finished && isWaived(a) && <span className="ml-1 text-ok">已免</span>}
                   </span>
                 </li>

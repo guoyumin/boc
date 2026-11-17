@@ -5,7 +5,7 @@ import Flash from "@/components/Flash";
 import { getAdmin } from "@/lib/auth";
 import { formatDate } from "@/lib/dates";
 import { EVENT_STATUS_CLASS, EVENT_STATUS_LABEL, signupSummary } from "@/lib/labels";
-import { listEvents } from "@/lib/queries";
+import { listEvents, winStats } from "@/lib/queries";
 
 export default async function EventsPage({
   searchParams,
@@ -15,6 +15,7 @@ export default async function EventsPage({
   const sp = await searchParams;
   const admin = await getAdmin();
   const rows = listEvents();
+  const { overall } = winStats();
 
   return (
     <div className="space-y-4">
@@ -30,6 +31,36 @@ export default async function EventsPage({
           )}
         </div>
       </div>
+
+      {/* 全站战绩摘要，点进去按板子拆（issue #66） */}
+      {overall.total > 0 && (
+        <Link href="/stats" className="card block transition hover:border-brand-line">
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="font-medium text-ink">
+              共 {overall.total} 局
+              {overall.goodRate !== null && (
+                <span className="muted">
+                  {" "}
+                  · 善良 {overall.goodRate}% · 邪恶 {100 - overall.goodRate}%
+                </span>
+              )}
+            </span>
+            <span className="shrink-0 text-xs text-brand-bright">按板子看 →</span>
+          </div>
+          {overall.good + overall.evil > 0 && (
+            <div className="mt-2 flex h-2 overflow-hidden rounded-full bg-surface-2">
+              <div
+                className="bg-rare"
+                style={{ width: `${(overall.good / (overall.good + overall.evil)) * 100}%` }}
+              />
+              <div
+                className="bg-danger"
+                style={{ width: `${(overall.evil / (overall.good + overall.evil)) * 100}%` }}
+              />
+            </div>
+          )}
+        </Link>
+      )}
 
       {rows.length === 0 ? (
         <div className="card">
@@ -64,6 +95,7 @@ export default async function EventsPage({
                   <span>到场 {e.attendCount}</span>
                   {e.noShowCount > 0 && <span className="text-danger">鸽 {e.noShowCount}</span>}
                   {e.lateCount > 0 && <span className="text-warn">迟到 {e.lateCount}</span>}
+                  {e.leftEarlyCount > 0 && <span className="text-warn">早退 {e.leftEarlyCount}</span>}
                 </div>
               </Link>
             </li>

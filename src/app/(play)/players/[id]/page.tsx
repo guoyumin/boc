@@ -10,6 +10,7 @@ import {
   SIGNUP_LABEL,
   isFinished,
   isLate,
+  isLeftEarly,
   isNoShow,
 } from "@/lib/labels";
 import { getPlayerProfile } from "@/lib/queries";
@@ -38,6 +39,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
   ).length;
   // 鸽和迟到分开数：迟到的人到了，不算鸽（issue #1）
   const late = attendance.filter((a) => isLate(a)).length;
+  const leftEarly = attendance.filter((a) => isLeftEarly(a)).length;
   const sig = signature(unlocks);
 
   return (
@@ -86,7 +88,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
-        {(sig || noShow > 0 || late > 0) && (
+        {(sig || noShow > 0 || late > 0 || leftEarly > 0) && (
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {sig && (
               <Link
@@ -106,6 +108,9 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
             )}
             {late > 0 && (
               <span className="badge border-warn/30 bg-warn-soft text-warn">迟到 {late} 次</span>
+            )}
+            {leftEarly > 0 && (
+              <span className="badge border-warn/30 bg-warn-soft text-warn">早退 {leftEarly} 次</span>
             )}
           </div>
         )}
@@ -143,6 +148,7 @@ export default async function PlayerPage({ params }: { params: Promise<{ id: str
                     >
                       {SESSION_LABEL[a.attended as Session]}
                       {isLate(a) && <span className="ml-1 text-warn">迟到</span>}
+                      {isLeftEarly(a) && <span className="ml-1 text-warn">早退</span>}
                     </td>
                   </tr>
                 ))}

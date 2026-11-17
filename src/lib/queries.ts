@@ -19,7 +19,7 @@ import {
   type PollSlot,
 } from "@/db/schema";
 import { POLL_SLOTS } from "@/db/schema";
-import { isFinished, isLate, isNoShow, rarityPoints, sessionSplit } from "./labels";
+import { isFinished, isLate, isLeftEarly, isNoShow, rarityPoints, sessionSplit } from "./labels";
 
 export type Poll = typeof polls.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
@@ -136,6 +136,7 @@ export type EventListRow = EventRow & {
   attendCount: number;
   noShowCount: number;
   lateCount: number;
+  leftEarlyCount: number;
   /** 分场次报名人数，全天两边都算；只有两场都开的活动才有意义 */
   afternoonCount: number;
   eveningCount: number;
@@ -154,6 +155,7 @@ export function listEvents(limit = 50): EventListRow[] {
       status: eventSignups.status,
       noShowWaived: eventSignups.noShowWaived,
       late: eventSignups.late,
+      leftEarly: eventSignups.leftEarly,
     })
     .from(eventSignups)
     .where(inArray(eventSignups.eventId, ids))
@@ -175,6 +177,7 @@ export function listEvents(limit = 50): EventListRow[] {
         ? own.filter((s) => isNoShow(s)).length
         : 0,
       lateCount: own.filter((s) => isLate(s)).length,
+      leftEarlyCount: own.filter((s) => isLeftEarly(s)).length,
       afternoonCount: split.afternoon,
       eveningCount: split.evening,
       scripts: [...new Set(scriptRows.filter((g) => g.eventId === e.id).map((g) => g.scriptName))],
@@ -199,6 +202,7 @@ export type SignupView = {
   cancelledAt: string | null;
   noShowWaived: number;
   late: number;
+  leftEarly: number;
 };
 
 export function getSignups(eventId: number): SignupView[] {
@@ -216,6 +220,7 @@ export function getSignups(eventId: number): SignupView[] {
       cancelledAt: eventSignups.cancelledAt,
       noShowWaived: eventSignups.noShowWaived,
       late: eventSignups.late,
+      leftEarly: eventSignups.leftEarly,
     })
     .from(eventSignups)
     .innerJoin(players, eq(players.id, eventSignups.playerId))
@@ -368,6 +373,49 @@ export function getAchievement(id: number): Achievement | null {
   return db.select().from(achievements).where(eq(achievements.id, id)).get() ?? null;
 }
 
+/**
+ * 战绩统计（issue #66）：全站总的 + 按板子拆。
+ * 胜率的分母是**判出胜负的局**，`unknown` 单独数——不然一堆没记结果的局会把胜率压低。
+ */
+export type WinRow = {
+  scriptName: string;
+  total: number;
+  good: number;
+  evil: number;
+  unknown: number;
+  /** 善良胜率，0–100 的整数；没有判出胜负的局时是 null */
+  goodRate: number | null;
+};
+
+function toWinRow(scriptName: string, rows: { result: string }[]): WinRow {
+  const good = rows.filter((g) => g.result === "good").length;
+  const evil = rows.filter((g) => g.result === "evil").length;
+  const decided = good + evil;
+  return {
+    scriptName,
+    total: rows.length,
+    good,
+    evil,
+    unknown: rows.length - decided,
+    goodRate: decided === 0 ? null : Math.round((good / decided) * 100),
+  };
+}
+
+export function winStats(): { overall: WinRow; byScript: WinRow[] } {
+  const rows = db.select({ scriptName: games.scriptName, result: games.result }).from(games).all();
+  const byName = new Map<string, { result: string }[]>();
+  for (const g of rows) {
+    const list = byName.get(g.scriptName) ?? [];
+    list.push(g);
+    byName.set(g.scriptName, list);
+  }
+  const byScript = [...byName.entries()]
+    .map(([name, list]) => toWinRow(name, list))
+    // 局数多的排前面，一样多按板子名排，顺序才稳定
+    .sort((a, b) => b.total - a.total || a.scriptName.localeCompare(b.scriptName, "zh-Hans"));
+  return { overall: toWinRow("全部", rows), byScript };
+}
+
 export type AchievementGroup = { role: string; items: Achievement[] };
 
 /**
@@ -503,6 +551,7 @@ export function getPlayerProfile(id: number): PlayerProfile | null {
       cancelledAt: eventSignups.cancelledAt,
       noShowWaived: eventSignups.noShowWaived,
       late: eventSignups.late,
+      leftEarly: eventSignups.leftEarly,
       date: events.date,
       title: events.title,
       eventId: events.id,

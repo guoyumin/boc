@@ -162,8 +162,9 @@ export async function setAttendance(signupId: number, attended: string): Promise
       attended: value,
       // 人来了就不算取消
       status: value === "none" ? row.status : "active",
-      // 「未到」和「迟到」说不通，改成未到就把迟到一起清掉
+      // 「未到」和「迟到 / 早退」说不通，改成未到就一起清掉
       late: value === "none" ? 0 : row.late,
+      leftEarly: value === "none" ? 0 : row.leftEarly,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(eventSignups.id, signupId))
@@ -172,18 +173,23 @@ export async function setAttendance(signupId: number, attended: string): Promise
 }
 
 /**
- * 迟到开关（issue #1）。迟到是「到了但晚了」，和到了哪场正交，所以单独一个字段。
- * 还没标到场就点迟到，顺手按报名的场次把到场也标上——人既然迟到了肯定是来了。
+ * 迟到 / 早退开关（issue #1、#66）。两个都是「人到了，但不完整」，和到了哪场正交，
+ * 所以各是一个单独的 0/1 字段，可以同时成立（又迟到又早退）。
+ * 还没标到场就点其中一个，顺手按报名的场次把到场也标上——既然迟到/早退了肯定是来了。
  */
-export async function setLate(signupId: number, late: boolean): Promise<void> {
+export async function setPresenceFlag(
+  signupId: number,
+  flag: "late" | "leftEarly",
+  on: boolean,
+): Promise<void> {
   await requireAdmin();
   const row = db.select().from(eventSignups).where(eq(eventSignups.id, signupId)).get();
   if (!row) throw new Error("这条报名不存在");
   const attended: Session =
-    late && row.attended === "none" ? asSession(row.signup, "full") : asSession(row.attended, "none");
+    on && row.attended === "none" ? asSession(row.signup, "full") : asSession(row.attended, "none");
   db.update(eventSignups)
     .set({
-      late: late ? 1 : 0,
+      [flag]: on ? 1 : 0,
       attended,
       status: attended === "none" ? row.status : "active",
       updatedAt: new Date().toISOString(),

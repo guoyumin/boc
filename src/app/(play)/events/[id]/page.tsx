@@ -34,6 +34,7 @@ import {
   isCancelled,
   isFinished,
   isLate,
+  isLeftEarly,
   isNoShow,
   isPartial,
   isWaitlisted,
@@ -89,6 +90,13 @@ export default async function EventDetailPage({
   const split = sessionSplit(signups);
   const attendedCount = signups.filter((s) => s.attended !== "none").length;
   const lateCount = signups.filter((s) => isLate(s)).length;
+  const leftEarlyCount = signups.filter((s) => isLeftEarly(s)).length;
+  // 本场战绩（issue #66）：阵容可以不填，胜负总得有
+  const wins = {
+    good: games.filter((g) => g.result === "good").length,
+    evil: games.filter((g) => g.result === "evil").length,
+    unknown: games.filter((g) => g.result === "unknown").length,
+  };
   // 一键到场能动到的人：报了名、有效、还没标到场
   const markable = signups.filter(
     (s) => s.status === "active" && s.signup !== "none" && s.attended === "none",
@@ -208,7 +216,15 @@ export default async function EventDetailPage({
             )}
             {" · 到场 "}
             {attendedCount} 人
-            {lateCount > 0 && <span className="font-normal text-warn">（迟到 {lateCount}）</span>}
+            {(lateCount > 0 || leftEarlyCount > 0) && (
+              <span className="font-normal text-warn">
+                （
+                {[lateCount > 0 ? `迟到 ${lateCount}` : null, leftEarlyCount > 0 ? `早退 ${leftEarlyCount}` : null]
+                  .filter(Boolean)
+                  .join(" · ")}
+                ）
+              </span>
+            )}
           </span>
           {event.capacity !== null && (
             <span
@@ -259,6 +275,9 @@ export default async function EventDetailPage({
                       {isLate(s) && (
                         <span className="badge ml-1 border-warn/30 bg-warn-soft text-warn">迟到</span>
                       )}
+                      {isLeftEarly(s) && (
+                        <span className="badge ml-1 border-warn/30 bg-warn-soft text-warn">早退</span>
+                      )}
                       {finished && isWaived(s) && (
                         <span className="badge ml-1 border-ok/30 bg-ok-soft text-ok">
                           已免鸽
@@ -278,11 +297,18 @@ export default async function EventDetailPage({
                     <td className="text-ink-2">{SIGNUP_LABEL[s.signup as Session]}</td>
                     <td>
                       {admin ? (
-                        <AttendanceButtons signupId={s.id} value={s.attended} signup={s.signup} late={s.late === 1} />
+                        <AttendanceButtons
+                          signupId={s.id}
+                          value={s.attended}
+                          signup={s.signup}
+                          late={s.late === 1}
+                          leftEarly={s.leftEarly === 1}
+                        />
                       ) : (
                         <span className={s.attended === "none" ? "text-faint" : "text-ink-2"}>
                           {SESSION_LABEL[s.attended as Session]}
                           {isLate(s) && <span className="ml-1 text-warn">迟到</span>}
+                          {isLeftEarly(s) && <span className="ml-1 text-warn">早退</span>}
                         </span>
                       )}
                     </td>
@@ -526,6 +552,17 @@ export default async function EventDetailPage({
           <span>🎲 游戏记录（{games.length} 局）</span>
           <GrimoireLink />
         </div>
+        {/* 本场战绩（issue #66）：阵容大多没人填，胜负统计才是一眼能看的东西 */}
+        {games.length > 0 && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="badge border-rare/35 bg-rare-soft text-rare">善良胜 {wins.good}</span>
+            <span className="badge border-danger/30 bg-danger-soft text-danger">邪恶胜 {wins.evil}</span>
+            {wins.unknown > 0 && <span className="badge badge-plain">未记录 {wins.unknown}</span>}
+            <Link href="/stats" className="ml-auto text-xs text-brand-bright">
+              全部战绩 →
+            </Link>
+          </div>
+        )}
         {games.length === 0 ? (
           <p className="muted">还没有记录。谁说书谁来记一下。</p>
         ) : (

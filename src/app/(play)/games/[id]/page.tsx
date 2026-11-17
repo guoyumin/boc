@@ -67,7 +67,7 @@ export default async function GameDetailPage({
       </section>
 
       <section className="card">
-        <div className="card-title">玩家与角色（{game.lineup.length} 人）</div>
+        <div className="card-title">玩家与角色（{game.lineup.length} 人，可选）</div>
         {game.lineup.length === 0 ? (
           <p className="muted">还没填玩家。</p>
         ) : (
