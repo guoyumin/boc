@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { achievementClaims, achievements } from "@/db/schema";
+import { achievementClaims, achievements, players } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { bool, errMsg, num, optNum, optStr, str, withMsg } from "@/lib/form";
 import { asRarity } from "@/lib/labels";
@@ -184,6 +184,37 @@ export async function saveAchievement(fd: FormData): Promise<void> {
   revalidatePath("/achievements");
   revalidatePath(back);
   redirect(withMsg(back, "已保存", "ok"));
+}
+
+/**
+ * 撤销某个人的解锁（issue #69）。授予时点错人、或者宣告确认错了，
+ * 要能单独把这一条拿掉——不是下架整个成就。记录直接删掉，
+ * 本人之后还能重新宣告；谁撤的、撤了谁的写进审计。
+ */
+export async function revokeClaim(fd: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const claimId = num(fd, "claimId");
+  const back = str(fd, "back") || "/admin/claims";
+  const row = db
+    .select({
+      id: achievementClaims.id,
+      achievementId: achievementClaims.achievementId,
+      playerName: players.name,
+      achievementName: achievements.name,
+    })
+    .from(achievementClaims)
+    .innerJoin(players, eq(players.id, achievementClaims.playerId))
+    .innerJoin(achievements, eq(achievements.id, achievementClaims.achievementId))
+    .where(eq(achievementClaims.id, claimId))
+    .get();
+  if (!row) redirect(withMsg(back, "这条记录不存在，可能已经撤过了"));
+  db.delete(achievementClaims).where(eq(achievementClaims.id, claimId)).run();
+  logAudit(admin.id, "claim.revoke", "achievement", row.achievementId, `${row.playerName} · ${row.achievementName}`);
+  revalidatePath("/achievements");
+  revalidatePath(`/achievements/${row.achievementId}`);
+  revalidatePath("/admin/claims");
+  revalidatePath(back);
+  redirect(withMsg(back, `已撤销 ${row.playerName} 的「${row.achievementName}」`, "ok"));
 }
 
 export async function deleteAchievement(fd: FormData): Promise<void> {
