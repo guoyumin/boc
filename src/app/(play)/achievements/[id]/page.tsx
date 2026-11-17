@@ -3,14 +3,15 @@ import { notFound } from "next/navigation";
 import Flash from "@/components/Flash";
 import MyPending from "@/components/MyPending";
 import NicknameInput from "@/components/NicknameInput";
-import { claimAchievement, editClaimTime, grantAchievement } from "@/actions/achievements";
+import ConfirmSubmit from "@/components/ConfirmSubmit";
+import { claimAchievement, editClaimTime, grantAchievement, revokeClaim } from "@/actions/achievements";
 import { reviewClaim } from "@/actions/achievements";
 import { getAdmin, getUser } from "@/lib/auth";
 import RarityBadge from "@/components/RarityBadge";
 import { formatDay, formatMd } from "@/lib/dates";
 import NavIcon from "@/components/NavIcon";
 import RoleIcon from "@/components/RoleIcon";
-import { claimsForAchievement, compareUnlock, getAchievement, listEvents } from "@/lib/queries";
+import { claimsForAchievement, compareUnlock, getAchievement, latestUnlocker, listEvents } from "@/lib/queries";
 
 export default async function AchievementDetailPage({
   params,
@@ -30,6 +31,7 @@ export default async function AchievementDetailPage({
     .filter((c) => c.status === "confirmed")
     .sort(compareUnlock);
   const pending = claims.filter((c) => c.status === "pending");
+  const latest = latestUnlocker(confirmed);
   const events = listEvents(30);
   const masked = ach.hidden === 1 && confirmed.length === 0 && !admin;
 
@@ -76,15 +78,31 @@ export default async function AchievementDetailPage({
           <ul className="space-y-2 text-sm">
             {confirmed.map((c, i) => (
               <li key={c.claimId} className="flex items-center justify-between gap-2">
-                <span className="flex min-w-0 items-center gap-1.5">
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
                   <Link href={`/players/${c.playerId}`} className="font-medium">
                     {c.playerName}
                   </Link>
                   {/* 名单按解锁时间升序，第一个就是首解 */}
                   {i === 0 && <span className="badge badge-brand">首解</span>}
+                  {latest?.claimId === c.claimId && confirmed.length > 1 && (
+                    <span className="badge badge-plain">最近</span>
+                  )}
                 </span>
-                <span className="muted shrink-0">
-                  {c.unlockedAtText ?? formatDay(c.unlockedAt)}
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="muted">{c.unlockedAtText ?? formatDay(c.unlockedAt)}</span>
+                  {/* 授予点错人了要能单独撤掉这一条（issue #69） */}
+                  {admin && (
+                    <form action={revokeClaim}>
+                      <input type="hidden" name="claimId" value={c.claimId} />
+                      <input type="hidden" name="back" value={`/achievements/${ach.id}`} />
+                      <ConfirmSubmit
+                        message={`撤销 ${c.playerName} 的「${ach.name}」？这条解锁记录会被删掉，本人之后还能重新宣告。`}
+                        className="btn btn-sm btn-danger"
+                      >
+                        撤销
+                      </ConfirmSubmit>
+                    </form>
+                  )}
                 </span>
               </li>
             ))}

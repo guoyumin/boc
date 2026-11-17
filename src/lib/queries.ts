@@ -451,6 +451,17 @@ export function compareUnlock(a: UnlockTime, b: UnlockTime) {
   return a.unlockedAt.localeCompare(b.unlockedAt);
 }
 
+/**
+ * 最新解锁者：按 compareUnlock 排好序的名单里，**最后一个日期确切的**。
+ * 不能直接取 list.at(-1)——「已不可考」那类沉在末尾，它们不是「最近」。
+ */
+export function latestUnlocker<T extends UnlockTime>(list: T[]): T | null {
+  for (let i = list.length - 1; i >= 0; i--) {
+    if (!list[i].unlockedAtText) return list[i];
+  }
+  return null;
+}
+
 /** 全站最近解锁的成就 id，按时间倒序（成就墙的「最近解锁」排序用） */
 export function latestUnlockAt(list: UnlockTime[]): string | null {
   const dated = list.filter((u) => !u.unlockedAtText);

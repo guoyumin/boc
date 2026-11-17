@@ -2,7 +2,7 @@ import Link from "next/link";
 import RarityBadge from "./RarityBadge";
 import RoleIcon from "./RoleIcon";
 import { formatDay } from "@/lib/dates";
-import type { Unlocker } from "@/lib/queries";
+import { latestUnlocker, type Unlocker } from "@/lib/queries";
 import { DEFAULT_SKIN, type Skin } from "@/lib/skins";
 
 type Ach = {
@@ -43,6 +43,9 @@ export default function AchievementCard({
   const masked = a.hidden === 1 && locked;
   const first = owners[0];
   const fresh = !locked && isFresh(owners);
+  // 首解之外再给一个「最近」：墙上大多数卡的首解是很久以前的事，看不出这成就还活着（issue #69）
+  const latest = latestUnlocker(owners);
+  const showLatest = latest !== null && first !== undefined && latest.playerId !== first.playerId;
 
   return (
     <Link href={`/achievements/${a.id}`} className="block h-full">
@@ -76,6 +79,13 @@ export default function AchievementCard({
               <>
                 <span className="font-medium">{first.name}</span> 首解 ·{" "}
                 {first.unlockedAtText ?? formatDay(first.unlockedAt)}
+                {showLatest && (
+                  <>
+                    <br />
+                    最近 <span className="font-medium">{latest.name}</span> ·{" "}
+                    {formatDay(latest.unlockedAt)}
+                  </>
+                )}
                 {owners.length > 1 && <> · 共 {owners.length} 人</>}
               </>
             ) : (
