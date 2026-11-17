@@ -51,6 +51,9 @@ export default async function AdminEventsPage({
                     {e.attendCount}
                     {e.noShowCount > 0 && <span className="text-danger"> · 鸽 {e.noShowCount}</span>}
                     {e.lateCount > 0 && <span className="text-warn"> · 迟到 {e.lateCount}</span>}
+                    {e.leftEarlyCount > 0 && (
+                      <span className="text-warn"> · 早退 {e.leftEarlyCount}</span>
+                    )}
                   </p>
                 </div>
                 <span className={`badge shrink-0 ${EVENT_STATUS_CLASS[e.status]}`}>

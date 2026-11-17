@@ -99,7 +99,9 @@ export async function createGame(fd: FormData): Promise<void> {
   }
   revalidatePath(back);
   revalidatePath("/events");
-  redirect(withMsg(`/games/${gameId}`, "这一局已记下，接着补玩家和角色", "ok"));
+  revalidatePath("/stats");
+  // 停在活动页：板子和胜负记下就够用了，阵容是可选的，别把人推进一个多数人不会填的表单（issue #66）
+  redirect(withMsg(back, "这一局已记下。想补玩家和角色就点进这一局", "ok"));
 }
 
 export async function updateGame(fd: FormData): Promise<void> {
@@ -129,6 +131,8 @@ export async function updateGame(fd: FormData): Promise<void> {
   }
   revalidatePath(back);
   revalidatePath(`/events/${eventId}`);
+  revalidatePath("/events");
+  revalidatePath("/stats");
   redirect(withMsg(back, "已保存", "ok"));
 }
 
@@ -145,6 +149,8 @@ export async function deleteGame(fd: FormData): Promise<void> {
     redirect(withMsg(back, errMsg(e)));
   }
   revalidatePath(`/events/${eventId}`);
+  revalidatePath("/events");
+  revalidatePath("/stats");
   redirect(withMsg(`/events/${eventId}`, "这一局已删除", "ok"));
 }
 

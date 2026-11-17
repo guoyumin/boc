@@ -1,0 +1,1 @@
+ALTER TABLE `event_signups` ADD `left_early` integer DEFAULT 0 NOT NULL;

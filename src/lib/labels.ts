@@ -157,6 +157,7 @@ export type NoShowInput = {
   status?: string;
   noShowWaived?: number;
   late?: number;
+  leftEarly?: number;
 };
 
 /** 名额满了排在候补里：没报上，所以不算鸽 */
@@ -189,6 +190,11 @@ export function isNoShow(r: NoShowInput): boolean {
 /** 到了但晚了。只在人确实到了的前提下成立，「未到 + 迟到」这种组合不算。 */
 export function isLate(r: NoShowInput): boolean {
   return r.attended !== "none" && (r.late ?? 0) === 1;
+}
+
+/** 到了但提前走。和迟到同一个路子：人得先到了才谈得上早退（issue #66）。 */
+export function isLeftEarly(r: NoShowInput): boolean {
+  return r.attended !== "none" && (r.leftEarly ?? 0) === 1;
 }
 
 /** 报了全天只到一场 */

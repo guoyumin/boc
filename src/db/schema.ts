@@ -209,6 +209,8 @@ export const eventSignups = sqliteTable(
     attended: text("attended").notNull().default("none"),
     /** 迟到：1 = 到了但晚了。和 attended 正交（可以「下午场 + 迟到」），不算鸽（issue #1） */
     late: integer("late").notNull().default(0),
+    /** 早退：1 = 到了但提前走。和 late 一样是正交的 0/1，不算鸽（issue #66） */
+    leftEarly: integer("left_early").notNull().default(0),
     ...timestamps,
   },
   (t) => [
